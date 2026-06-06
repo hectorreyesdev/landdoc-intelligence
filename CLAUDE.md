@@ -8,17 +8,28 @@ proves the end-to-end flow. Read `tasks/lessons.md` at the start of every sessio
 - **Backend** — ASP.NET Core Web API on **.NET 10 (LTS)**. Modular monolith: one process,
   modules split by folder/namespace (`Ingestion`, `Extraction`, `Retrieval`, `Qa`) — not
   microservices.
-- **Model access** — every LLM + embedding call goes through ONE interface, `IModelClient`.
-  Two adapters implement it:
-  - `FoundryModelClient` — Microsoft Foundry gateway (**primary**).
-  - `AnthropicModelClient` — Anthropic API direct (**fallback**), official `Anthropic` NuGet SDK.
-
-  Choosing the adapter is **config-only** (`ModelClient:Provider`), never a code change. Default
-  model `claude-opus-4-8` with adaptive thinking; model IDs live in config, never hardcoded.
+- **Model access** — split into TWO interfaces (chat and embeddings have different providers and
+  fail over differently):
+  - **`IChatClient`** — chat/completions. `FoundryChatClient` (Microsoft Foundry gateway,
+    **primary**; may serve a Claude *or* a GPT model) + `AnthropicChatClient` (Anthropic API
+    direct, **fallback**, `Anthropic` NuGet SDK). Adapter is **config-only**
+    (`ModelClient:ChatProvider`), never a code change.
+  - **`IEmbeddingClient`** — embeddings only. `LocalEmbeddingClient` (local in-memory model — the
+    **slice default**: no cloud dependency, self-contained, free) + `FoundryEmbeddingClient`
+    (Azure OpenAI `text-embedding-3-small` via the Foundry gateway, the **production path**).
+    **No Anthropic embeddings adapter — Anthropic has no embeddings endpoint.** Adapter
+    config-only (`ModelClient:EmbeddingProvider`).
 - **Frontend** — React + TypeScript SPA: upload control → extracted-fields view → question box
   → answer-with-citations.
-- **RAG pipeline** — ingest PDF → extract structured fields → chunk → embed → local/in-memory
-  vector store → retrieve top-k → answer **with citations** (every claim cites its source chunk).
+- **RAG pipeline** — ingest PDF → extract structured fields → chunk → embed (`IEmbeddingClient`)
+  → **in-memory cosine similarity over `float[]`** → retrieve top-k → answer **with citations**.
+  Vector store is in-memory for the slice; **Azure AI Search** is the production path (out of
+  scope to build).
+
+### Models & cost
+Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable
+per call-type for cost — e.g. the extraction step. Lean on **prompt caching** for the repeated
+document context. All model IDs live in config, never hardcoded.
 
 ### Out of scope — "production hardening", do NOT build
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search · auth/RBAC ·
@@ -50,8 +61,9 @@ exported functions; no `any` — use `unknown` and narrow.
 ## Guardrails — what NOT to touch
 - **Secrets** — never commit them. Dev: `dotnet user-secrets` / environment variables. Prod:
   Azure Key Vault. No keys, connection strings, or tokens in source, `appsettings.*`, or history.
-- **`IModelClient`** — do not change its shape without a written spec in `/specs`. Both adapters
-  and every caller depend on it; an interface change is an architecture decision, not a quick edit.
+- **`IChatClient` / `IEmbeddingClient`** — do not change either interface without a written spec
+  in `/specs`. Adapters and every caller depend on them; an interface change is an architecture
+  decision, not a quick edit.
 - **Generated / build output** — never hand-edit `bin/`, `obj/`, `dist/`, or generated clients.
   Change the source and regenerate.
 - **Scope** — keep the out-of-scope items out. Don't add infrastructure we said we wouldn't
