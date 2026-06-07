@@ -38,7 +38,7 @@ public sealed class AnthropicChatClient : IChatClient
                 "ModelClient__ApiKey environment variable. Never commit it.");
 
         _apiKey = opts.ApiKey;
-        _model = string.IsNullOrWhiteSpace(opts.Model) ? "claude-opus-4-8" : opts.Model;
+        _model = opts.Model;
 
         // Base URL from config so swapping to a Foundry gateway is config-only (ADR-0007).
         var baseUrl = string.IsNullOrWhiteSpace(opts.BaseUrl)
