@@ -95,6 +95,18 @@ DATA-FLOW / API), and the implementing PR once it exists (leave a placeholder un
   commit the spec now with a clean message (no `Co-Authored-By` / "Generated" trailer); if the user
   defers, remind them it must land before they touch implementation.
 
-## 5. Report
+## 5. Offer to create tracking issues (after acceptance)
+- Once Status is **Accepted** (and the spec-first commit is made or pending), **offer to create the
+  GitHub issues that implement this spec** via **`/issues`** — `AskUserQuestion`
+  (*Create issues now* / *Not now*).
+  - **Create issues now** → run `/issues <NNNN-slug>`: it drafts the issue set from this spec,
+    right-sizes scope, proposes dependencies against existing open issues, and creates them on your
+    approval.
+  - **Not now** → skip; note that `/issues <NNNN-slug>` can be run anytime later.
+- Issues **don't mention `@claude`** unless you explicitly ask (`/issues` honors this).
+- If the spec was **Kept as Draft** (step 3), don't offer — there's nothing ratified to implement yet.
+
+## 6. Report
 - Print the spec path + number and its final Status. If Accepted, state whether the spec-first commit
-  was made or is pending. If still Draft, say exactly what's blocking acceptance.
+  was made or is pending, and whether implementation issues were created (with their numbers) or
+  offered for later. If still Draft, say exactly what's blocking acceptance.
