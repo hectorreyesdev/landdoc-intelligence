@@ -106,6 +106,6 @@ ADRs are immutable once **Accepted** — a changed decision is a *new* ADR that 
 deleted**). To find the current call on a topic, read an ADR's Status and follow the pointer — don't
 trust recency or a number cited elsewhere.
 
-Maintained by the commands: `/kb-init` scaffolds · `/spec` opens a spec · `/adr` records a decision
-· `/wrap` logs the session and **flags** doc drift · `/reconcile` closes that drift (you pick the
-direction, per item).
+Maintained by the commands: `/kb-init` scaffolds · `/spec` opens a spec · `/issues` turns an accepted
+spec into dependency-ordered GitHub issues · `/adr` records a decision · `/wrap` logs the session and
+**flags** doc drift · `/reconcile` closes that drift (you pick the direction, per item).
