@@ -1,0 +1,48 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+
+# Public repo: skip fork PRs — they can't read secrets, and granting write
+# to untrusted forks is a secrets-exfiltration risk. Reviews internal
+# branch PRs only. (For trusted-fork review later, that needs
+# pull_request_target with read-only perms — handle deliberately.)
+jobs:
+  review:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read          # read the diff
+      pull-requests: write    # post review comments
+      id-token: write         # OIDC (needed only if we move to Bedrock/Vertex)
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0       # full history so it can diff against base
+
+      - name: Claude review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          track_progress: true
+          prompt: |
+            Review this pull request against the repo's own rules.
+
+            First read CLAUDE.md and CONTRIBUTING.md, then review for:
+            - Correctness and bugs.
+            - Security: input validation, secrets in source / appsettings,
+              auth — and any change to IChatClient / IEmbeddingClient made
+              without a spec under knowledge/docs/specs/ (a guardrail).
+            - Conventions: C# (nullable enabled, async end-to-end, file-scoped
+              namespaces, record DTOs) and TS (strict, single typed API client,
+              no any).
+            - Tests: new behavior ships with tests and the suite stays green
+              (the tdd skill's bar).
+            - Definition of done: the PR references its governing spec and any
+              ADR; flag scope creep into the out-of-scope list (Azure AI Search,
+              OCR tuning, auth/RBAC, observability stack).
+
+            Post inline comments on the specific lines. Be concise.
+          # Default model is Sonnet (good cost/quality). For deeper reviews:
+          # claude_args: "--model claude-opus-4-8"
