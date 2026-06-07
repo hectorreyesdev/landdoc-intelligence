@@ -1,0 +1,40 @@
+name: CI
+
+# Deterministic build+test gate for the backend. Fires on every PR into main (and on main
+# itself) so a PR can't go green without actually compiling and passing the test suite.
+# Restore runs in --locked-mode: packages.lock.json must be in sync (RestorePackagesWithLockFile
+# is true), so adding a NuGet package without committing the regenerated lock fails here.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'backend/**'
+      - '.github/workflows/ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: backend build & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore (locked)
+        run: dotnet restore LandDoc.slnx --locked-mode
+      - name: Build
+        run: dotnet build LandDoc.slnx --no-restore
+      - name: Test
+        run: dotnet test LandDoc.slnx --no-build --verbosity normal
