@@ -2,7 +2,7 @@
 
 AI document-intelligence + retrieval-augmented Q&A over land/title documents (leases, title
 opinions, county records). **Vertical slice, NOT production** — build the simplest thing that
-proves the end-to-end flow. Read `tasks/lessons.md` at the start of every session (see bottom).
+proves the end-to-end flow. Read `tasks/lessons.md` at the start of every session (see **Project docs** below).
 
 ## Architecture
 - **Backend** — ASP.NET Core Web API on **.NET 10 (LTS)**. Modular monolith: one process,
@@ -45,6 +45,11 @@ public type per file; `record` types for DTOs; validate and throw early on bad i
 exported functions; no `any` — use `unknown` and narrow.
 
 ## Build / test / run
+Code changes follow the **`tdd` skill** (`.claude/skills/tdd/`): new behavior ships with tests, the
+suite stays green (`dotnet test` / `npm test`), the governing spec is known (it offers `/spec` if none
+— never blocks), and relevant lessons/ARCHITECTURE/ADRs are honored first. It auto-engages on any
+`/backend` or `/frontend` code work — no need to invoke it.
+
 **Backend** (`/backend`)
 - `dotnet build`
 - `dotnet test`
@@ -69,6 +74,38 @@ exported functions; no `any` — use `unknown` and narrow.
 - **Scope** — keep the out-of-scope items out. Don't add infrastructure we said we wouldn't
   build; stub it and note it instead.
 
-## Every session
-Read `tasks/lessons.md` first — it records what broke before and the rule that prevents a repeat.
-Append a line whenever you learn something the hard way.
+## Project docs — where things live, and what each holds
+Docs are authored as **design intent** before code and kept current by `/wrap`. **To answer a
+question about the system, read the relevant file below before guessing.** Unsettled judgment sits
+behind `> [!note] AUTHOR:` markers — surface those, don't invent answers.
+
+```
+README.md          what this is + repo map (browse-first entry point)
+CONTRIBUTING.md    how to work here + the doc workflow
+CLAUDE.md          this file — architecture · conventions · guardrails
+specs/             feature specs, one per file (NNNN-<slug>.md); design IChat/IEmbedding changes here
+tasks/lessons.md   lessons log "[date] | what went wrong | rule next time" — read at session start
+.github/           CI / PR templates (reserved)
+wiki/README.md     wiki index / TOC
+wiki/docs/
+  PRD.md           problem · goals · non-goals · users · scope · success metrics · open questions
+  STACK.md         layer · choice · version · why
+  ARCHITECTURE.md  system + component diagrams · ports/adapters · cross-cutting concerns · conventions
+  DATA-MODEL.md    domain types · ER diagram · invariants
+  DATA-FLOW.md     ingest + ask sequence diagrams
+  API.md           endpoints · request/response shapes · error model (intended surface)
+  RUNBOOK.md       install · run · test · build · env/secret names · teardown
+  GLOSSARY.md      domain + project terms
+  decisions/       ADRs (Nygard, NNNN-slug.md), immutable once Accepted — supersede convention below
+wiki/notes/        evergreen knowledge, one topic per file, [[wikilinks]], accrued by /wrap
+wiki/logs/         committed session logs YYYY-MM-DD.md, appended by /wrap
+```
+
+ADRs are immutable once **Accepted** — a changed decision is a *new* ADR that supersedes the old one
+(old one's Status → `Superseded by NNNN`, cross-linked both ways; the file is **never renamed or
+deleted**). To find the current call on a topic, read an ADR's Status and follow the pointer — don't
+trust recency or a number cited elsewhere.
+
+Maintained by the commands: `/wiki-init` scaffolds · `/spec` opens a spec · `/adr` records a decision
+· `/wrap` logs the session and **flags** doc drift · `/reconcile` closes that drift (you pick the
+direction, per item).
