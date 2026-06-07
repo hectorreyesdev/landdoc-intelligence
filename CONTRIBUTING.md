@@ -7,8 +7,10 @@ be visible, which is why the session journal under `knowledge/logs/` is committe
 Docs are authored **before** code, as the design the scaffold will implement:
 - `/kb-init` — scaffold the doc tree (idempotent; seeds derivable facts, leaves judgment as `AUTHOR` markers).
 - `/spec` — open a feature spec under [`knowledge/docs/specs/`](knowledge/docs/specs/README.md) (`NNNN-<slug>.md`).
+- `/issues` — turn an accepted spec into dependency-ordered GitHub issues (on approval).
 - `/adr` — record an architecture decision in [`knowledge/docs/decisions/`](knowledge/docs/decisions/) (Nygard format).
-- `/wrap` — after code lands, reconcile docs with reality and append a session log to `knowledge/logs/`.
+- `/wrap` — after code lands, append a session log to `knowledge/logs/` and **flag** doc drift.
+- `/reconcile` — close the flagged doc↔code drift (you pick the source of truth per item).
 
 ## Code layout
 - `backend/` — ASP.NET Core (.NET 10) modular monolith (`Ingestion` · `Extraction` · `Retrieval` · `Qa`).
@@ -22,7 +24,7 @@ Docs are authored **before** code, as the design the scaffold will implement:
 ## Branches & PRs
 - Work on **feature branches**; open a **PR into `main`** and **squash-merge** — reviewable history
   even when solo.
-- The PR is where review runs (`/code-review`) and, once it exists, CI — vet before merge.
+- The PR is where review runs — the automatic Claude reviewer (CI) plus the local `/code-review` skill — vet before merge.
 - Keep one logical change per PR; reference the spec/ADR it implements.
 
 ## Definition of done
