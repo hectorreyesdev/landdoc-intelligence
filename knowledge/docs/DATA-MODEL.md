@@ -45,12 +45,16 @@ erDiagram
 ```
 
 ## Entities
-- **Document** — an uploaded PDF and its ingest status.
+- **Document** — an uploaded PDF and its ingest status (`Status` is `"ready"` once ingested). The
+  `POST /documents` response also returns `chunkCount` — a **derived** value (the count of the
+  document's stored chunks), not a stored field.
 - **Chunk** — a contiguous slice of a document's text plus its embedding vector.
 - **ExtractedField** — a structured field pulled from the document (e.g. royalty, lessor), with the
-  chunk it came from.
+  chunk it came from (`SourceChunkId` may be null when a field isn't pinned to a chunk).
 - **Answer** — a generated response to a question about a document.
-- **Citation** — a pointer from an answer (or extracted field) to the chunk that supports it.
+- **Citation** — a pointer from an answer (or extracted field) to the chunk that supports it (carries
+  `ChunkId` + `DocumentId` + `Score`). The `POST /ask` response DTO additionally inlines the chunk
+  `text` (resolved from the store) so the UI can show the source without a second call.
 
 ## Invariants
 - Every `Chunk` belongs to exactly one `Document`.

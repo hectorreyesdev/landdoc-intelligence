@@ -45,8 +45,10 @@ flowchart TD
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).
 - **Ports** — `IChatClient` (chat/completions) · `IEmbeddingClient` (embeddings only).
 - **Adapters** — `FoundryChatClient` (primary) / `AnthropicChatClient` (fallback) ·
-  `LocalEmbeddingClient` (slice) / `FoundryEmbeddingClient` (prod).
-- **Vector store** — in-memory cosine similarity over `float[]` (slice); Azure AI Search (prod, not built). See [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md).
+  `LocalEmbeddingClient` (slice — deterministic hashing, see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)) / `FoundryEmbeddingClient` (prod).
+- **Vector store** — in-memory cosine similarity over `float[]` behind a narrow `IVectorStore` seam
+  (add chunks at ingest; `TopK(queryVector, k)` at ask) so the prod swap is an adapter change (slice);
+  Azure AI Search (prod, not built). See [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.

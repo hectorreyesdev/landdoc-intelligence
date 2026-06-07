@@ -14,7 +14,7 @@ lands. Conventions live in [`CLAUDE.md`](../CLAUDE.md) and the
 - [API](docs/API.md) — endpoints · request/response · error model
 - [Runbook](docs/RUNBOOK.md) — install · run · test · build · secrets · teardown
 - [Glossary](docs/GLOSSARY.md) — domain + project terms
-- [Decisions](docs/decisions/) — ADRs ([0001](docs/decisions/0001-record-architecture-decisions.md) · [0002](docs/decisions/0002-split-model-access-into-chat-and-embedding-clients.md) · [0003](docs/decisions/0003-dotnet-10-lts.md) · [0004](docs/decisions/0004-modular-monolith-over-microservices.md) · [0005](docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md) · [0006](docs/decisions/0006-react-typescript-frontend-over-blazor.md) · [0007](docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md))
+- [Decisions](docs/decisions/) — ADRs ([0001](docs/decisions/0001-record-architecture-decisions.md) · [0002](docs/decisions/0002-split-model-access-into-chat-and-embedding-clients.md) · [0003](docs/decisions/0003-dotnet-10-lts.md) · [0004](docs/decisions/0004-modular-monolith-over-microservices.md) · [0005](docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md) · [0006](docs/decisions/0006-react-typescript-frontend-over-blazor.md) · [0007](docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md) · [0008](docs/decisions/0008-deterministic-hashing-embeddings-for-slice.md) · [0009](docs/decisions/0009-corpus-wide-ask-retrieval-scope.md))
 - [Specs](docs/specs/README.md) — feature specs, one per file (`NNNN-<slug>.md`)
 
 ## Knowledge & journal

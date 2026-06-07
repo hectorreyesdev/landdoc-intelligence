@@ -99,7 +99,8 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
 ## Links
 - **Depends on:** [[knowledge/docs/specs/0001-document-ingestion-write-path]] (populates the shared
   in-memory store this path reads).
-- **ADRs:** [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
+- **ADRs:** [[knowledge/docs/decisions/0009-corpus-wide-ask-retrieval-scope]] (global `/ask` scope —
+  records this spec's decision) · [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
   (in-memory top-k cosine + store seam) ·
   [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]] (both ports) ·
   [[knowledge/docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback]] (failover —

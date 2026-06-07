@@ -37,9 +37,20 @@ retrieval · cited Q&A · React UI for upload / fields / ask.
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.
 - Every answer carries at least one citation resolvable to a source chunk.
 - Swapping `ModelClient:ChatProvider` between Foundry and Anthropic requires **no code change**.
-> TODO: fix the target extracted-field set and an acceptable retrieval-quality bar for the demo.
+> TODO: extracted-field set is fixed (lessor, lessee, legal description, royalty, key dates — spec
+> 0001); still open: an acceptable retrieval-quality bar for the demo.
 
 ## Open questions
-- Which exact fields make up the "extracted fields" view for the first document type?
-- One document at a time, or a small corpus per session?
-- Local embedding model for the slice — hashing-based, or a small ONNX model?
+Resolved by the accepted slice specs:
+- **Extracted-field set** — lessor, lessee, legal description, royalty, key dates
+  ([spec 0001](specs/0001-document-ingestion-write-path.md)).
+- **One document vs. corpus** — a global corpus query: `POST /ask` retrieves across all ingested
+  documents ([spec 0002](specs/0002-rag-qa-with-citations.md),
+  [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
+- **Local embedding model** — deterministic hashing / bag-of-words for the slice (no ONNX, no cloud)
+  ([spec 0001](specs/0001-document-ingestion-write-path.md),
+  [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+
+Still open:
+- Primary persona + the 2–3 questions they most need answered (see Users / personas).
+- An acceptable retrieval-quality bar for the demo.

@@ -1,15 +1,16 @@
 # API
 
-> **Intended surface — not built yet.** No endpoints exist; this sketches the contract the SPA will
-> consume. Shapes are proposals; update as the API is implemented.
+> **Intended surface — not built yet.** No endpoints exist in code; this is the contract the SPA will
+> consume. `POST /documents` and `POST /ask` are governed by accepted specs (0001/0002); other shapes
+> remain proposals. Update as the API is implemented.
 
 Base path: `/api` (TODO confirm). Media type: `application/json`, except upload (`multipart/form-data`).
 
 ## Endpoints (proposed)
 
-### `POST /documents`
-Upload and ingest a PDF (parse → chunk → embed → store → extract fields).
-- Request: `multipart/form-data` with a `file` part (PDF).
+### `POST /documents`  ·  spec [0001](specs/0001-document-ingestion-write-path.md)
+Upload and ingest a PDF (parse → extract fields → chunk → embed → store).
+- Request: `multipart/form-data` with a single `file` part (one text-based PDF; no OCR).
 - Response `201`:
   ```json
   {
@@ -18,35 +19,45 @@ Upload and ingest a PDF (parse → chunk → embed → store → extract fields)
     "status": "ready",
     "fields": [
       { "name": "Royalty", "value": "3/16", "sourceChunkId": "guid" }
-    ]
+    ],
+    "chunkCount": 7
   }
   ```
+  `sourceChunkId` may be `null` when a field isn't pinned to a chunk. `400` on a missing/empty/non-PDF file.
 
-### `GET /documents/{id}`
+### `GET /documents/{id}`  ·  *intended — not yet specced*
 Fetch a document and its extracted fields.
-- Response `200`: same shape as above · `404` if unknown.
+- Response `200`: same shape as `POST /documents` · `404` if unknown.
+- The accepted slice specs (0001 write path, 0002 read path) do **not** build this read-back endpoint;
+  it remains intended surface for a later spec.
 
-### `POST /documents/{id}/ask`
-Ask a question, grounded in the document's chunks.
+### `POST /ask`  ·  spec [0002](specs/0002-rag-qa-with-citations.md)
+Ask a question, grounded in chunks retrieved across **all** ingested documents (global corpus query —
+see [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
 - Request:
   ```json
-  { "question": "What is the royalty rate?" }
+  { "question": "Who is the lessee?" }
   ```
 - Response `200`:
   ```json
   {
-    "answer": "The royalty is 3/16.",
+    "answer": "The lessee is Acme Minerals LLC.",
     "citations": [
-      { "chunkId": "guid", "score": 0.82, "text": "…reserving a royalty of 3/16…" }
+      { "chunkId": "guid", "documentId": "guid", "score": 0.82, "text": "…by and between … as Lessee …" }
     ]
   }
   ```
-  Invariant: `citations` is non-empty and each `chunkId` resolves to a stored chunk.
+  Strict cite-or-error invariant: an answer is **never** returned without ≥1 citation, and each
+  `chunkId` resolves to a stored chunk (`documentId` tells the UI which document). An **empty store**
+  (nothing ingested) → `409`; a blank `question` → `400`. Read-only — `/ask` never mutates the store.
 
 > TODO: confirm whether a `GET /documents` list endpoint is needed for the slice.
 
 ## Error model
 Standard ASP.NET Core **`ProblemDetails`** (RFC 7807):
-- `400` — validation (missing file, empty question).
-- `404` — unknown document id.
-- `502` / `503` — chat/embedding provider failed (after Foundry → Anthropic fallback for chat).
+- `400` — validation (missing/empty/non-PDF file; blank question).
+- `404` — unknown document id (`GET /documents/{id}`).
+- `409` — `POST /ask` against an empty store (nothing ingested to cite).
+- `502` / `503` — chat/embedding provider failed (the Foundry → Anthropic chat fallback is
+  [ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md); deferred — not
+  built in the slice).

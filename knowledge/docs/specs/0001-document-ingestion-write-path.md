@@ -101,6 +101,6 @@ a later retrieval/Q&A spec will read.
   `DATA-FLOW.md` (ingest sequence) · `DATA-MODEL.md` (Document / Chunk / ExtractedField) ·
   `ARCHITECTURE.md` (Ingestion + Extraction modules, both ports, in-memory store). Resolves PRD open
   questions on the field set and the local embedding model.
-- **Possible follow-up ADR:** record "LocalEmbeddingClient uses deterministic hashing for the slice"
-  if we want that choice pinned beyond this spec *(optional — raise via `/adr`)*.
+- **Decision pinned in:** [[knowledge/docs/decisions/0008-deterministic-hashing-embeddings-for-slice]]
+  — records `LocalEmbeddingClient`'s deterministic-hashing embedding for the slice.
 - **Implementing PR:** _TBD — link once opened._
