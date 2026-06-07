@@ -1,17 +1,90 @@
-using LandDoc.Api.Storage;
+using System.Text;
+using Anthropic;
+using Anthropic.Models.Messages;
+using Microsoft.Extensions.Options;
 
 namespace LandDoc.Api.Model;
 
 /// <summary>
-/// Anthropic API direct chat adapter — the fallback provider (ADR-0002/0007). A slice stub: the
-/// acceptance tests inject a fake <see cref="IChatClient"/> and both endpoints return 501, so this is
-/// never called. The real Anthropic SDK wiring lands with a later spec.
+/// Anthropic API direct chat adapter — the slice-default provider (ADR-0010). Uses the official
+/// Anthropic .NET SDK (NuGet <c>Anthropic</c>, published by Anthropic). API key, model id, and base
+/// URL come from <see cref="ModelClientOptions"/> so a later Foundry gateway swap stays config-only
+/// (ADR-0007). The API key must be set via <c>dotnet user-secrets</c> or environment variable
+/// (<c>ModelClient__ApiKey</c>) — never committed or hardcoded.
 /// </summary>
 public sealed class AnthropicChatClient : IChatClient
 {
-    public Task<IReadOnlyList<ExtractedField>> ExtractFieldsAsync(string documentText, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException("AnthropicChatClient is not implemented in the slice.");
+    private const int MaxTokens = 1024;
 
-    public Task<string> AnswerAsync(string question, IReadOnlyList<Chunk> context, CancellationToken cancellationToken = default)
-        => throw new NotImplementedException("AnthropicChatClient is not implemented in the slice.");
+    private const string SystemPrompt =
+        "Answer using only the supplied passages. " +
+        "If the answer is not present in the passages, respond exactly: " +
+        "\"The answer is not found in the document(s).\" " +
+        "Do not fabricate or infer information beyond what the passages state.";
+
+    private readonly AnthropicClient _client;
+    private readonly string _model;
+
+    public AnthropicChatClient(IOptions<ModelClientOptions> options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+        var opts = options.Value;
+
+        if (string.IsNullOrWhiteSpace(opts.ApiKey))
+            throw new InvalidOperationException(
+                "ModelClient:ApiKey is required for AnthropicChatClient. " +
+                "Set it via 'dotnet user-secrets set ModelClient:ApiKey <key>' or the " +
+                "ModelClient__ApiKey environment variable. Never commit it.");
+
+        _model = opts.Model;
+
+        // Base URL from config so swapping to a Foundry gateway is config-only (ADR-0007); the SDK
+        // defaults to https://api.anthropic.com when BaseUrl is left unset.
+        _client = string.IsNullOrWhiteSpace(opts.BaseUrl)
+            ? new AnthropicClient { ApiKey = opts.ApiKey }
+            : new AnthropicClient { ApiKey = opts.ApiKey, BaseUrl = opts.BaseUrl };
+    }
+
+    public Task<IReadOnlyList<ExtractedField>> ExtractFieldsAsync(
+        string documentText,
+        CancellationToken cancellationToken = default)
+        => throw new NotImplementedException(
+            "AnthropicChatClient.ExtractFieldsAsync is not implemented in the slice.");
+
+    public async Task<string> AnswerAsync(
+        string question,
+        IReadOnlyList<QaPassage> context,
+        CancellationToken cancellationToken = default)
+    {
+        var contextText = new StringBuilder();
+        foreach (var passage in context)
+        {
+            contextText.AppendLine($"[Chunk {passage.ChunkId}]");
+            contextText.AppendLine(passage.Text);
+            contextText.AppendLine();
+        }
+
+        var parameters = new MessageCreateParams
+        {
+            Model = _model,
+            MaxTokens = MaxTokens,
+            System = SystemPrompt,
+            Messages =
+            [
+                new()
+                {
+                    Role = Role.User,
+                    Content = $"Passages:\n{contextText}\nQuestion: {question}",
+                },
+            ],
+        };
+
+        var message = await _client.Messages.Create(parameters, cancellationToken);
+
+        // Grounded answer is the first text block; the union wrapper's .Value unwraps each block.
+        return message.Content
+            .Select(block => block.Value)
+            .OfType<TextBlock>()
+            .FirstOrDefault()?.Text ?? string.Empty;
+    }
 }

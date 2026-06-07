@@ -1,5 +1,4 @@
 using LandDoc.Api.Model;
-using LandDoc.Api.Storage;
 
 namespace LandDoc.Tests;
 
@@ -24,6 +23,6 @@ public sealed class FakeChatClient : IChatClient
         return Task.FromResult(fields);
     }
 
-    public Task<string> AnswerAsync(string question, IReadOnlyList<Chunk> context, CancellationToken cancellationToken = default)
+    public Task<string> AnswerAsync(string question, IReadOnlyList<QaPassage> context, CancellationToken cancellationToken = default)
         => Task.FromResult("The lessee is Acme Minerals LLC.");
 }
