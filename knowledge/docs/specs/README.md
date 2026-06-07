@@ -5,3 +5,4 @@ they're written. A spec is also where any change to the `IChatClient` / `IEmbedd
 must be designed before code (per the `CLAUDE.md` guardrail).
 
 - [0001 — Document Ingestion (Write Path)](0001-document-ingestion-write-path.md) — **Accepted**
+- [0002 — RAG Q&A with Citations (Read Path)](0002-rag-qa-with-citations.md) — **Accepted**
