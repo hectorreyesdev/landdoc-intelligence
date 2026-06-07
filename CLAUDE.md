@@ -59,9 +59,6 @@ suite stays green (`dotnet test` / `npm test`), the governing spec is known (it 
 - `npm run dev`
 - `npm test`
 
-> TODO: `/frontend` is not scaffolded yet — its `npm` commands are intended until it exists.
-> (`/backend` is scaffolded; the `dotnet` commands above are real.)
-
 ## Guardrails — what NOT to touch
 - **Secrets** — never commit them. Dev: `dotnet user-secrets` / environment variables. Prod:
   Azure Key Vault. No keys, connection strings, or tokens in source, `appsettings.*`, or history.

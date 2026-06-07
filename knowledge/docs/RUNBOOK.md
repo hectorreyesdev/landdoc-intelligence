@@ -1,8 +1,7 @@
 # Runbook
 
-> `/backend` is scaffolded — the backend commands below are real (run `dotnet` from `backend/`).
-> `/frontend` is not scaffolded yet, so the `npm` commands remain the intended workflow. Mirrors
-> `CLAUDE.md` → Build / test / run.
+> Both `/backend` and `/frontend` are scaffolded — the commands below are real (run `dotnet` from
+> `backend/`, `npm` from `frontend/`). Mirrors `CLAUDE.md` → Build / test / run.
 
 ## Prerequisites
 - **.NET 10 SDK** (LTS).
