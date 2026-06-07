@@ -1,0 +1,29 @@
+# Glossary
+
+The ubiquitous language for LandDoc Intelligence — domain terms and project/architecture terms.
+
+## Domain (land & title)
+- **Lease** — agreement granting the right to explore/produce minerals from a tract.
+- **Lessor / Lessee** — party granting the lease (owner) / party receiving it (operator).
+- **Royalty** — the lessor's share of production revenue, free of production cost (e.g. 3/16).
+- **Title opinion** — an attorney's analysis of who owns what interests in a tract.
+- **Mineral rights** — ownership of the minerals beneath a surface tract (severable from surface).
+- **Legal description** — the formal locator for a parcel (e.g. section/township/range, metes/bounds).
+- **County records** — recorded instruments (deeds, leases, assignments) filed at the county level.
+- **Grantor / Grantee** — party conveying an interest / party receiving it.
+- **Encumbrance** — a claim or liability against title (lien, mortgage, easement).
+
+## Project & architecture
+- **RAG** — retrieval-augmented generation: ground answers in retrieved source text.
+- **Ingestion / Extraction / Retrieval / Qa** — the four backend modules (PDF→store / fields /
+  top-k / cited answer).
+- **Chunk** — a contiguous slice of document text that gets embedded and retrieved.
+- **Embedding** — a `float[]` vector representation of a chunk or query.
+- **Vector store** — collection of chunks+vectors; in-memory cosine for the slice, Azure AI Search in prod; see [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md).
+- **Cosine similarity** — the metric used to rank chunks against a query vector.
+- **Citation** — a pointer from an answer/field back to the source chunk that supports it.
+- **`IChatClient` / `IEmbeddingClient`** — the two model-access ports.
+- **Adapter / Port** — hexagonal terms: port = interface, adapter = provider implementation.
+- **Foundry** — Microsoft Foundry, the primary model gateway (can serve Claude or GPT); chat fallback is Anthropic-direct, see [ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md).
+- **Modular monolith** — one deployable process, modules separated by namespace; chosen over microservices, see [ADR-0004](decisions/0004-modular-monolith-over-microservices.md).
+- **Vertical slice** — a thin end-to-end implementation proving the whole flow, not production-grade.
