@@ -1,5 +1,5 @@
 ---
-description: Draft one complete Architecture Decision Record at wiki/docs/decisions/NNNN-<slug>.md (Nygard, auto-numbered) from the current conversation — clarifying anything ambiguous first, then asking to accept, and on acceptance flipping Status to Accepted and propagating the decision to affected docs.
+description: Draft one complete Architecture Decision Record at knowledge/docs/decisions/NNNN-<slug>.md (Nygard, auto-numbered) from the current conversation — clarifying anything ambiguous first, then asking to accept, and on acceptance flipping Status to Accepted and propagating the decision to affected docs.
 argument-hint: "<decision title or slug> [— optionally reference a spec or prior ADR, e.g. 'switch to per-doc vector store (supersedes 0003)']"
 ---
 
@@ -20,13 +20,13 @@ it. On acceptance, flip the Status to **Accepted** and update every document the
 > catch at the accept gate. Never invent dates, versions, or names you could verify — check first.
 
 ## 0. Orient
-- Project root = git repo root containing the cwd. Decisions live in `wiki/docs/decisions/`.
+- Project root = git repo root containing the cwd. Decisions live in `knowledge/docs/decisions/`.
 - Find the highest existing `NNNN-*.md` (ignore `0000-template.md`); next number = highest + 1,
   zero-padded to 4 digits. First real ADR is `0001`.
 - Slug = `$ARGUMENTS` lowercased, kebab-cased, stopwords/punctuation dropped (e.g.
   "Switch embedding client to Azure OpenAI" → `0002-switch-embedding-client-to-azure-openai.md`).
 - Gather the substance: re-read the current conversation for the decision, its drivers, and the
-  tradeoffs already discussed. If `$ARGUMENTS` (or the discussion) references a spec (`specs/...`)
+  tradeoffs already discussed. If `$ARGUMENTS` (or the discussion) references a spec (`knowledge/docs/specs/...`)
   or a prior ADR, read it — it's a Context pointer, and if this decision changes a prior
   **Accepted** ADR, it's a supersede (see step 6).
 - **Verify, don't assume, what's cheap to check** — installed tool/runtime versions, file/symbol
@@ -50,7 +50,7 @@ it. On acceptance, flip the Status to **Accepted** and update every document the
 - If nothing is genuinely unclear, say so in a line and proceed — don't manufacture questions.
 
 ## 2. Create the file (never clobber)
-- Write `wiki/docs/decisions/NNNN-<slug>.md`. If a file with that number already exists, stop
+- Write `knowledge/docs/decisions/NNNN-<slug>.md`. If a file with that number already exists, stop
   and report it — don't overwrite.
 
 ## 3. Draft the full ADR
@@ -65,7 +65,7 @@ it. On acceptance, flip the Status to **Accepted** and update every document the
 (stack, the IChatClient / IEmbeddingClient seams, the in-memory cosine store, the out-of-scope
 list), and the constraints/data that bound the choice. Pull specifics from the conversation and
 repo (including anything settled during step 1). If a spec or prior ADR is related, add a pointer:
-"Relates to [[specs/<NNNN-name>]]" / "Builds on [[wiki/docs/decisions/0001-record-architecture-decisions]]".
+"Relates to [[knowledge/docs/specs/<NNNN-name>]]" / "Builds on [[knowledge/docs/decisions/0001-record-architecture-decisions]]".
 Mark any remaining gap-filling with *(assumption: …)*.>
 
 ## Decision
@@ -89,11 +89,11 @@ tradeoffs accepted and what was given up, plus any follow-on work or risk. Bulle
 
 ## 5. On acceptance — flip Status and propagate
 - Set the ADR's `Status: Accepted` (keep the Date as the decision date).
-- **Always add the new ADR to the `wiki/README.md` Decisions index** (the canonical list of every
+- **Always add the new ADR to the `knowledge/README.md` Decisions index** (the canonical list of every
   ADR). This is the one link required for every ADR regardless of topic — append it to the existing
   `[NNNN](docs/decisions/NNNN-<slug>.md)` series so the index never goes stale.
 - **Propagate the decision to every doc it touches**, and link the ADR from each so it isn't an
-  orphan. Use the repo's inline link convention from `wiki/docs/` pages:
+  orphan. Use the repo's inline link convention from `knowledge/docs/` pages:
   `see [ADR-NNNN](decisions/NNNN-<slug>.md)`. Common targets — update only what the decision
   actually changes:
   - **STACK.md** — runtime/lib/version rows and their "Why".

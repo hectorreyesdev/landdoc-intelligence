@@ -2,7 +2,7 @@
 
 AI document-intelligence + retrieval-augmented Q&A over land/title documents (leases, title
 opinions, county records). **Vertical slice, NOT production** — build the simplest thing that
-proves the end-to-end flow. Read `tasks/lessons.md` at the start of every session (see **Project docs** below).
+proves the end-to-end flow. Read `knowledge/lessons.md` at the start of every session (see **Project docs** below).
 
 ## Architecture
 - **Backend** — ASP.NET Core Web API on **.NET 10 (LTS)**. Modular monolith: one process,
@@ -23,8 +23,7 @@ proves the end-to-end flow. Read `tasks/lessons.md` at the start of every sessio
   → answer-with-citations.
 - **RAG pipeline** — ingest PDF → extract structured fields → chunk → embed (`IEmbeddingClient`)
   → **in-memory cosine similarity over `float[]`** → retrieve top-k → answer **with citations**.
-  Vector store is in-memory for the slice; **Azure AI Search** is the production path (out of
-  scope to build).
+  Vector store is in-memory for the slice; **Azure AI Search** is the production path.
 
 ### Models & cost
 Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable
@@ -33,7 +32,7 @@ document context. All model IDs live in config, never hardcoded.
 
 ### Out of scope — "production hardening", do NOT build
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search · auth/RBAC ·
-observability stack. If a task seems to need one, stub it and note why in `tasks/lessons.md`.
+observability stack. If a task seems to need one, stub it and note why in `knowledge/lessons.md`.
 
 ## Coding conventions
 **C#** — nullable reference types **enabled**; `async`/`await` end-to-end (never `.Result` /
@@ -66,9 +65,10 @@ suite stays green (`dotnet test` / `npm test`), the governing spec is known (it 
 ## Guardrails — what NOT to touch
 - **Secrets** — never commit them. Dev: `dotnet user-secrets` / environment variables. Prod:
   Azure Key Vault. No keys, connection strings, or tokens in source, `appsettings.*`, or history.
-- **`IChatClient` / `IEmbeddingClient`** — do not change either interface without a written spec
-  in `/specs`. Adapters and every caller depend on them; an interface change is an architecture
-  decision, not a quick edit.
+- **Public interfaces / ports** — do not change any interface that adapters or callers depend on
+  (the model-access ports today; any future seam) without a written spec in `knowledge/docs/specs/`. Every
+  implementation and caller depends on the contract, so such a change is an architecture decision,
+  not a quick edit.
 - **Generated / build output** — never hand-edit `bin/`, `obj/`, `dist/`, or generated clients.
   Change the source and regenerate.
 - **Scope** — keep the out-of-scope items out. Don't add infrastructure we said we wouldn't
@@ -83,11 +83,9 @@ unsettled, surface the gap and ask — don't invent answers.
 README.md          what this is + repo map (browse-first entry point)
 CONTRIBUTING.md    how to work here + the doc workflow
 CLAUDE.md          this file — architecture · conventions · guardrails
-specs/             feature specs, one per file (NNNN-<slug>.md); design IChat/IEmbedding changes here
-tasks/lessons.md   lessons log "[date] | what went wrong | rule next time" — read at session start
 .github/           CI / PR templates (reserved)
-wiki/README.md     wiki index / TOC
-wiki/docs/
+knowledge/README.md     knowledge index / TOC
+knowledge/docs/
   PRD.md           problem · goals · non-goals · users · scope · success metrics · open questions
   STACK.md         layer · choice · version · why
   ARCHITECTURE.md  system + component diagrams · ports/adapters · cross-cutting concerns · conventions
@@ -97,8 +95,10 @@ wiki/docs/
   RUNBOOK.md       install · run · test · build · env/secret names · teardown
   GLOSSARY.md      domain + project terms
   decisions/       ADRs (Nygard, NNNN-slug.md), immutable once Accepted — supersede convention below
-wiki/notes/        evergreen knowledge, one topic per file, [[wikilinks]], accrued by /wrap
-wiki/logs/         committed session logs YYYY-MM-DD.md, appended by /wrap
+  specs/           feature specs, one per file (NNNN-<slug>.md); design interface changes here
+knowledge/notes/        evergreen knowledge, one topic per file, [[wikilinks]], accrued by /wrap
+knowledge/logs/         committed session logs YYYY-MM-DD.md, appended by /wrap
+knowledge/lessons.md    lessons log "[date] | what happened/learned | rule or takeaway"
 ```
 
 ADRs are immutable once **Accepted** — a changed decision is a *new* ADR that supersedes the old one
@@ -106,6 +106,6 @@ ADRs are immutable once **Accepted** — a changed decision is a *new* ADR that 
 deleted**). To find the current call on a topic, read an ADR's Status and follow the pointer — don't
 trust recency or a number cited elsewhere.
 
-Maintained by the commands: `/wiki-init` scaffolds · `/spec` opens a spec · `/adr` records a decision
+Maintained by the commands: `/kb-init` scaffolds · `/spec` opens a spec · `/adr` records a decision
 · `/wrap` logs the session and **flags** doc drift · `/reconcile` closes that drift (you pick the
 direction, per item).

@@ -13,16 +13,16 @@ with citations. The forces on *where* those vectors live:
   thousands)*, so a linear scan with cosine similarity over `float[]` is fast enough; an
   approximate-nearest-neighbour index or a managed search service would be premature.
 - **Self-contained and free is preferred** — consistent with the slice's local-embedding default
-  ([[wiki/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]]), the slice should
+  ([[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]]), the slice should
   carry no cloud dependency, credentials, or cost just to retrieve.
-- **Single process** — the modular monolith ([[wiki/docs/decisions/0004-modular-monolith-over-microservices]])
+- **Single process** — the modular monolith ([[knowledge/docs/decisions/0004-modular-monolith-over-microservices]])
   already keeps everything in one process, so an in-process store fits without new infrastructure.
 - **Azure AI Search is the named production path but out of scope** — CLAUDE.md lists it as the
   production vector store and explicitly excludes building it now. The data model already records that
   in production chunks + vectors move to Azure AI Search, with "no relational schema or migration
   story here" (DATA-MODEL.md).
 
-Builds on [[wiki/docs/decisions/0001-record-architecture-decisions]].
+Builds on [[knowledge/docs/decisions/0001-record-architecture-decisions]].
 
 ## Decision
 We will store chunk embeddings in an **in-memory vector store** for the slice: chunks and their

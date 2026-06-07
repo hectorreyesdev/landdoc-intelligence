@@ -1,6 +1,6 @@
 ---
 name: tdd
-description: Test-driven development discipline for this repo's code. Use whenever writing, modifying, refactoring, or extending application code under /backend (.NET) or /frontend (React/TS) — implementing a feature, fixing a bug, or changing behavior. Ensures the existing test suite stays green (dotnet test / npm test), new behavior ships with tests, the governing spec is known (offers /spec if none — never blocks), and relevant lessons/ARCHITECTURE/ADRs are consulted and honored before code changes. Not for docs/wiki/spec/config-only edits.
+description: Test-driven development discipline for this repo's code. Use whenever writing, modifying, refactoring, or extending application code under /backend (.NET) or /frontend (React/TS) — implementing a feature, fixing a bug, or changing behavior. Ensures the existing test suite stays green (dotnet test / npm test), new behavior ships with tests, the governing spec is known (offers /spec if none — never blocks), and relevant lessons/ARCHITECTURE/ADRs are consulted and honored before code changes. Not for docs/knowledge/spec/config-only edits.
 ---
 
 # TDD workflow (this repo)
@@ -14,19 +14,21 @@ when a gate isn't met, surface it and let me decide.
 ## When this applies
 - Any time you write / modify / refactor / extend application code under `/backend` (.NET) or
   `/frontend` (React/TS) — a feature, a bugfix, a behavior change.
-- **Not** for docs, `wiki/`, ADRs, specs, or config/comment-only edits — *but those must still not
+- **Not** for docs, `knowledge/`, ADRs, specs, or config/comment-only edits — *but those must still not
   break the suite.*
 
 ## Before changing code — get oriented (lightweight)
-1. **Know the governing spec.** Identify which `specs/NNNN-*.md` covers this work.
+1. **Know the governing spec.** Identify which `knowledge/docs/specs/NNNN-*.md` covers this work.
    - If you're unsure which spec applies, **ask me.**
    - If **no spec exists**, surface it and **offer to run `/spec`** to write one first — then proceed
-     if I decline. Never block on this. (Trivial fixes rarely need a spec; features usually do.)
+     if I decline. Never block on this — **except** a change to a public interface/port, which
+     **requires** a spec (the one hard exception; see Definition of done). (Trivial fixes rarely need
+     a spec; features usually do.)
 2. **Read the relevant context** so you don't repeat known mistakes or violate design intent:
-   - `tasks/lessons.md` — past corrections + the rule each one set. Re-check anything touching this area.
-   - The affected `wiki/docs/` — **ARCHITECTURE** (the module/seam you're touching), **DATA-MODEL** /
+   - `knowledge/lessons.md` — past corrections + the rule each one set. Re-check anything touching this area.
+   - The affected `knowledge/docs/` — **ARCHITECTURE** (the module/seam you're touching), **DATA-MODEL** /
      **DATA-FLOW**, **API**.
-   - Relevant **ADRs** in `wiki/docs/decisions/` — the decisions that constrain this code (the
+   - Relevant **ADRs** in `knowledge/docs/decisions/` — the decisions that constrain this code (the
      `IChatClient`/`IEmbeddingClient` ports, the in-memory cosine store, .NET 10, modular monolith,
      Foundry+Anthropic fallback). **Honor them.** If your change would contradict an **Accepted** ADR,
      STOP and flag it — that needs a superseding ADR via `/adr`; do not silently diverge.
@@ -59,8 +61,9 @@ when a gate isn't met, surface it and let me decide.
 - The governing spec is known — or its absence was surfaced and `/spec` offered.
 - New/changed behavior is covered by tests, and the full suite (`dotnet test` and/or `npm test`) is **green**.
 - The change honors the relevant ADRs / lessons / docs; any contradiction was **flagged, not silently made**.
-- Guardrails respected: **no secrets in code**; a change to `IChatClient`/`IEmbeddingClient`
-  (interface or adapter wiring) needs a spec in `specs/` — surface if missing.
+- Guardrails respected: **no secrets in code**; and the **CLAUDE.md interface guardrail** — changing
+  any public interface/port that adapters or callers depend on (or its adapter wiring) **requires** a
+  spec in `knowledge/docs/specs/`. This is the one hard exception to spec-optional; block on it if missing.
 - If the change makes a doc claim stale (new endpoint, entity, version…), note it — that's `/wrap`'s
   drift-flag + my edit, not a silent doc write.
 

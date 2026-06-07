@@ -23,8 +23,8 @@ The forces in play:
   embeddings, Azure AI Search out of scope); the runtime must be a first-class, supported target
   on Azure App Service / container hosts.
 
-Builds on [[wiki/docs/decisions/0001-record-architecture-decisions]]. Recorded in
-[[wiki/docs/STACK.md]] (runtime/version) and [[wiki/docs/ARCHITECTURE.md]] (the modular-monolith
+Builds on [[knowledge/docs/decisions/0001-record-architecture-decisions]]. Recorded in
+[[knowledge/docs/STACK.md]] (runtime/version) and [[knowledge/docs/ARCHITECTURE.md]] (the modular-monolith
 shape this runtime hosts).
 
 ## Decision

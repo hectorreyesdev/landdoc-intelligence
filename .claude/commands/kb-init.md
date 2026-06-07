@@ -1,11 +1,11 @@
 ---
-description: One-time idempotent scaffold of the landdoc-intelligence doc tree (root docs + wiki/) — clarifies the judgment with the human, drafts every doc in full from facts + that input, asks to accept, never clobbers.
+description: One-time idempotent scaffold of the landdoc-intelligence doc tree (root docs + knowledge/) — clarifies the judgment with the human, drafts every doc in full from facts + that input, asks to accept, never clobbers.
 argument-hint: "(no arg) — scaffold the doc tree once; re-run anytime to fill only what's missing"
 ---
 
-# wiki-init — scaffold the landdoc-intelligence docs
+# kb-init — scaffold the landdoc-intelligence docs
 
-Scaffold the documentation tree for THIS repo: root-level project files plus a `wiki/`
+Scaffold the documentation tree for THIS repo: root-level project files plus a `knowledge/`
 (living docs + evergreen notes + a COMMITTED session log). **Idempotent** — never clobber an
 existing file; only create what's missing. Markdown + Mermaid (renders in Obsidian/GitHub).
 
@@ -40,34 +40,33 @@ asks the human to accept before the tree is final.
   needs — that becomes the clarify list in step 2.
 
 ## 1. Create the tree (skip anything that already exists)
-Root holds the browse-first project files (a hiring manager sees the root first). Only
-docs/notes/logs live under `wiki/`.
+Root holds the browse-first project files (a hiring manager sees the root first). The knowledge base —
+docs (incl. specs + ADRs), notes, logs, and lessons — lives under `knowledge/`.
 ```
 <repo>/
   CLAUDE.md                # project instructions (skip if present)        [committed]
   README.md                # what this is + how to navigate the repo       [committed]
   CONTRIBUTING.md          # how to work in this repo + the doc workflow    [committed]
-  specs/                   # feature specs (one file per feature)          [committed]
-    README.md
-  tasks/
-    lessons.md             # running lessons-learned log (skip if present)  [committed]
   .github/                 # leave for CI/PR templates (create dir only)    [committed]
-  wiki/
-    README.md              # wiki index / TOC                              [committed]
+  knowledge/
+    README.md              # knowledge index / TOC                         [committed]
+    lessons.md             # running lessons-learned log (skip if present)  [committed]
     docs/                                                                   [committed]
       PRD.md  STACK.md  ARCHITECTURE.md  DATA-MODEL.md  DATA-FLOW.md
       API.md  RUNBOOK.md  GLOSSARY.md
       decisions/
         0000-template.md
         0001-record-architecture-decisions.md
+      specs/               # feature specs (one file per feature)          [committed]
+        README.md
     notes/                 # evergreen project knowledge                    [committed]
       README.md
     logs/                  # session logs YYYY-MM-DD.md — COMMITTED here    [committed]
       README.md
 ```
-> [!note] This is a PUBLIC repo. `wiki/logs/` is **tracked** (the workflow is the point —
-> committing the journal makes the agentic process visible). There is **no `wiki/raw/`** — no
-> half-baked capture inbox belongs in a public portfolio repo. `wiki/docs/PATTERNS.md` from the
+> [!note] This is a PUBLIC repo. `knowledge/logs/` is **tracked** (the workflow is the point —
+> committing the journal makes the agentic process visible). There is **no `knowledge/raw/`** — no
+> half-baked capture inbox belongs in a public portfolio repo. `knowledge/docs/PATTERNS.md` from the
 > harness original is intentionally **omitted** for this slice; conventions live in `CLAUDE.md` and
 > ARCHITECTURE's cross-cutting-concerns section. Say so in the report.
 
@@ -109,19 +108,15 @@ prose/diagrams. Flag only leftover low-stakes defaults inline as `*(assumption: 
 - **README.md** — one paragraph: an ASP.NET Core (.NET 10) Web API + React/TypeScript SPA that runs
   a RAG vertical slice over land/title documents (ingest PDF → extract structured fields → chunk →
   embed → in-memory cosine retrieval → answer **with citations**). Add a "Repo map" TOC linking the
-  root files + every `wiki/` doc. Open with the clarified positioning sentence.
+  root files + every `knowledge/` doc. Open with the clarified positioning sentence.
 - **CONTRIBUTING.md** — seed the doc workflow as fact: docs are authored BEFORE code as design
-  intent; `/wiki-init` scaffolds, `/spec` opens a feature spec, `/adr` records a decision, `/wrap`
-  keeps docs/logs current after code lands; ADRs in `wiki/docs/decisions/`; code lives under
+  intent; `/kb-init` scaffolds, `/spec` opens a feature spec, `/adr` records a decision, `/wrap`
+  keeps docs/logs current after code lands; ADRs in `knowledge/docs/decisions/`; code lives under
   `/backend` (ASP.NET Core) and `/frontend` (React/TS); commits carry **no** `Co-Authored-By` /
   "Generated with" trailer. Add the clarified branch/PR conventions + definition of done.
-- **specs/README.md** — one line: one feature spec per file, named `NNNN-<slug>.md`; link them as
-  they're written.
-- **tasks/lessons.md** — skip if it exists. If absent, seed the `# Lessons` H1 + the exact format
-  line `[date] | what went wrong | rule next time` and note **newest at the bottom**.
 - **.github/** — create the directory only (leave CI/PR templates to the human).
 
-### wiki/docs
+### knowledge/docs
 - **PRD.md** — sections: Problem · Goals · Non-goals · Users/personas · Use-cases · Scope (in/out) ·
   Success metrics · Open questions.
   - Derivable: **Users/personas = landmen and title users.** **Out of scope (name, don't build),
@@ -218,13 +213,19 @@ prose/diagrams. Flag only leftover low-stakes defaults inline as `*(assumption: 
 - **decisions/0001-record-architecture-decisions.md** — **Status: Accepted** once the human accepts
   at the gate (else Proposed), Date: today (ISO yyyy-mm-dd). Context = the framing ("this repo needs
   a durable record of architecture decisions"). Write the **Decision** and **Consequences** from the
-  step-2 answer (this is the one meta-ADR `/wiki-init` drafts; all later ADRs go through `/adr`).
+  step-2 answer (this is the one meta-ADR `/kb-init` drafts; all later ADRs go through `/adr`).
+- **specs/README.md** — one line: one feature spec per file, named `NNNN-<slug>.md`; link them as
+  they're written. Specs live at `knowledge/docs/specs/`, alongside `decisions/` as point-in-time design intent.
 
-### wiki/notes & wiki/logs
+### knowledge/notes, knowledge/logs & knowledge/lessons
 - **notes/README.md** — one line: evergreen project knowledge, one topic per file, cross-linked with
   `[[wikilinks]]`, accrued by `/wrap`.
 - **logs/README.md** — one line: committed session logs, one file per day `YYYY-MM-DD.md`, appended
   by `/wrap`; the journal is public here because the workflow is the deliverable.
+- **knowledge/lessons.md** — skip if it exists. If absent, seed the `# Lessons` H1, the broad-definition
+  note (a lesson is anything learned the hard way worth a durable rule — a correction, gotcha, or
+  finding; `/wrap` proposes and asks before adding), and the format line
+  `[date] | what happened / what was learned | rule or takeaway next time`, **newest at the bottom**.
 
 ## 4. Accept gate
 - Present the drafted docs for the human to **accept** — `AskUserQuestion`: *Accept* / *Revise* /
@@ -238,13 +239,13 @@ prose/diagrams. Flag only leftover low-stakes defaults inline as `*(assumption: 
 ## 5. .gitignore — verify only (it already covers the artifacts)
 - The repo `.gitignore` already excludes build + secret artifacts (`bin/`, `obj/`, `node_modules/`,
   `dist/`, `build/`, `*.env`, `.env.local`, `appsettings.*.local.json`, `secrets.json`). **Verify**
-  it still excludes those and that it excludes **NO `wiki/` path** (logs are committed). Only append
-  a missing artifact line if one is genuinely absent; never duplicate, never add a `wiki/` exclusion.
+  it still excludes those and that it excludes **NO `knowledge/` path** (logs are committed). Only append
+  a missing artifact line if one is genuinely absent; never duplicate, never add a `knowledge/` exclusion.
 
 ## 6. Report
 - List **created vs. skipped** (path-level), the doc count, and any `.gitignore` change (expect: none).
 - Note PATTERNS.md was intentionally omitted vs. the harness original.
 - Flag any **significant architecture decision** drafted into the docs that should be formalized as its
-  own ADR via `/adr` (e.g. the layering, the model-port split, the vector-store choice) — wiki-init
+  own ADR via `/adr` (e.g. the layering, the model-port split, the vector-store choice) — kb-init
   drafts only the meta-ADR 0001; the rest are recorded with `/adr`.
 - End with exactly: **"Now record the architecture decisions with /adr, open the first spec with /spec, then build under the tdd skill and run /wrap."**

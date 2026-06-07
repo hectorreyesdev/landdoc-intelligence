@@ -6,7 +6,7 @@
 ## Context
 Chat/completions sit behind the `IChatClient` port. The port split itself — and the *existence* of a
 `FoundryChatClient` (primary) / `AnthropicChatClient` (fallback) pair — was decided in
-[[wiki/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]]. What 0002 did **not**
+[[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]]. What 0002 did **not**
 record is *why* this provider topology, or *how* failover behaves: ARCHITECTURE.md still carries an
 open `TODO` to "define the failover trigger (which exceptions / status codes flip primary →
 fallback)." This ADR records the chat-provider gateway choice and that failover policy. It **builds
@@ -26,7 +26,7 @@ Forces at play:
   steps like extraction) and prompt caching for the repeated document context are only possible
   because model IDs live in config.
 
-Relates to [[wiki/docs/decisions/0003-dotnet-10-lts]] (the Azure-targeted backend). Embeddings are
+Relates to [[knowledge/docs/decisions/0003-dotnet-10-lts]] (the Azure-targeted backend). Embeddings are
 out of scope here — Anthropic has no embeddings endpoint (0002).
 
 ## Decision

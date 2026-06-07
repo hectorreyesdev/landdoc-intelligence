@@ -1,12 +1,12 @@
 ---
-description: Draft one complete feature spec at specs/NNNN-<slug>.md — auto-numbered, clarifying anything ambiguous first, then asking to accept; on acceptance flips Status to Accepted. The spec-first pillar — commit the spec BEFORE the implementation.
+description: Draft one complete feature spec at knowledge/docs/specs/NNNN-<slug>.md — auto-numbered, clarifying anything ambiguous first, then asking to accept; on acceptance flips Status to Accepted. The spec-first pillar — commit the spec BEFORE the implementation.
 argument-hint: "<short-slug-for-the-feature> (e.g. pdf-field-extraction)"
 ---
 
 # spec — clarify, draft, and ratify a feature spec (spec-first)
 
 Produce ONE complete feature spec for `$ARGUMENTS`, using the current conversation plus the repo
-(CLAUDE.md, wiki/docs, prior specs, ADRs). **First resolve any genuine ambiguity with the human**;
+(CLAUDE.md, knowledge/docs, prior specs, ADRs). **First resolve any genuine ambiguity with the human**;
 then fill every section — What to build, Constraints, How to verify, Links — making reasonable,
 clearly-flagged assumptions only on the small stuff. Then ask the human to accept it. On acceptance,
 flip the Status to **Accepted**. The spec is the spec-first pillar: once accepted it is committed on
@@ -21,13 +21,12 @@ its own **before** any implementation.
 > scope, constraints, or acceptance you could confirm — ask or check first.
 
 ## 0. Orient
-- Project root = the git repo root containing the cwd. Work there. Specs live in `specs/`
-  (root-relative, not `/specs`).
-- Scan `specs/` for the highest existing `NNNN-` prefix (numeric-prefixed files only — ignore
+- Project root = the git repo root containing the cwd. Work there. Specs live in `knowledge/docs/specs/`.
+- Scan `knowledge/docs/specs/` for the highest existing `NNNN-` prefix (numeric-prefixed files only — ignore
   `README.md` and anything without a 4-digit prefix). New number = highest + 1, zero-padded to 4
-  digits (first spec = `0001`). If `specs/` is missing, create it.
+  digits (first spec = `0001`). If `knowledge/docs/specs/` is missing, create it.
 - Slug = `$ARGUMENTS`, lowercased, spaces→hyphens, stripped of punctuation. File =
-  `specs/<NNNN>-<slug>.md`. If a file with that slug already exists, STOP and report it — don't
+  `knowledge/docs/specs/<NNNN>-<slug>.md`. If a file with that slug already exists, STOP and report it — don't
   clobber or renumber.
 - Gather the substance: re-read the conversation for the feature, its intent, and its boundaries.
   Read the stack/docs it touches and any related spec or ADR (it may depend on, or need, a decision
@@ -76,7 +75,7 @@ statements (a request returns citations; a field is extracted from the sample PD
 is deterministic for a fixed query). These become the PR's "verify" gate.>
 
 ## Links
-<Related ADR ([[wiki/docs/decisions/NNNN-<title>]]), affected docs (ARCHITECTURE / DATA-MODEL /
+<Related ADR ([[knowledge/docs/decisions/NNNN-<title>]]), affected docs (ARCHITECTURE / DATA-MODEL /
 DATA-FLOW / API), and the implementing PR once it exists (leave a placeholder until known).>
 ```
 

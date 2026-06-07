@@ -7,12 +7,12 @@
 The slice needs a small SPA: upload control → extracted-fields view → question box →
 answer-with-citations. CLAUDE.md already names **React + TypeScript** as the frontend, but the
 repo never recorded *why not Blazor* — and because the backend is .NET 10
-([[wiki/docs/decisions/0003-dotnet-10-lts]]), Blazor (a C#-everywhere web UI) is a genuine
+([[knowledge/docs/decisions/0003-dotnet-10-lts]]), Blazor (a C#-everywhere web UI) is a genuine
 alternative, not a strawman. This ADR records that fork.
 
 Forces at play:
 - **The API boundary is already HTTP/JSON.** The SPA talks to the modular monolith
-  ([[wiki/docs/decisions/0004-modular-monolith-over-microservices]]) over HTTP+JSON through a typed
+  ([[knowledge/docs/decisions/0004-modular-monolith-over-microservices]]) over HTTP+JSON through a typed
   client (ARCHITECTURE "Key boundaries"). That boundary is framework-agnostic — it neither needs nor
   benefits from a single-language stack.
 - **Conventional, demonstrable architecture.** A JS/TS SPA + JSON API is the mainstream split; for a
@@ -23,7 +23,7 @@ Forces at play:
 - **Already-fixed conventions.** CLAUDE.md pins the TypeScript style this implies: `strict: true`,
   function components + hooks, one typed `fetch` client, explicit return types, no `any`.
 
-Builds on [[wiki/docs/decisions/0001-record-architecture-decisions]].
+Builds on [[knowledge/docs/decisions/0001-record-architecture-decisions]].
 
 ## Decision
 We will build the frontend as a **React + TypeScript single-page application**, **not Blazor**

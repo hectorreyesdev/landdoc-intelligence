@@ -20,9 +20,9 @@ decomposed:
   work splits naturally into four concerns (`Ingestion`, `Extraction`, `Retrieval`, `Qa`), and
   model access is already isolated behind ports.
 
-Builds on [[wiki/docs/decisions/0001-record-architecture-decisions]]. Runs on the runtime chosen in
-[[wiki/docs/decisions/0003-dotnet-10-lts]]; the model-access ports that keep boundaries clean come
-from [[wiki/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]].
+Builds on [[knowledge/docs/decisions/0001-record-architecture-decisions]]. Runs on the runtime chosen in
+[[knowledge/docs/decisions/0003-dotnet-10-lts]]; the model-access ports that keep boundaries clean come
+from [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]].
 
 ## Decision
 We will build the backend as a **single ASP.NET Core process — a modular monolith — not a set of

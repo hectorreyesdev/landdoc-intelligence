@@ -19,7 +19,7 @@ We will split model access into two ports:
   `FoundryEmbeddingClient` (Azure OpenAI `text-embedding-3-small`, production). Selected by
   `ModelClient:EmbeddingProvider`. There is **no** Anthropic embeddings adapter.
 
-Provider selection stays config-only. Changing either interface requires a spec in `/specs`.
+Provider selection stays config-only. Changing either interface requires a spec in `knowledge/docs/specs/`.
 
 ## Consequences
 - Each concern fails over independently and honestly; no implied Anthropic-embeddings capability.

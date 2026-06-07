@@ -29,10 +29,10 @@ public repo committed under my name, an agent must never silently overwrite a de
 > **Propose, never self-review or auto-commit:** code changes — they go through the normal reviewer + CI + human gate.
 
 ## 0. Orient + detect drift
-- Project root = git repo root containing the cwd. If `wiki/` is missing, run `/wiki-init` first.
+- Project root = git repo root containing the cwd. If `knowledge/` is missing, run `/kb-init` first.
 - **If there's no app code yet, STOP and say so** — pre-scaffold, the docs ARE the source of truth (design
   intent); there is nothing to reconcile.
-- Run the same drift scan as `/wrap` step 4: diff each `wiki/docs/*` claim (and the ADRs) against the
+- Run the same drift scan as `/wrap` step 4: diff each `knowledge/docs/*` claim (and the ADRs) against the
   current code / manifests. Scope to `$ARGUMENTS` if given. Emit a **numbered drift list**, each item naming
   the **doc + section** and the **conflicting code fact**. If there's no drift, say so and stop.
 
