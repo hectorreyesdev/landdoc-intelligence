@@ -2,7 +2,9 @@ using System.Net;
 using System.Net.Http.Json;
 using LandDoc.Api.Model;
 using LandDoc.Api.Qa;
+using LandDoc.Api.Storage;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -163,8 +165,12 @@ public sealed class AskEndpointTests
         // Citations are still ≥1 — the chunks that were searched — each resolving to a stored chunk.
         Assert.NotEmpty(body.Citations);
 
-        var stored = await IngestionTestHelpers.StoredChunksAsync(factory);
-        var storedIds = stored.Select(c => c.Id).ToHashSet();
+        // Inline StoredChunksAsync logic — NotFoundChatFactory can't extend the sealed LandDocApiFactory.
+        var store = factory.Services.GetRequiredService<IVectorStore>();
+        var embedder = factory.Services.GetRequiredService<IEmbeddingClient>();
+        var probe = await embedder.EmbedAsync("probe");
+        var storedIds = store.TopK(probe, int.MaxValue).Select(sc => sc.Chunk.Id).ToHashSet();
+
         Assert.All(body.Citations, c => Assert.Contains(c.ChunkId, storedIds));
     }
 
@@ -201,17 +207,16 @@ public sealed class AskEndpointTests
     }
 
     /// <summary>
-    /// <see cref="LandDocApiFactory"/> subclass that replaces the default <see cref="FakeChatClient"/>
-    /// with one whose <see cref="IChatClient.AnswerAsync"/> always returns the "not found" canned answer.
-    /// Extends <see cref="LandDocApiFactory"/> so it can be passed to
-    /// <see cref="IngestionTestHelpers.StoredChunksAsync"/> and still supplies valid extracted fields for
-    /// ingestion.
+    /// <see cref="WebApplicationFactory{Program}"/> wired with a chat client whose
+    /// <see cref="IChatClient.AnswerAsync"/> always returns a "not found" canned answer, while
+    /// <see cref="IChatClient.ExtractFieldsAsync"/> returns the same canned fields as
+    /// <see cref="FakeChatClient"/> so ingestion succeeds. Cannot extend the sealed
+    /// <see cref="LandDocApiFactory"/>, so storage lookups in this test are inlined.
     /// </summary>
-    private sealed class NotFoundChatFactory : LandDocApiFactory
+    private sealed class NotFoundChatFactory : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
-            base.ConfigureWebHost(builder); // registers FakeChatClient for extraction
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IChatClient>();
