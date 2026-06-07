@@ -1,0 +1,6 @@
+@LandDoc.Api_HostAddress = http://localhost:5084
+
+GET {{LandDoc.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
