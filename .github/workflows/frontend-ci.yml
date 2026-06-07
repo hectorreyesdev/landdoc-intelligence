@@ -1,0 +1,45 @@
+name: Frontend CI
+
+# Deterministic typecheck+test gate for the frontend SPA. Fires on every PR into main (and on
+# main itself) but ONLY when the frontend changes — paths filters are workflow-level, so this
+# lives in its own file rather than as a second job in the backend's ci.yml.
+# Install uses `npm ci`: it installs strictly from package-lock.json and FAILS if the lockfile
+# is out of sync with package.json — the supply-chain gate (no drifting or unpinned deps),
+# mirroring the backend's --locked-mode restore. Tests are offline (mocked client); no secret
+# or API key is needed or wired in.
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - '.github/workflows/frontend-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  frontend:
+    name: frontend typecheck & test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install (locked)
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Test
+        run: npm test
