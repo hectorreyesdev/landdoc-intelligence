@@ -13,7 +13,7 @@ Township 6 South, Range 92 West, 6th P.M., Section 14: NE/4 SE/4, containing 40.
 
 ## Reservations and Exceptions
 
-Grantor RESERVES unto Grantor, Grantor's heirs and assigns, an undivided one-half (1/2) of all oil, gas, and other minerals in, on, and under the Property. This conveyance is subject to all easements, restrictions, and mineral reservations of record.
+Grantor RESERVES unto Grantor, Grantor's heirs and assigns, an undivided one-half (1/2) of all oil, gas, and other minerals in, on, and under the Property. This conveyance is subject to all easements, restrictions, and mineral reservations of record. (Note: where a grantor reserves a mineral fraction and warrants title, the Duhig rule may govern competing reservations.)
 
 ## Habendum and Warranty
 

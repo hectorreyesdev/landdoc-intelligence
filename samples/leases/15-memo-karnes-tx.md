@@ -26,7 +26,7 @@ Royalty: one-fourth (1/4)
 
 ## Leased Premises
 
-A-456, J. de la Garza Survey, Abstract No. 456, containing 210.50 acres, more or less, Karnes County, Texas.
+J. de la Garza Survey, Abstract No. 456, containing 210.50 acres, more or less, Karnes County, Texas.
 
 This Memorandum is executed and recorded to give notice of the Lease and is not a complete statement of its terms. In the event of conflict, the Lease controls.
 

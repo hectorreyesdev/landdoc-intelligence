@@ -21,9 +21,13 @@ To have and to hold for a term of five (5) years from the date hereof (the prima
 
 Lessee covenants to pay Lessor a royalty of one-eighth (1/8) of the net proceeds at the wellhead for all gas produced and marketed, and one-eighth (1/8) of all oil produced and saved from the leased premises.
 
-## Delay in Marketing / Free Gas
+## Free Gas
 
 Lessor shall have the right to use up to 200,000 cubic feet of gas per year, free of charge, for one dwelling on the premises, at Lessor's own risk.
+
+## Force Majeure
+
+When operations or production are prevented or delayed by force majeure -- including acts of God, war, governmental regulation or delay in issuing permits, inability to obtain materials, or lack of available market or transportation -- this lease shall not terminate, the time of such delay shall not be counted against Lessee, and the lease shall be extended for so long as operations are so prevented or delayed.
 
 
 WITNESS the hand and seal of Robert E. Stanton and Patricia Stanton, his wife, Lessor.

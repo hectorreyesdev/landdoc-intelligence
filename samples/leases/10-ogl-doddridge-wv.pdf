@@ -12,7 +12,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
 endobj
 5 0 obj
-<< /Length 2241 >>
+<< /Length 2460 >>
 stream
 BT
 /F1 11 Tf
@@ -74,13 +74,27 @@ T*
 T*
 (saved from the leased premises.) Tj
 T*
-(Delay in Marketing / Free Gas) Tj
+(Free Gas) Tj
 T*
 () Tj
 T*
 (Lessor shall have the right to use up to 200,000 cubic feet of gas per year, free of charge,) Tj
 T*
 (for one dwelling on the premises, at Lessor's own risk.) Tj
+T*
+(Force Majeure) Tj
+T*
+() Tj
+T*
+(When operations or production are prevented or delayed by force majeure -- including acts of) Tj
+T*
+(God, war, governmental regulation or delay in issuing permits, inability to obtain) Tj
+T*
+(materials, or lack of available market or transportation -- this lease shall not terminate,) Tj
+T*
+(the time of such delay shall not be counted against Lessee, and the lease shall be extended) Tj
+T*
+(for so long as operations are so prevented or delayed.) Tj
 T*
 () Tj
 T*
@@ -89,7 +103,19 @@ T*
 () Tj
 T*
 (STATE OF WEST VIRGINIA) Tj
-T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 320 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+72 720 Td
 (COUNTY OF DODDRIDGE) Tj
 T*
 () Tj
@@ -103,19 +129,7 @@ T*
 (____________________________________) Tj
 T*
 (Notary Public) Tj
-ET
-endstream
-endobj
-6 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
-endobj
-7 0 obj
-<< /Length 74 >>
-stream
-BT
-/F1 11 Tf
-15 TL
-72 720 Td
+T*
 (My commission expires: ______________) Tj
 ET
 endstream
@@ -128,10 +142,10 @@ xref
 0000000121 00000 n 
 0000000191 00000 n 
 0000000317 00000 n 
-0000002610 00000 n 
-0000002736 00000 n 
+0000002829 00000 n 
+0000002955 00000 n 
 trailer
 << /Size 8 /Root 1 0 R >>
 startxref
-2860
+3326
 %%EOF

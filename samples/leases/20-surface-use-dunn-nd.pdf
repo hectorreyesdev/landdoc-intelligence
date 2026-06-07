@@ -3,7 +3,7 @@
 << /Type /Catalog /Pages 2 0 R >>
 endobj
 2 0 obj
-<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+<< /Type /Pages /Kids [4 0 R 6 0 R] /Count 2 >>
 endobj
 3 0 obj
 << /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
@@ -12,7 +12,7 @@ endobj
 << /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 5 0 R >>
 endobj
 5 0 obj
-<< /Length 2120 >>
+<< /Length 2622 >>
 stream
 BT
 /F1 11 Tf
@@ -42,15 +42,19 @@ T*
 T*
 (for drilling and production operations;) Tj
 T*
-(Surface Damages) Tj
+(Surface Damages \(Area of Disturbance\)) Tj
 T*
 () Tj
 T*
-(Operator shall pay Surface Owner $25,000.00 per well pad as initial surface damages, plus) Tj
+(Operator shall pay Surface Owner $25,000.00 per well pad as initial surface damages within) Tj
 T*
-($30.00 per rod for new roads and pipelines installed across the property.) Tj
+(the area of disturbance, plus $30.00 per rod for new roads and pipelines, and shall) Tj
 T*
-(Location of Operations) Tj
+(separately compensate for damage to crops, livestock, fences, and improvements outside the) Tj
+T*
+(area of disturbance.) Tj
+T*
+(Location of Operations and Setbacks) Tj
 T*
 () Tj
 T*
@@ -58,30 +62,60 @@ T*
 T*
 (to any existing residence or water well without the Surface Owner's written consent.) Tj
 T*
-(Operator shall fence all production facilities and control noxious weeds.) Tj
+(Operator shall consult Surface Owner on locations before staking, fence all production) Tj
 T*
-(Reclamation) Tj
+(facilities, and control noxious weeds.) Tj
 T*
-() Tj
-T*
-(Upon plugging and abandonment, Operator shall remove all equipment, recontour the site to) Tj
-T*
-(approximate original grade, replace topsoil, and reseed with a mix approved by Surface Owner) Tj
-T*
-(within twelve \(12\) months.) Tj
-T*
-(Water) Tj
+(Interim and Final Reclamation) Tj
 T*
 () Tj
 T*
-(Operator shall not use fresh water from Surface Owner's wells or ponds without separate) Tj
+(Operator shall perform interim reclamation of areas not needed during production \(replace) Tj
 T*
-(written agreement and shall repair any damage to existing water sources.) Tj
+(topsoil, control weeds, reseed\). Upon plugging and abandonment, Operator shall remove all) Tj
+T*
+(equipment, recontour to approximate original grade, replace topsoil, and reseed with an) Tj
+T*
+(approved mix within twelve \(12\) months \(final reclamation\).) Tj
+T*
+(Water and Environmental Protection) Tj
+T*
+() Tj
+T*
+(Operator shall not use fresh water from Surface Owner's wells or ponds without a separate) Tj
+T*
+(written agreement; shall take measures to prevent soil erosion and pollution of land, water,) Tj
+T*
+(springs, and ponds; and shall not release or discharge toxic or hazardous substances on the) Tj
+T*
+(property.) Tj
+T*
+(Insurance and Indemnity) Tj
+T*
+() Tj
+T*
+(Operator shall maintain commercial general liability and environmental liability insurance) Tj
+T*
+(in commercially reasonable amounts and shall indemnify and hold Surface Owner harmless from) Tj
+T*
+(claims arising out of Operator's operations on the property.) Tj
 T*
 () Tj
 T*
 (SURFACE OWNER: Knutson Brothers Farm Partnership) Tj
-T*
+ET
+endstream
+endobj
+6 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents 7 0 R >>
+endobj
+7 0 obj
+<< /Length 388 >>
+stream
+BT
+/F1 11 Tf
+15 TL
+72 720 Td
 (OPERATOR: Bakken Ridge Energy, Inc.) Tj
 T*
 () Tj
@@ -107,15 +141,17 @@ ET
 endstream
 endobj
 xref
-0 6
+0 8
 0000000000 65535 f 
 0000000009 00000 n 
 0000000058 00000 n 
-0000000115 00000 n 
-0000000185 00000 n 
-0000000311 00000 n 
+0000000121 00000 n 
+0000000191 00000 n 
+0000000317 00000 n 
+0000002991 00000 n 
+0000003117 00000 n 
 trailer
-<< /Size 6 /Root 1 0 R >>
+<< /Size 8 /Root 1 0 R >>
 startxref
-2483
+3556
 %%EOF

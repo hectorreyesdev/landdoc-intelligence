@@ -4,11 +4,28 @@ A synthetic corpus for exercising the LandDoc ingest → extract → retrieve �
 pipeline end to end. **24 documents**, each emitted as both readable Markdown
 (`leases/<id>.md`) and an ingestible text-based PDF (`leases/<id>.pdf`).
 
-Everything here is **synthetic**. Party names are invented. But every document is
-tied to a **real US place** (county/parish, municipality, approximate lat/long in
-`manifest.json`) and uses the **real legal-description system** for that region —
-so the corpus maps to actual locations (for a future map feature) and stress-tests
-the variety a real extractor would see.
+Everything here is **synthetic** — party names, dates, dollar amounts, and
+recording data are invented. But the document **structures** are patterned on real
+instruments (clause inventories cross-checked against public legal references — see
+*Fidelity & sources* below; **no real form's text is copied**), every document is
+tied to a **real US place**, and it uses the **real legal-description system** for
+that region. For PLSS tracts the `latitude`/`longitude` is **computed from the
+township-range-section description** (not just the county seat), so the coordinate
+matches the legal description — see *Geocoding* below.
+
+## Geocoding — coordinates that match the description
+
+- **13 PLSS tracts** (section-township-range states) are geolocated by `generate.py`'s
+  built-in `plss_centroid`: PLSS is a regular 6-mile grid anchored at each principal
+  meridian's documented initial point, with sections numbered in the standard
+  boustrophedon pattern, so a Township/Range/Section/aliquot description converts to
+  an approximate tract centroid (±~1–3 mi — it ignores convergence and correction
+  lines). Each computed centroid lands **3–29 miles from its county seat**, i.e.
+  inside the (large, western) county — `distance_to_county_seat_mi` in the manifest
+  records this sanity check. `coordinate_basis` is `"PLSS tract centroid (computed…)"`.
+- **11 non-PLSS docs** (Texas abstract/block-section, Appalachian metes-and-bounds,
+  a Spanish land grant) have **no computable grid**, so their coordinate is a real
+  in-county/town point, marked `coordinate_basis: "county/town approximate"`.
 
 ## What's covered
 
@@ -63,3 +80,34 @@ response (the document id, extracted fields, and chunk count).
 
 > Note: the in-memory vector store is process-lifetime only (ADR-0005) — restart
 > the API and re-run `upload.sh` to rebuild the corpus.
+
+## Fidelity & sources
+
+The clause inventories were cross-checked against public legal/educational
+references so the documents carry the provisions a real instrument of each type
+would (e.g. leases include Mother Hubbard, continuous-operations/dry-hole, force
+majeure, and Pugh clauses; the title opinion has a decimal tract-ownership
+breakdown, a schedule of leases/encumbrances, and comments/requirements;
+surface-use adds insurance/indemnity and interim reclamation; the easement splits
+temporary-construction vs. permanent width and double-ditching). **All prose is
+original/paraphrased — no form text is reproduced.** References consulted:
+
+- Oil & gas lease clauses — [mineralwise.com](https://www.mineralwise.com/oil-gas-lease-forms),
+  [Pheasant Energy](https://www.pheasantenergy.com/oil-and-gas-clauses/),
+  [Guerra LLP](https://guerrallp.com/what-clauses-are-in-an-oil-gas-and-mineral-lease-and-what-do-they-mean)
+- Mineral/warranty deed elements & the Duhig rule —
+  [OU Law (special warranty)](https://digitalcommons.law.ou.edu/cgi/viewcontent.cgi?article=1073&context=onej),
+  [CourthouseDirect (Duhig)](https://info.courthousedirect.com/blog/bid/306796/the-duhig-rule-mineral-rights-warranty-deeds)
+- Title opinion structure/format —
+  [Gray Reed (Yale)](https://www.grayreed.com/portalresource/SBTOilandGasTitleOpinions.pdf),
+  [UARK ScholarWorks](https://scholarworks.uark.edu/cgi/viewcontent.cgi?article=1096&context=anrlaw)
+- Surface use agreements —
+  [Oliva Gibbs](https://oglawyers.com/practice-areas/surface-use-agreements/),
+  [CCALT model](https://ccalt.org/wp-content/uploads/2021/02/Model_Surface_Use_Agmt_CCALT.pdf)
+- Pipeline ROW easements —
+  [OSU Ohioline](https://ohioline.osu.edu/factsheet/anr-33),
+  [Penn State EARTH 109](https://www.e-education.psu.edu/earth109/node/683)
+
+> Still synthetic: structures are realistic and the geography is real, but the
+> specific parties, descriptions, and dollar figures are invented and the documents
+> are **not** legally precise or safe to treat as real records.

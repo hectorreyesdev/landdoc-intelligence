@@ -12,15 +12,19 @@ Outputs:
     samples/leases/<id>.pdf     ingestible PDF (text-based, no OCR needed)
     samples/manifest.json       answer key: geocoding (lat/long) + key fields per doc
 
-Everything here is SYNTHETIC. Party names are invented. Counties, parishes,
-meridians, and approximate coordinates are real US places so the documents map
-to actual locations (for a future map feature) and exercise the real legal-
-description systems (PLSS section-township-range, Texas abstract/block-section,
-and Appalachian metes-and-bounds).
+Everything here is SYNTHETIC. Party names, dates, dollar amounts, and recording
+data are invented. The document STRUCTURES are patterned on real instruments
+(clause inventories cross-checked against public legal references -- see README),
+but no real form's text is copied. Counties, parishes, and principal meridians
+are real; for PLSS tracts the lat/long is COMPUTED from the township-range-section
+description (see plss_centroid), so coordinates match the legal description rather
+than just pointing at the county seat.
 """
 from __future__ import annotations
 
 import json
+import math
+import re
 import textwrap
 from pathlib import Path
 
@@ -95,16 +99,112 @@ def build_pdf(lines: list[str]) -> bytes:
         out += f"{offsets[oid]:010d} 00000 n \n".encode()
     out += f"trailer\n<< /Size {total + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF".encode()
 
-    # self-check: every xref offset must land on "<id> 0 obj"
-    for oid in range(1, total + 1):
+    for oid in range(1, total + 1):  # self-check: xref offsets land on "<id> 0 obj"
         assert out[offsets[oid]:].startswith(f"{oid} 0 obj".encode()), f"bad offset for obj {oid}"
     return bytes(out)
 
 
 # ---------------------------------------------------------------------------
-# Block model: documents are authored as (kind, text) blocks, then rendered to
-# both Markdown and wrapped plain text (for the PDF) from the same source.
-# kind in {"h1", "h2", "p", "blank"}
+# PLSS geometry: convert a Township-Range-Section-aliquot description into an
+# approximate tract centroid (lat/long). PLSS is a 6-mile grid measured from
+# each principal meridian's documented initial point; sections are 1-mile
+# squares numbered in a boustrophedon ("snake") pattern from the NE corner.
+# Accuracy is ~1-3 miles (ignores convergence, correction lines, and survey
+# adjustments) -- ample for a map and for checking a tract lands in its county.
+# ---------------------------------------------------------------------------
+
+# meridian key -> (initial-point lat, initial-point lon, abbreviation in descriptions)
+MERIDIANS = {
+    "5th":  (34.6447,  -91.0564, "5th P.M."),
+    "6th":  (40.0019,  -97.3689, "6th P.M."),
+    "IM":   (34.4922,  -97.2469, "I.M."),
+    "NMPM": (34.2597, -106.8867, "N.M.P.M."),
+    "MDM":  (37.8817, -121.9131, "M.D.M."),
+    "LA":   (31.0000,  -92.4042, "Louisiana Meridian"),
+    "MPM":  (45.7869, -111.6592, "M.P.M."),
+}
+
+MI_PER_DEG_LAT = 69.0
+_DIRWORD = {"N": "North", "S": "South", "E": "East", "W": "West"}
+
+
+def sec_rowcol(sec: int) -> tuple[int, int]:
+    """Row (0=north tier) and column (0=west) of a section in its township."""
+    row = (sec - 1) // 6
+    idx = (sec - 1) % 6
+    col = (5 - idx) if row % 2 == 0 else idx   # even rows number E->W, odd W->E
+    return row, col
+
+
+def parse_aliquot(aliquot: str | None) -> tuple[float, float]:
+    """Center of an aliquot within a unit section, as (x east, y north) in [0,1].
+    Reads quarter/half calls right-to-left (rightmost = largest subdivision)."""
+    if not aliquot:
+        return 0.5, 0.5
+    tokens = re.findall(r"N[EW]/4|S[EW]/4|[NSEW]/2", aliquot)
+    if not tokens:
+        return 0.5, 0.5
+    x0, x1, y0, y1 = 0.0, 1.0, 0.0, 1.0
+    for t in reversed(tokens):
+        xm, ym = (x0 + x1) / 2, (y0 + y1) / 2
+        if t == "NE/4": x0, y0 = xm, ym
+        elif t == "NW/4": x1, y0 = xm, ym
+        elif t == "SE/4": x0, y1 = xm, ym
+        elif t == "SW/4": x1, y1 = xm, ym
+        elif t == "N/2": y0 = ym
+        elif t == "S/2": y1 = ym
+        elif t == "E/2": x0 = xm
+        elif t == "W/2": x1 = xm
+    return (x0 + x1) / 2, (y0 + y1) / 2
+
+
+def _section_centroid_miles(twp, twp_dir, rng, rng_dir, sec, aliquot):
+    row, col = sec_rowcol(sec)
+    ax, ay = parse_aliquot(aliquot)
+    north_edge = twp * 6 if twp_dir == "N" else -((twp - 1) * 6)
+    north = north_edge - (row + 0.5) + (ay - 0.5)
+    west_edge = (rng - 1) * 6 if rng_dir == "E" else -(rng * 6)
+    east = west_edge + (col + 0.5) + (ax - 0.5)
+    return north, east
+
+
+def plss_centroid(p: dict) -> tuple[float, float]:
+    lat0, lon0, _ = MERIDIANS[p["mer"]]
+    secs = p["sec"] if isinstance(p["sec"], list) else [p["sec"]]
+    norths, easts = [], []
+    for s in secs:
+        n, e = _section_centroid_miles(p["twp"], p["twp_dir"], p["rng"], p["rng_dir"], s,
+                                       p.get("aliquot"))
+        norths.append(n); easts.append(e)
+    north, east = sum(norths) / len(norths), sum(easts) / len(easts)
+    lat = lat0 + north / MI_PER_DEG_LAT
+    lon = lon0 + east / (69.172 * math.cos(math.radians(lat)))
+    return round(lat, 4), round(lon, 4)
+
+
+def plss_legal(p: dict) -> str:
+    _, _, abbr = MERIDIANS[p["mer"]]
+    base = (f"Township {p['twp']} {_DIRWORD[p['twp_dir']]}, "
+            f"Range {p['rng']} {_DIRWORD[p['rng_dir']]}, {abbr}")
+    aliquot = p.get("aliquot")
+    if isinstance(p["sec"], list):
+        secs = " and ".join(str(s) for s in p["sec"])
+        tail = " (all)" if aliquot in (None, "all") else f": {aliquot}"
+        return f"{base}, Sections {secs}{tail}"
+    tail = "" if aliquot in (None, "all") else f": {aliquot}"
+    return f"{base}, Section {p['sec']}{tail}"
+
+
+def haversine_mi(a: tuple[float, float], b: tuple[float, float]) -> float:
+    r = 3958.8
+    la1, lo1, la2, lo2 = map(math.radians, (a[0], a[1], b[0], b[1]))
+    h = math.sin((la2 - la1) / 2) ** 2 + math.cos(la1) * math.cos(la2) * math.sin((lo2 - lo1) / 2) ** 2
+    return round(2 * r * math.asin(math.sqrt(h)), 1)
+
+
+# ---------------------------------------------------------------------------
+# Block model -> Markdown + wrapped plain text (for the PDF). kind in
+# {"h1", "h2", "p", "blank"}.
 # ---------------------------------------------------------------------------
 
 def to_markdown(blocks: list[tuple[str, str]]) -> str:
@@ -138,7 +238,7 @@ def to_lines(blocks: list[tuple[str, str]]) -> list[str]:
 # Reusable clause fragments
 # ---------------------------------------------------------------------------
 
-def _notary(state: str, county_label: str, county: str, who: str) -> list[tuple[str, str]]:
+def _notary(state, county_label, county, who):
     return [
         ("blank", ""),
         ("p", f"STATE OF {state.upper()}"),
@@ -152,67 +252,98 @@ def _notary(state: str, county_label: str, county: str, who: str) -> list[tuple[
     ]
 
 
-def _recording_block(rec: dict) -> list[tuple[str, str]]:
+def _recording_block(rec):
     return [
         ("p", "[RECORDING DATA]"),
         ("p", f"Instrument No.: {rec['instrument_no']}"),
         ("p", f"Book/Volume: {rec['book']}   Page: {rec['page']}"),
-        ("p", f"Recorded: {rec['recorded']}   {rec['recorder']}"),
+        ("p", f"Recorded: {rec.get('recorded', '____________')}   {rec.get('recorder', 'County Clerk')}"),
     ]
+
+
+# Clause fragments cross-checked against public references (paraphrased, not copied).
+MOTHER_HUBBARD = (
+    "This lease also covers and includes all land owned or claimed by Lessor adjacent or "
+    "contiguous to the land particularly described above, whether the same be in said survey "
+    "or in adjacent surveys, although not included within the boundaries above (the "
+    "\"Mother Hubbard\" clause).")
+CONTINUOUS_OPS = (
+    "If at the expiration of the primary term oil or gas is not being produced but Lessee is "
+    "then engaged in drilling or reworking operations, this lease shall remain in force so "
+    "long as such operations are prosecuted with no cessation of more than ninety (90) "
+    "consecutive days. If a dry hole is drilled, the lease shall not terminate if Lessee "
+    "commences additional operations within ninety (90) days thereafter.")
+FORCE_MAJEURE = (
+    "When operations or production are prevented or delayed by force majeure -- including acts "
+    "of God, war, governmental regulation or delay in issuing permits, inability to obtain "
+    "materials, or lack of available market or transportation -- this lease shall not "
+    "terminate, the time of such delay shall not be counted against Lessee, and the lease "
+    "shall be extended for so long as operations are so prevented or delayed.")
+PUGH_CLAUSE = (
+    "Pugh Clause: Upon expiration of the primary term, this lease shall terminate as to all "
+    "lands and all depths not then included within a producing or pooled unit, unless Lessee "
+    "is then conducting continuous operations as provided herein.")
 
 
 # ---------------------------------------------------------------------------
 # Templates (one per instrument style)
 # ---------------------------------------------------------------------------
 
-def t_oil_gas_lease(d) -> list[tuple[str, str]]:
-    county_label = d.get("county_label", "County")
+def t_oil_gas_lease(d):
+    cl = d.get("county_label", "County")
     b = [
         ("h1", "Oil and Gas Lease"),
         ("p", f"(Producers 88 -- Paid-Up) Form No. {d['form_no']}"),
         ("blank", ""),
-        ("p", f"THIS AGREEMENT made this {d['effective_date']}, by and between "
-              f"{d['lessor']} (\"Lessor\", whether one or more), and "
-              f"{d['lessee']} (\"Lessee\")."),
+        ("p", f"THIS AGREEMENT made this {d['effective_date']}, by and between {d['lessor']} "
+              f"(\"Lessor\", whether one or more), and {d['lessee']} (\"Lessee\")."),
         ("blank", ""),
         ("h2", "1. Granting Clause"),
-        ("p", f"Lessor, in consideration of {d['bonus']} and the covenants herein, grants, leases, and "
-              f"lets exclusively unto Lessee the land described below for the purpose of exploring for, "
-              f"drilling, and producing oil and gas, together with rights of ingress and egress."),
+        ("p", f"Lessor, in consideration of {d['bonus']} and the covenants herein, grants, leases, "
+              f"and lets exclusively unto Lessee the land described below for the purpose of "
+              f"exploring, drilling, operating for, and producing oil and gas, together with rights "
+              f"of ingress and egress and the use of the surface as reasonably necessary."),
+        ("p", MOTHER_HUBBARD),
         ("h2", "2. Description of Leased Premises"),
-        ("p", f"The leased premises are situated in {d['county']} {county_label}, {d['state']}, and "
-              f"described as: {d['legal']}, containing {d['acres']} acres, more or less "
-              f"(the \"Leased Premises\")."),
+        ("p", f"The leased premises are situated in {d['county']} {cl}, {d['state']}, and described "
+              f"as: {d['legal']}, containing {d['acres']} acres, more or less (the \"Leased "
+              f"Premises\")."),
         ("h2", "3. Primary Term"),
-        ("p", f"This lease shall remain in force for a primary term of {d['term']} from the effective "
-              f"date (the \"Primary Term\") and as long thereafter as oil or gas is produced in paying "
-              f"quantities from the Leased Premises or lands pooled therewith."),
+        ("p", f"This lease shall remain in force for a primary term of {d['term']} from the "
+              f"effective date and as long thereafter as oil or gas is produced in paying "
+              f"quantities from the Leased Premises or lands pooled therewith (the habendum)."),
         ("h2", "4. Royalty"),
-        ("p", f"Lessee shall pay Lessor a royalty of {d['royalty']} of the gross proceeds of all oil "
-              f"and gas produced and sold from the Leased Premises, free of costs of production but "
-              f"bearing its proportionate share of post-production costs as permitted by law."),
+        ("p", f"Lessee shall pay Lessor a royalty of {d['royalty']} of the gross proceeds of all "
+              f"oil and gas produced and sold, free of the costs of production but bearing its "
+              f"proportionate share of post-production costs as permitted by law."),
         ("h2", "5. Shut-In Royalty"),
-        ("p", f"If a well capable of producing gas is shut in, Lessee may maintain this lease by paying "
-              f"a shut-in royalty of {d['shut_in']} per net mineral acre per year."),
-        ("h2", "6. Pooling"),
-        ("p", "Lessee may pool the Leased Premises with other lands to form a unit not exceeding 640 "
-              "acres (plus 10% tolerance) for an oil well or 1,280 acres for a horizontal gas well, in "
-              "conformity with applicable spacing rules."),
-        ("h2", "7. Warranty and Surrender"),
-        ("p", "Lessor warrants title to the Leased Premises. Lessee may surrender this lease, in whole "
-              "or in part, by recording a release. This lease binds the heirs, successors, and assigns "
-              "of the parties."),
+        ("p", f"If a well capable of producing gas is shut in, Lessee may maintain this lease by "
+              f"paying a shut-in royalty of {d['shut_in']} per net mineral acre per year."),
+        ("h2", "6. Pooling and Unitization"),
+        ("p", "Lessee may pool the Leased Premises with other lands to form a unit not exceeding "
+              "640 acres (plus 10% tolerance) for an oil well or 1,280 acres for a horizontal gas "
+              "well, in conformity with applicable spacing and density rules."),
+        ("h2", "7. Continuous Operations and Dry Hole"),
+        ("p", CONTINUOUS_OPS),
+        ("h2", "8. Force Majeure"),
+        ("p", FORCE_MAJEURE),
+        ("h2", "9. Pugh Clause"),
+        ("p", PUGH_CLAUSE),
+        ("h2", "10. Warranty, Surrender, and Successors"),
+        ("p", "Lessor warrants and agrees to defend title to the Leased Premises and grants Lessee "
+              "the right to redeem for Lessor any unpaid taxes or mortgages. Lessee may surrender "
+              "this lease, in whole or in part, by recording a release. This lease binds the heirs, "
+              "successors, and assigns of the parties."),
         ("blank", ""),
         ("p", "IN WITNESS WHEREOF, the parties execute this lease as of the effective date."),
         ("blank", ""),
         ("p", f"LESSOR: {d['lessor']}"),
         ("p", f"LESSEE: {d['lessee']}"),
     ]
-    b += _notary(d["state"], county_label, d["county"], d["lessor"])
-    return b
+    return b + _notary(d["state"], cl, d["county"], d["lessor"])
 
 
-def t_paidup_modern(d) -> list[tuple[str, str]]:
+def t_paidup_modern(d):
     return [
         ("h1", "Paid-Up Oil and Gas Lease"),
         ("p", f"Effective Date: {d['effective_date']}"),
@@ -221,11 +352,12 @@ def t_paidup_modern(d) -> list[tuple[str, str]]:
         ("p", f"County: {d['county']}, {d['state']}"),
         ("blank", ""),
         ("h2", "Recitals"),
-        ("p", f"Lessor owns an interest in the oil, gas, and other minerals underlying the lands "
-              f"described herein and desires to lease the same to Lessee for development."),
+        ("p", "Lessor owns an interest in the oil, gas, and other minerals underlying the lands "
+              "described herein and desires to lease the same to Lessee for development."),
         ("h2", "Leased Lands"),
         ("p", f"{d['legal']}, containing approximately {d['acres']} net mineral acres in "
               f"{d['county']} County, {d['state']}."),
+        ("p", MOTHER_HUBBARD),
         ("h2", "Consideration and Bonus"),
         ("p", f"Lessee has paid Lessor {d['bonus']} as a paid-up bonus, the receipt of which is "
               f"acknowledged, covering the full primary term with no delay rentals due."),
@@ -235,21 +367,25 @@ def t_paidup_modern(d) -> list[tuple[str, str]]:
         ("h2", "Royalty"),
         ("p", f"{d['royalty']} of production, delivered or paid free of the costs of exploration, "
               f"drilling, and production."),
-        ("h2", "Depth and Continuous Operations"),
-        ("p", "This lease covers all depths. A continuous-development clause requires Lessee to "
-              "commence a new well within 180 days of completion of the prior well to hold acreage "
-              "outside a producing unit."),
+        ("h2", "Continuous Development"),
+        ("p", "A continuous-development clause requires Lessee to commence a new well within 180 "
+              "days of completion of the prior well to hold acreage outside a producing unit; this "
+              "lease covers all depths."),
+        ("h2", "Force Majeure"),
+        ("p", FORCE_MAJEURE),
+        ("h2", "Pugh Clause"),
+        ("p", PUGH_CLAUSE),
         ("h2", "Execution"),
         ("p", f"Executed by {d['lessor']} (Lessor) and {d['lessee']} (Lessee) effective "
               f"{d['effective_date']}."),
     ] + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
-def t_metes_bounds_lease(d) -> list[tuple[str, str]]:
+def t_metes_bounds_lease(d):
     return [
         ("h1", "Oil and Gas Lease (Appalachian Form)"),
-        ("p", f"This Lease, made and entered into on {d['effective_date']}, between {d['lessor']}, of "
-              f"{d['township']}, {d['county']} County, {d['state']} (\"Lessor\"), and "
+        ("p", f"This Lease, made and entered into on {d['effective_date']}, between {d['lessor']}, "
+              f"of {d['township']}, {d['county']} County, {d['state']} (\"Lessor\"), and "
               f"{d['lessee']} (\"Lessee\")."),
         ("blank", ""),
         ("h2", "Witnesseth"),
@@ -268,20 +404,19 @@ def t_metes_bounds_lease(d) -> list[tuple[str, str]]:
         ("p", f"Lessee covenants to pay Lessor a royalty of {d['royalty']} of the net proceeds at "
               f"the wellhead for all gas produced and marketed, and {d['oil_royalty']} of all oil "
               f"produced and saved from the leased premises."),
-        ("h2", "Delay in Marketing / Free Gas"),
+        ("h2", "Free Gas"),
         ("p", "Lessor shall have the right to use up to 200,000 cubic feet of gas per year, free of "
               "charge, for one dwelling on the premises, at Lessor's own risk."),
+        ("h2", "Force Majeure"),
+        ("p", FORCE_MAJEURE),
         ("blank", ""),
         ("p", f"WITNESS the hand and seal of {d['lessor']}, Lessor."),
     ] + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
-def t_memorandum(d) -> list[tuple[str, str]]:
-    blocks = [
-        ("h1", "Memorandum of Oil and Gas Lease"),
-        ("p", "(Short Form for Recording)"),
-        ("blank", ""),
-    ]
+def t_memorandum(d):
+    blocks = [("h1", "Memorandum of Oil and Gas Lease"), ("p", "(Short Form for Recording)"),
+              ("blank", "")]
     blocks += _recording_block(d["recording"])
     blocks += [
         ("blank", ""),
@@ -298,36 +433,40 @@ def t_memorandum(d) -> list[tuple[str, str]]:
         ("p", "This Memorandum is executed and recorded to give notice of the Lease and is not a "
               "complete statement of its terms. In the event of conflict, the Lease controls."),
     ]
-    blocks += _notary(d["state"], "County", d["county"], d["lessor"])
-    return blocks
+    return blocks + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
-def t_mineral_deed(d) -> list[tuple[str, str]]:
+def t_mineral_deed(d):
     return [
         ("h1", "Mineral Deed"),
         ("p", f"KNOW ALL PERSONS BY THESE PRESENTS, that {d['grantor']} (\"Grantor\"), for and in "
               f"consideration of {d['consideration']}, the receipt of which is acknowledged, does "
               f"hereby GRANT, SELL, and CONVEY unto {d['grantee']} (\"Grantee\") the following:"),
-        ("h2", "Mineral Interest Conveyed"),
+        ("h2", "Mineral Interest Conveyed (Granting Clause)"),
         ("p", f"An undivided {d['interest']} interest in and to all of the oil, gas, and other "
-              f"minerals in and under, and that may be produced from, the following described land:"),
+              f"minerals in, under, and that may be produced from the following described land, "
+              f"together with the right of ingress and egress and the executive right to lease:"),
         ("h2", "Land"),
         ("p", f"{d['legal']}, containing {d['acres']} acres, more or less, situated in {d['county']} "
               f"County, {d['state']}."),
         ("h2", "Habendum"),
-        ("p", "TO HAVE AND TO HOLD the above-described mineral interest, together with all rights "
-              "of ingress and egress, unto Grantee, Grantee's heirs, successors, and assigns "
-              "forever. Grantor binds Grantor's heirs to warrant and forever defend title."),
+        ("p", "TO HAVE AND TO HOLD the above-described mineral interest unto Grantee, Grantee's "
+              "heirs, successors, and assigns forever."),
+        ("h2", "Subject To / Existing Lease"),
         ("p", f"This conveyance is made subject to any valid and subsisting oil and gas lease of "
               f"record, but covers and includes {d['interest']} of all rentals and royalties "
-              f"thereunder."),
+              f"accruing thereunder from and after the date hereof."),
+        ("h2", "Warranty"),
+        ("p", f"Grantor binds Grantor and Grantor's heirs to WARRANT AND FOREVER DEFEND title to "
+              f"the interest conveyed unto Grantee against every person lawfully claiming the same "
+              f"({d['warranty']} warranty)."),
         ("blank", ""),
         ("p", f"EXECUTED this {d['effective_date']}."),
         ("p", f"GRANTOR: {d['grantor']}"),
     ] + _notary(d["state"], "County", d["county"], d["grantor"])
 
 
-def t_royalty_deed(d) -> list[tuple[str, str]]:
+def t_royalty_deed(d):
     return [
         ("h1", "Royalty Deed"),
         ("p", f"THIS ROYALTY DEED is made {d['effective_date']} by {d['grantor']} (\"Grantor\") to "
@@ -342,14 +481,15 @@ def t_royalty_deed(d) -> list[tuple[str, str]]:
               f"{d['state']}."),
         ("h2", "Non-Participating Nature"),
         ("p", "The interest conveyed is a non-participating royalty: Grantee shall not have the "
-              "right to execute leases, to receive bonus or delay rentals, or to participate in the "
-              "making of oil and gas leases, all such rights being reserved to the mineral owner."),
+              "right to execute leases, to receive bonus or delay rentals, or to join in the making "
+              "of oil and gas leases, all such executive rights being reserved to the mineral "
+              "owner."),
         ("blank", ""),
         ("p", f"GRANTOR: {d['grantor']}"),
     ] + _notary(d["state"], "County", d["county"], d["grantor"])
 
 
-def t_warranty_deed(d) -> list[tuple[str, str]]:
+def t_warranty_deed(d):
     return [
         ("h1", "General Warranty Deed"),
         ("p", f"THE STATE OF {d['state'].upper()}"),
@@ -358,7 +498,8 @@ def t_warranty_deed(d) -> list[tuple[str, str]]:
         ("p", f"That {d['grantor']} (\"Grantor\"), for and in consideration of the sum of "
               f"{d['consideration']} cash in hand paid by {d['grantee']} (\"Grantee\"), the receipt "
               f"and sufficiency of which are acknowledged, has GRANTED, SOLD, and CONVEYED, and by "
-              f"these presents does GRANT, SELL, and CONVEY unto Grantee the following real property:"),
+              f"these presents does GRANT, SELL, and CONVEY unto Grantee the following real "
+              f"property:"),
         ("h2", "Property"),
         ("p", f"{d['legal']}, containing {d['acres']} acres, more or less, situated in {d['county']} "
               f"County, {d['state']}, together with all improvements thereon (the \"Property\")."),
@@ -366,19 +507,20 @@ def t_warranty_deed(d) -> list[tuple[str, str]]:
         ("p", f"Grantor RESERVES unto Grantor, Grantor's heirs and assigns, an undivided "
               f"{d['reservation']} of all oil, gas, and other minerals in, on, and under the "
               f"Property. This conveyance is subject to all easements, restrictions, and mineral "
-              f"reservations of record."),
+              f"reservations of record. (Note: where a grantor reserves a mineral fraction and "
+              f"warrants title, the Duhig rule may govern competing reservations.)"),
         ("h2", "Habendum and Warranty"),
         ("p", "TO HAVE AND TO HOLD the Property unto Grantee, Grantee's heirs, successors, and "
-              "assigns forever; and Grantor binds Grantor and Grantor's heirs to WARRANT AND FOREVER "
-              "DEFEND all and singular the Property unto Grantee against every person lawfully "
-              "claiming the same."),
+              "assigns forever; and Grantor binds Grantor and Grantor's heirs to WARRANT AND "
+              "FOREVER DEFEND all and singular the Property unto Grantee against every person "
+              "lawfully claiming the same."),
         ("blank", ""),
         ("p", f"EXECUTED on {d['effective_date']}."),
         ("p", f"GRANTOR: {d['grantor']}"),
     ] + _notary(d["state"], "County", d["county"], d["grantor"])
 
 
-def t_quitclaim(d) -> list[tuple[str, str]]:
+def t_quitclaim(d):
     return [
         ("h1", "Quitclaim Deed"),
         ("p", f"THIS QUITCLAIM DEED, executed {d['effective_date']}, by {d['grantor']} (\"Grantor\") "
@@ -397,7 +539,7 @@ def t_quitclaim(d) -> list[tuple[str, str]]:
     ] + _notary(d["state"], "County", d["county"], d["grantor"])
 
 
-def t_surface_use(d) -> list[tuple[str, str]]:
+def t_surface_use(d):
     return [
         ("h1", "Surface Use and Damage Agreement"),
         ("p", f"This Surface Use and Damage Agreement (\"Agreement\") is entered into on "
@@ -409,56 +551,71 @@ def t_surface_use(d) -> list[tuple[str, str]]:
               f"({d['acres']} acres); and"),
         ("p", "WHEREAS the parties desire to set forth the terms governing Operator's use of the "
               "surface for drilling and production operations;"),
-        ("h2", "Surface Damages"),
+        ("h2", "Surface Damages (Area of Disturbance)"),
         ("p", f"Operator shall pay Surface Owner {d['surface_payment']} per well pad as initial "
-              f"surface damages, plus {d['road_payment']} per rod for new roads and pipelines "
-              f"installed across the property."),
-        ("h2", "Location of Operations"),
+              f"surface damages within the area of disturbance, plus {d['road_payment']} per rod "
+              f"for new roads and pipelines, and shall separately compensate for damage to crops, "
+              f"livestock, fences, and improvements outside the area of disturbance."),
+        ("h2", "Location of Operations and Setbacks"),
         ("p", "Well pads, tank batteries, and central facilities shall be located no closer than "
               "500 feet to any existing residence or water well without the Surface Owner's written "
-              "consent. Operator shall fence all production facilities and control noxious weeds."),
-        ("h2", "Reclamation"),
-        ("p", "Upon plugging and abandonment, Operator shall remove all equipment, recontour the "
-              "site to approximate original grade, replace topsoil, and reseed with a mix approved "
-              "by Surface Owner within twelve (12) months."),
-        ("h2", "Water"),
-        ("p", "Operator shall not use fresh water from Surface Owner's wells or ponds without "
-              "separate written agreement and shall repair any damage to existing water sources."),
+              "consent. Operator shall consult Surface Owner on locations before staking, fence all "
+              "production facilities, and control noxious weeds."),
+        ("h2", "Interim and Final Reclamation"),
+        ("p", "Operator shall perform interim reclamation of areas not needed during production "
+              "(replace topsoil, control weeds, reseed). Upon plugging and abandonment, Operator "
+              "shall remove all equipment, recontour to approximate original grade, replace "
+              "topsoil, and reseed with an approved mix within twelve (12) months (final "
+              "reclamation)."),
+        ("h2", "Water and Environmental Protection"),
+        ("p", "Operator shall not use fresh water from Surface Owner's wells or ponds without a "
+              "separate written agreement; shall take measures to prevent soil erosion and "
+              "pollution of land, water, springs, and ponds; and shall not release or discharge "
+              "toxic or hazardous substances on the property."),
+        ("h2", "Insurance and Indemnity"),
+        ("p", "Operator shall maintain commercial general liability and environmental liability "
+              "insurance in commercially reasonable amounts and shall indemnify and hold Surface "
+              "Owner harmless from claims arising out of Operator's operations on the property."),
         ("blank", ""),
         ("p", f"SURFACE OWNER: {d['lessor']}"),
         ("p", f"OPERATOR: {d['lessee']}"),
     ] + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
-def t_easement(d) -> list[tuple[str, str]]:
+def t_easement(d):
     return [
         ("h1", "Right-of-Way and Pipeline Easement"),
         ("p", f"This Right-of-Way and Easement Agreement is made {d['effective_date']} by "
               f"{d['grantor']} (\"Grantor\") in favor of {d['grantee']} (\"Grantee\")."),
         ("h2", "Grant of Easement"),
-        ("p", f"For consideration of {d['consideration']}, Grantor grants Grantee a "
-              f"{d['width']}-foot wide easement and right-of-way to construct, operate, maintain, "
-              f"inspect, replace, and remove one or more pipelines for the transportation of oil, "
-              f"gas, water, and related substances, with appurtenant valves and cathodic protection."),
+        ("p", f"For consideration of {d['consideration']}, Grantor grants Grantee a permanent "
+              f"easement {d['perm_width']} feet in width to construct, operate, maintain, inspect, "
+              f"replace, and remove one pipeline for the transportation of oil, gas, water, and "
+              f"related substances, with appurtenant valves and cathodic protection, together with "
+              f"a temporary construction easement {d['temp_width']} feet in width during initial "
+              f"installation only."),
         ("h2", "Location"),
         ("p", f"The easement crosses the following land: {d['legal']}, {d['county']} County, "
               f"{d['state']}, the centerline being as staked and as shown on the plat attached as "
               f"Exhibit A. The right-of-way traverses approximately {d['rods']} rods "
-              f"({d['acres']} acres of working space during construction)."),
-        ("h2", "Depth and Restoration"),
-        ("p", "Pipelines shall be buried a minimum of 48 inches below the surface and below the "
-              "plow depth of cultivated land. Grantee shall restore the surface, repair fences and "
-              "drainage, and pay for growing crops and timber actually damaged."),
-        ("h2", "Term"),
-        ("p", "This easement shall continue so long as the right-of-way is used for the purposes "
-              "granted; abandonment for twenty-four (24) consecutive months terminates the grant and "
-              "title reverts to Grantor."),
+              f"({d['acres']} acres of permanent working space)."),
+        ("h2", "Depth, Double-Ditching, and Restoration"),
+        ("p", "The pipeline shall be buried a minimum of 48 inches below the surface and below the "
+              "plow depth of cultivated land. Grantee shall double-ditch so that topsoil is "
+              "separated and returned to the surface, repair fences, drainage, and terraces, "
+              "re-seed annually until vegetation is re-established, and pay for growing crops and "
+              "timber actually damaged."),
+        ("h2", "One Pipeline; Term and Abandonment"),
+        ("p", "This grant is limited to a single pipeline; any additional line requires separate "
+              "consideration. The easement continues so long as used for the purposes granted; "
+              "abandonment for twenty-four (24) consecutive months terminates the grant and title "
+              "reverts to Grantor."),
         ("blank", ""),
         ("p", f"GRANTOR: {d['grantor']}"),
     ] + _notary(d["state"], "County", d["county"], d["grantor"])
 
 
-def t_title_opinion(d) -> list[tuple[str, str]]:
+def t_title_opinion(d):
     return [
         ("h1", "Drilling Title Opinion"),
         ("p", f"TO: {d['lessee']}"),
@@ -466,23 +623,26 @@ def t_title_opinion(d) -> list[tuple[str, str]]:
         ("p", f"DATE: {d['effective_date']}"),
         ("p", f"RE: {d['legal']}, {d['county']} County, {d['state']} ({d['acres']} acres)"),
         ("blank", ""),
-        ("h2", "Scope of Examination"),
+        ("h2", "A. Scope and Materials Examined"),
         ("p", f"At your request, I have examined an abstract of title covering the captioned lands, "
               f"comprising {d['abstract_entries']} numbered entries certified to {d['cert_date']} by "
               f"{d['abstractor']}. This opinion is limited to record title and is rendered for the "
               f"sole use of the addressee."),
-        ("h2", "Marketable Title"),
-        ("p", f"Subject to the comments and requirements below, marketable title to the mineral "
-              f"estate is vested as follows: {d['mineral_owner']} owns the executive mineral "
-              f"interest, subject to a non-participating royalty of {d['npri']} held by "
-              f"{d['npri_owner']}."),
-        ("h2", "Comments"),
+        ("h2", "B. Tract Ownership -- Mineral Estate"),
+        ("p", f"Tract 1 (the captioned lands). The mineral fee and executive right are owned by "
+              f"{d['mineral_owner']}, subject to a non-participating royalty interest (NPRI) of "
+              f"{d['npri']} held by {d['npri_owner']}. Total net mineral acres: {d['acres']}."),
+        ("h2", "C. Schedule of Leases and Encumbrances"),
+        ("p", f"Lease 1: from the mineral owner to {d['lessee']}, royalty {d['lease_royalty']}, "
+              f"yielding a net revenue interest to Lessee of {d['nri']}. Encumbrance: a deed of "
+              f"trust of record affecting the surface estate only, noted for information."),
+        ("h2", "D. Comments"),
         ("p", "Comment 1: The 1987 probate of the Estate of A. Henderson did not include a recorded "
-              "order admitting the will; heirship is presumed from the family settlement agreement at "
-              "Book 412, Page 88."),
+              "order admitting the will; heirship is presumed from the family settlement agreement "
+              "at Book 412, Page 88."),
         ("p", "Comment 2: A prior oil and gas lease appears expired by its own terms for lack of "
-              "production but no release of record was located."),
-        ("h2", "Requirements"),
+              "production, but no release of record was located."),
+        ("h2", "E. Requirements"),
         ("p", "Requirement 1: Obtain and record a release of the expired lease referenced in "
               "Comment 2, or a stipulation of interest and non-development."),
         ("p", "Requirement 2: Secure recorded affidavits of heirship for the Henderson interest "
@@ -495,7 +655,7 @@ def t_title_opinion(d) -> list[tuple[str, str]]:
     ]
 
 
-def t_grazing_lease(d) -> list[tuple[str, str]]:
+def t_grazing_lease(d):
     return [
         ("h1", "Grazing and Ranch Lease"),
         ("p", f"This Grazing Lease is made {d['effective_date']} between {d['lessor']} (\"Lessor\") "
@@ -513,15 +673,15 @@ def t_grazing_lease(d) -> list[tuple[str, str]]:
               f"windmills in good repair, ordinary wear excepted."),
         ("h2", "Reservations"),
         ("p", "Lessor reserves all oil, gas, and mineral rights and the right to grant surface use "
-              "to mineral lessees; Lessee's rent shall be equitably reduced for acreage taken out of "
-              "grazing by such operations. Hunting rights are reserved to Lessor."),
+              "to mineral lessees; Lessee's rent shall be equitably reduced for acreage taken out "
+              "of grazing by such operations. Hunting rights are reserved to Lessor."),
         ("blank", ""),
         ("p", f"LESSOR: {d['lessor']}"),
         ("p", f"LESSEE: {d['lessee']}"),
     ] + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
-def t_amendment(d) -> list[tuple[str, str]]:
+def t_amendment(d):
     return [
         ("h1", "Amendment and Extension of Oil and Gas Lease"),
         ("p", f"This Amendment and Extension (\"Amendment\") is made {d['effective_date']} between "
@@ -549,388 +709,319 @@ def t_amendment(d) -> list[tuple[str, str]]:
 
 
 TEMPLATES = {
-    "oil_gas_lease": t_oil_gas_lease,
-    "paidup_modern": t_paidup_modern,
-    "metes_bounds_lease": t_metes_bounds_lease,
-    "memorandum": t_memorandum,
-    "mineral_deed": t_mineral_deed,
-    "royalty_deed": t_royalty_deed,
-    "warranty_deed": t_warranty_deed,
-    "quitclaim": t_quitclaim,
-    "surface_use": t_surface_use,
-    "easement": t_easement,
-    "title_opinion": t_title_opinion,
-    "grazing_lease": t_grazing_lease,
+    "oil_gas_lease": t_oil_gas_lease, "paidup_modern": t_paidup_modern,
+    "metes_bounds_lease": t_metes_bounds_lease, "memorandum": t_memorandum,
+    "mineral_deed": t_mineral_deed, "royalty_deed": t_royalty_deed,
+    "warranty_deed": t_warranty_deed, "quitclaim": t_quitclaim,
+    "surface_use": t_surface_use, "easement": t_easement,
+    "title_opinion": t_title_opinion, "grazing_lease": t_grazing_lease,
     "amendment": t_amendment,
 }
 
 # ---------------------------------------------------------------------------
-# The corpus: 24 synthetic documents. Coordinates are the approximate county
-# seat / tract centroid (real places) so each maps to an actual US location.
+# The corpus: 24 synthetic documents.
+#   - PLSS docs carry a "plss" dict; legal text AND lat/long are derived from it,
+#     and "town" is the real county-seat used only to sanity-check the centroid.
+#   - Non-PLSS docs (Texas abstract, metes-and-bounds, land grant) carry their
+#     own "legal" + "lat"/"lon" (county/town approximate) + "system".
 # ---------------------------------------------------------------------------
 
 DOCS = [
-    {
-        "id": "01-ogl-midland-tx", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "TX-88-PB",
-        "state": "Texas", "county": "Midland", "municipality": "Midland",
-        "lat": 31.9973, "lon": -102.0779, "system": "Texas abstract/block-section",
-        "legal": "Section 14, Block 39, T-2-S, Texas & Pacific Ry. Co. Survey, Abstract No. 1187",
-        "acres": "640.00",
-        "lessor": "Margaret A. Caldwell, a single woman",
-        "lessee": "Llano Estacado Operating, LLC",
-        "effective_date": "January 15, 2025", "term": "three (3) years",
-        "royalty": "one-fourth (1/4)", "bonus": "$1,500.00 per net mineral acre",
-        "shut_in": "$50.00",
-    },
-    {
-        "id": "02-ogl-reeves-tx", "template": "paidup_modern",
-        "doc_type": "Oil and Gas Lease",
-        "state": "Texas", "county": "Reeves", "municipality": "Pecos",
-        "lat": 31.4229, "lon": -103.4932, "system": "Texas abstract/block-section",
-        "legal": "Section 22, Block 13, H&GN RR Co. Survey, Abstract No. 2204",
-        "acres": "320.00",
-        "lessor": "The Holloway Family Trust dated June 3, 1998",
-        "lessee": "Delaware Basin Resources, LP",
-        "effective_date": "March 1, 2025", "term": "five (5) years",
-        "royalty": "22.5% (9/40)", "bonus": "$2,250.00 per net mineral acre",
-    },
-    {
-        "id": "03-ogl-lea-nm", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "NM-PB-01",
-        "state": "New Mexico", "county": "Lea", "municipality": "Lovington",
-        "lat": 32.9445, "lon": -103.3486, "system": "PLSS (New Mexico P.M.)",
-        "legal": "Township 20 South, Range 37 East, N.M.P.M., Section 16: SE/4",
-        "acres": "160.00",
-        "lessor": "James R. and Linda S. Whitaker, husband and wife",
-        "lessee": "Mesa Verde Resources, LP",
-        "effective_date": "February 10, 2025", "term": "three (3) years",
-        "royalty": "three-sixteenths (3/16)", "bonus": "$1,000.00 per net mineral acre",
-        "shut_in": "$25.00",
-    },
-    {
-        "id": "04-ogl-eddy-nm", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "NM-PB-02",
-        "state": "New Mexico", "county": "Eddy", "municipality": "Carlsbad",
-        "lat": 32.4207, "lon": -104.2288, "system": "PLSS (New Mexico P.M.)",
-        "legal": "Township 22 South, Range 28 East, N.M.P.M., Section 9: N/2",
-        "acres": "320.00",
-        "lessor": "Pecos Valley Land Company, a New Mexico corporation",
-        "lessee": "Mesa Verde Resources, LP",
-        "effective_date": "April 22, 2025", "term": "five (5) years",
-        "royalty": "one-fifth (1/5)", "bonus": "$1,750.00 per net mineral acre",
-        "shut_in": "$50.00",
-    },
-    {
-        "id": "05-ogl-mckenzie-nd", "template": "paidup_modern",
-        "doc_type": "Oil and Gas Lease",
-        "state": "North Dakota", "county": "McKenzie", "municipality": "Watford City",
-        "lat": 47.8022, "lon": -103.2832, "system": "PLSS (5th P.M.)",
-        "legal": "Township 150 North, Range 98 West, 5th P.M., Section 22: S/2",
-        "acres": "320.00",
-        "lessor": "Arnold T. Bergstrom and Carol J. Bergstrom, as joint tenants",
-        "lessee": "Bakken Ridge Energy, Inc.",
-        "effective_date": "May 5, 2024", "term": "five (5) years",
-        "royalty": "18.75% (3/16)", "bonus": "$900.00 per net mineral acre",
-    },
-    {
-        "id": "06-ogl-weld-co", "template": "paidup_modern",
-        "doc_type": "Oil and Gas Lease",
-        "state": "Colorado", "county": "Weld", "municipality": "Greeley",
-        "lat": 40.4233, "lon": -104.7091, "system": "PLSS (6th P.M.)",
-        "legal": "Township 6 North, Range 63 West, 6th P.M., Section 9: SW/4",
-        "acres": "160.00",
-        "lessor": "Front Range Cattle Co., LLC",
-        "lessee": "Front Range Petroleum, LLC",
-        "effective_date": "September 12, 2024", "term": "three (3) years",
-        "royalty": "20% (1/5)", "bonus": "$1,200.00 per net mineral acre",
-    },
-    {
-        "id": "07-ogl-kingfisher-ok", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "OK-88",
-        "state": "Oklahoma", "county": "Kingfisher", "municipality": "Kingfisher",
-        "lat": 35.8620, "lon": -97.9320, "system": "PLSS (Indian Meridian)",
-        "legal": "Township 16 North, Range 7 West, I.M., Section 19: NE/4",
-        "acres": "160.00",
-        "lessor": "Estate of Harlan W. Dietrich, by Susan Dietrich, Personal Representative",
-        "lessee": "Red River Minerals, LLC",
-        "effective_date": "July 8, 2024", "term": "three (3) years",
-        "royalty": "three-sixteenths (3/16)", "bonus": "$800.00 per net mineral acre",
-        "shut_in": "$25.00",
-    },
-    {
-        "id": "08-ogl-washington-pa", "template": "metes_bounds_lease",
-        "doc_type": "Oil and Gas Lease",
-        "state": "Pennsylvania", "county": "Washington", "municipality": "Amwell Township",
-        "township": "Amwell Township",
-        "lat": 40.1742, "lon": -80.2462, "system": "metes and bounds",
-        "legal": ("BEGINNING at an iron pin at the northwest corner of lands now or formerly of "
-                  "Reynolds; thence S 82 deg E 1,420 feet to a post; thence S 6 deg W 3,160 feet "
-                  "along lands of Maple Run to a stone; thence N 84 deg W 1,390 feet to a white oak; "
-                  "thence N 5 deg E 3,090 feet to the place of beginning"),
-        "acres": "112.40", "source_deed": "Deed Book 1123, Page 456",
-        "lessor": "Robert E. Stanton and Patricia Stanton, his wife",
-        "lessee": "Keystone Shale Partners, LP",
-        "effective_date": "October 1, 2024", "term": "five (5) years",
-        "royalty": "one-eighth (1/8)", "oil_royalty": "one-eighth (1/8)",
-        "bonus": "$3,000.00 per net acre",
-    },
-    {
-        "id": "09-ogl-greene-pa", "template": "metes_bounds_lease",
-        "doc_type": "Oil and Gas Lease",
-        "state": "Pennsylvania", "county": "Greene", "municipality": "Morgan Township",
-        "township": "Morgan Township",
-        "lat": 39.8962, "lon": -80.1811, "system": "metes and bounds",
-        "legal": ("BEGINNING at a fence post corner; thence along Township Road 388 N 71 deg E "
-                  "980 feet; thence S 19 deg E 2,610 feet to a marked hickory; thence S 70 deg W "
-                  "1,005 feet; thence N 18 deg W 2,640 feet to the point of beginning"),
-        "acres": "61.80", "source_deed": "Instrument No. 2016-004412",
-        "lessor": "Greene Hills Land Holdings, LLC",
-        "lessee": "Keystone Shale Partners, LP",
-        "effective_date": "November 14, 2024", "term": "five (5) years",
-        "royalty": "fifteen percent (15%)", "oil_royalty": "one-eighth (1/8)",
-        "bonus": "$2,500.00 per net acre",
-    },
-    {
-        "id": "10-ogl-doddridge-wv", "template": "metes_bounds_lease",
-        "doc_type": "Oil and Gas Lease",
-        "state": "West Virginia", "county": "Doddridge", "municipality": "McClellan District",
-        "township": "McClellan District",
-        "lat": 39.2690, "lon": -80.7762, "system": "metes and bounds",
-        "legal": ("Beginning at a sugar maple on the bank of Middle Island Creek; thence with the "
-                  "creek N 44 deg E 62 poles; thence leaving the creek S 60 deg E 138 poles to a "
-                  "stone; thence S 40 deg W 70 poles; thence N 58 deg W 142 poles to the beginning"),
-        "acres": "88.25", "source_deed": "Deed Book 244, Page 19",
-        "lessor": "Floyd and Wanda Carpenter, husband and wife",
-        "lessee": "Allegheny Gas Company",
-        "effective_date": "August 19, 2024", "term": "five (5) years",
-        "royalty": "one-eighth (1/8)", "oil_royalty": "one-eighth (1/8)",
-        "bonus": "$1,800.00 per net acre",
-    },
-    {
-        "id": "11-ogl-belmont-oh", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "OH-PB",
-        "state": "Ohio", "county": "Belmont", "municipality": "Mead Township",
-        "county_label": "County",
-        "lat": 40.0801, "lon": -80.9009, "system": "metes and bounds (sectionalized)",
-        "legal": "Situate in Mead Township, Section 18, being 87.60 acres out of a 160-acre original tract",
-        "acres": "87.60",
-        "lessor": "The Novak Revocable Living Trust",
-        "lessee": "Buckeye Utica Operating, LLC",
-        "effective_date": "June 3, 2024", "term": "five (5) years",
-        "royalty": "one-sixth (1/6)", "bonus": "$4,000.00 per net acre",
-        "shut_in": "$100.00",
-    },
-    {
-        "id": "12-ogl-caddo-la", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "LA-BR",
-        "state": "Louisiana", "county": "Caddo", "municipality": "Shreveport",
-        "county_label": "Parish",
-        "lat": 32.5252, "lon": -93.7502, "system": "PLSS (Louisiana Meridian)",
-        "legal": "Section 24, Township 18 North, Range 15 West, Louisiana Meridian",
-        "acres": "80.00",
-        "lessor": "Beaulieu Land & Timber, L.L.C.",
-        "lessee": "Caddo Pine Energy, LLC",
-        "effective_date": "December 2, 2024", "term": "three (3) years",
-        "royalty": "one-fourth (1/4)", "bonus": "$600.00 per net mineral acre",
-        "shut_in": "$50.00",
-    },
-    {
-        "id": "13-ogl-campbell-wy", "template": "paidup_modern",
-        "doc_type": "Oil and Gas Lease",
-        "state": "Wyoming", "county": "Campbell", "municipality": "Gillette",
-        "lat": 44.2911, "lon": -105.5022, "system": "PLSS (6th P.M.)",
-        "legal": "Township 49 North, Range 71 West, 6th P.M., Section 5: Lots 3 and 4, S/2 NW/4",
-        "acres": "158.40",
-        "lessor": "Powder River Grazing Association",
-        "lessee": "Powder River Resources, LLC",
-        "effective_date": "April 1, 2024", "term": "five (5) years",
-        "royalty": "one-sixth (1/6)", "bonus": "$350.00 per net mineral acre",
-    },
-    {
-        "id": "14-ogl-kern-ca", "template": "oil_gas_lease",
-        "doc_type": "Oil and Gas Lease", "form_no": "CA-88",
-        "state": "California", "county": "Kern", "municipality": "Bakersfield",
-        "lat": 35.3733, "lon": -119.0187, "system": "PLSS (Mount Diablo Meridian)",
-        "legal": "Township 30 South, Range 28 East, M.D.M., Section 12: NW/4",
-        "acres": "160.00",
-        "lessor": "San Joaquin Heritage Farms, Inc.",
-        "lessee": "San Joaquin Oil Company",
-        "effective_date": "February 28, 2025", "term": "three (3) years",
-        "royalty": "one-sixth (1/6)", "bonus": "$1,100.00 per net mineral acre",
-        "shut_in": "$50.00",
-    },
-    {
-        "id": "15-memo-karnes-tx", "template": "memorandum",
-        "doc_type": "Memorandum of Oil and Gas Lease",
-        "state": "Texas", "county": "Karnes", "municipality": "Karnes City",
-        "lat": 28.8853, "lon": -97.9003, "system": "Texas abstract/block-section",
-        "legal": "A-456, J. de la Garza Survey, Abstract No. 456",
-        "acres": "210.50",
-        "lessor": "Esperanza Ranch Partners, Ltd.",
-        "lessee": "Eagle Ford Operating Company",
-        "effective_date": "January 9, 2025", "term": "three (3) years",
-        "royalty": "one-fourth (1/4)",
-        "recording": {
-            "instrument_no": "2025-0000487", "book": "1042", "page": "330",
-            "recorded": "January 14, 2025", "recorder": "Karnes County Clerk",
-        },
-    },
-    {
-        "id": "16-mineral-deed-stephens-ok", "template": "mineral_deed",
-        "doc_type": "Mineral Deed",
-        "state": "Oklahoma", "county": "Stephens", "municipality": "Duncan",
-        "lat": 34.5023, "lon": -97.9578, "system": "PLSS (Indian Meridian)",
-        "legal": "Township 1 South, Range 6 West, I.M., Section 27: SW/4",
-        "acres": "160.00", "interest": "one-half (1/2)",
-        "grantor": "Dorothy M. Albright, a widow",
-        "grantee": "Chisholm Trail Royalties, LLC",
-        "consideration": "Ten Dollars and other good and valuable consideration",
-        "effective_date": "March 18, 2025",
-    },
-    {
-        "id": "17-royalty-deed-reagan-tx", "template": "royalty_deed",
-        "doc_type": "Royalty Deed",
-        "state": "Texas", "county": "Reagan", "municipality": "Big Lake",
-        "lat": 31.1932, "lon": -101.4663, "system": "Texas abstract/block-section",
-        "legal": "Section 7, Block 2, H&TC RR Co. Survey, Abstract No. 89",
-        "acres": "640.00", "interest": "a 1/32 of 8/8",
-        "grantor": "University Lands Heritage Trust",
-        "grantee": "Santa Rita Royalty Company",
-        "consideration": "$48,000.00",
-        "effective_date": "May 30, 2025",
-    },
-    {
-        "id": "18-warranty-deed-garfield-co", "template": "warranty_deed",
-        "doc_type": "General Warranty Deed",
-        "state": "Colorado", "county": "Garfield", "municipality": "Glenwood Springs",
-        "lat": 39.5505, "lon": -107.3248, "system": "PLSS (6th P.M.)",
-        "legal": "Township 6 South, Range 92 West, 6th P.M., Section 14: NE/4 SE/4",
-        "acres": "40.00", "reservation": "one-half (1/2)",
-        "grantor": "Roaring Fork Holdings, LLC",
-        "grantee": "Caleb and Marie Donnelly, as joint tenants",
-        "consideration": "$385,000.00",
-        "effective_date": "April 11, 2025",
-    },
-    {
-        "id": "19-quitclaim-rio-arriba-nm", "template": "quitclaim",
-        "doc_type": "Quitclaim Deed",
-        "state": "New Mexico", "county": "Rio Arriba", "municipality": "Tierra Amarilla",
-        "lat": 36.7045, "lon": -106.5464, "system": "Spanish/Mexican land grant (tract)",
-        "legal": "A portion of the Tierra Amarilla Land Grant, Tract 7-B, as shown on the "
-                 "amended grant plat of record",
-        "acres": "35.75",
-        "grantor": "Ramon C. Trujillo",
-        "grantee": "The Trujillo Family, LLC",
-        "consideration": "$10.00 and natural love and affection",
-        "effective_date": "June 1, 2025",
-    },
-    {
-        "id": "20-surface-use-dunn-nd", "template": "surface_use",
-        "doc_type": "Surface Use and Damage Agreement",
-        "state": "North Dakota", "county": "Dunn", "municipality": "Killdeer",
-        "lat": 47.3722, "lon": -102.7521, "system": "PLSS (5th P.M.)",
-        "legal": "Township 146 North, Range 95 West, 5th P.M., Section 8: N/2",
-        "acres": "320.00",
-        "lessor": "Knutson Brothers Farm Partnership",
-        "lessee": "Bakken Ridge Energy, Inc.",
-        "effective_date": "July 15, 2024",
-        "surface_payment": "$25,000.00", "road_payment": "$30.00",
-    },
-    {
-        "id": "21-easement-dewitt-tx", "template": "easement",
-        "doc_type": "Right-of-Way and Pipeline Easement",
-        "state": "Texas", "county": "DeWitt", "municipality": "Cuero",
-        "lat": 29.0938, "lon": -97.2886, "system": "Texas abstract/block-section",
-        "legal": "out of the William Ponton Survey, Abstract No. 36",
-        "acres": "4.20", "width": "50", "rods": "402",
-        "grantor": "Cuero Creek Ranch, Ltd.",
-        "grantee": "Guadalupe Midstream Partners, LP",
-        "consideration": "$60,300.00 ($150.00 per rod)",
-        "effective_date": "August 4, 2024",
-    },
-    {
-        "id": "22-title-opinion-loving-tx", "template": "title_opinion",
-        "doc_type": "Drilling Title Opinion",
-        "state": "Texas", "county": "Loving", "municipality": "Mentone",
-        "lat": 31.7060, "lon": -103.5977, "system": "Texas abstract/block-section",
-        "legal": "Section 30, Block C-24, PSL Survey, Abstract No. 612",
-        "acres": "640.00",
-        "lessee": "Delaware Basin Resources, LP",
-        "examiner": "T. Lindqvist, Attorney at Law, Lindqvist & Reyes PLLC",
-        "abstractor": "Trans-Pecos Abstract Co.",
-        "abstract_entries": "63", "cert_date": "March 31, 2025",
-        "mineral_owner": "Mentone Minerals, Ltd. (undivided 7/8)",
-        "npri": "1/8 of 8/8", "npri_owner": "the Henderson Family",
-        "effective_date": "April 28, 2025",
-    },
-    {
-        "id": "23-grazing-lease-carbon-mt", "template": "grazing_lease",
-        "doc_type": "Grazing and Ranch Lease",
-        "state": "Montana", "county": "Carbon", "municipality": "Red Lodge",
-        "lat": 45.1863, "lon": -109.2466, "system": "PLSS (Montana P.M.)",
-        "legal": "Township 7 South, Range 20 East, M.P.M., Sections 4 and 9 (all)",
-        "acres": "1,280.00",
-        "lessor": "Beartooth Mountain Land Trust",
-        "lessee": "Rock Creek Cattle Company",
-        "effective_date": "March 1, 2025", "term": "five (5) years",
-        "rent": "$18.00 per acre", "rent_schedule": "annually in advance on March 1",
-        "aum": "260",
-    },
-    {
-        "id": "24-amendment-lea-nm", "template": "amendment",
-        "doc_type": "Lease Amendment and Extension",
-        "state": "New Mexico", "county": "Lea", "municipality": "Hobbs",
-        "lat": 32.7026, "lon": -103.1360, "system": "PLSS (New Mexico P.M.)",
-        "legal": "Township 19 South, Range 38 East, N.M.P.M., Section 33: W/2",
-        "acres": "320.00",
-        "lessor": "James R. and Linda S. Whitaker, husband and wife",
-        "lessee": "Mesa Verde Resources, LP",
-        "orig_date": "February 10, 2022",
-        "effective_date": "February 1, 2025", "term": "two (2) years",
-        "royalty": "one-fourth (1/4)", "bonus": "$500.00 per net mineral acre",
-        "recording": {"instrument_no": "2022-0001998", "book": "880", "page": "145"},
-    },
+    {"id": "01-ogl-midland-tx", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "TX-88-PB", "state": "Texas", "county": "Midland", "town": "Midland",
+     "lat": 31.9973, "lon": -102.0779, "system": "Texas abstract/block-section",
+     "legal": "Section 14, Block 39, T-2-S, Texas & Pacific Ry. Co. Survey, Abstract No. 1187",
+     "acres": "640.00", "lessor": "Margaret A. Caldwell, a single woman",
+     "lessee": "Llano Estacado Operating, LLC", "effective_date": "January 15, 2025",
+     "term": "three (3) years", "royalty": "one-fourth (1/4)",
+     "bonus": "$1,500.00 per net mineral acre", "shut_in": "$50.00"},
+
+    {"id": "02-ogl-reeves-tx", "template": "paidup_modern", "doc_type": "Oil and Gas Lease",
+     "state": "Texas", "county": "Reeves", "town": "Pecos",
+     "lat": 31.4229, "lon": -103.4932, "system": "Texas abstract/block-section",
+     "legal": "Section 22, Block 13, H&GN RR Co. Survey, Abstract No. 2204", "acres": "320.00",
+     "lessor": "The Holloway Family Trust dated June 3, 1998",
+     "lessee": "Delaware Basin Resources, LP", "effective_date": "March 1, 2025",
+     "term": "five (5) years", "royalty": "22.5% (9/40)",
+     "bonus": "$2,250.00 per net mineral acre"},
+
+    {"id": "03-ogl-lea-nm", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "NM-PB-01", "state": "New Mexico", "county": "Lea", "town": "Lovington",
+     "town_lat": 32.9445, "town_lon": -103.3486,
+     "plss": {"mer": "NMPM", "twp": 20, "twp_dir": "S", "rng": 37, "rng_dir": "E",
+              "sec": 16, "aliquot": "SE/4"},
+     "acres": "160.00", "lessor": "James R. and Linda S. Whitaker, husband and wife",
+     "lessee": "Mesa Verde Resources, LP", "effective_date": "February 10, 2025",
+     "term": "three (3) years", "royalty": "three-sixteenths (3/16)",
+     "bonus": "$1,000.00 per net mineral acre", "shut_in": "$25.00"},
+
+    {"id": "04-ogl-eddy-nm", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "NM-PB-02", "state": "New Mexico", "county": "Eddy", "town": "Carlsbad",
+     "town_lat": 32.4207, "town_lon": -104.2288,
+     "plss": {"mer": "NMPM", "twp": 22, "twp_dir": "S", "rng": 28, "rng_dir": "E",
+              "sec": 9, "aliquot": "N/2"},
+     "acres": "320.00", "lessor": "Pecos Valley Land Company, a New Mexico corporation",
+     "lessee": "Mesa Verde Resources, LP", "effective_date": "April 22, 2025",
+     "term": "five (5) years", "royalty": "one-fifth (1/5)",
+     "bonus": "$1,750.00 per net mineral acre", "shut_in": "$50.00"},
+
+    {"id": "05-ogl-mckenzie-nd", "template": "paidup_modern", "doc_type": "Oil and Gas Lease",
+     "state": "North Dakota", "county": "McKenzie", "town": "Watford City",
+     "town_lat": 47.8022, "town_lon": -103.2832,
+     "plss": {"mer": "5th", "twp": 150, "twp_dir": "N", "rng": 98, "rng_dir": "W",
+              "sec": 22, "aliquot": "S/2"},
+     "acres": "320.00", "lessor": "Arnold T. Bergstrom and Carol J. Bergstrom, as joint tenants",
+     "lessee": "Bakken Ridge Energy, Inc.", "effective_date": "May 5, 2024",
+     "term": "five (5) years", "royalty": "18.75% (3/16)",
+     "bonus": "$900.00 per net mineral acre"},
+
+    {"id": "06-ogl-weld-co", "template": "paidup_modern", "doc_type": "Oil and Gas Lease",
+     "state": "Colorado", "county": "Weld", "town": "Greeley",
+     "town_lat": 40.4233, "town_lon": -104.7091,
+     "plss": {"mer": "6th", "twp": 6, "twp_dir": "N", "rng": 63, "rng_dir": "W",
+              "sec": 9, "aliquot": "SW/4"},
+     "acres": "160.00", "lessor": "Front Range Cattle Co., LLC",
+     "lessee": "Front Range Petroleum, LLC", "effective_date": "September 12, 2024",
+     "term": "three (3) years", "royalty": "20% (1/5)",
+     "bonus": "$1,200.00 per net mineral acre"},
+
+    {"id": "07-ogl-kingfisher-ok", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "OK-88", "state": "Oklahoma", "county": "Kingfisher", "town": "Kingfisher",
+     "town_lat": 35.8620, "town_lon": -97.9320,
+     "plss": {"mer": "IM", "twp": 16, "twp_dir": "N", "rng": 7, "rng_dir": "W",
+              "sec": 19, "aliquot": "NE/4"},
+     "acres": "160.00",
+     "lessor": "Estate of Harlan W. Dietrich, by Susan Dietrich, Personal Representative",
+     "lessee": "Red River Minerals, LLC", "effective_date": "July 8, 2024",
+     "term": "three (3) years", "royalty": "three-sixteenths (3/16)",
+     "bonus": "$800.00 per net mineral acre", "shut_in": "$25.00"},
+
+    {"id": "08-ogl-washington-pa", "template": "metes_bounds_lease",
+     "doc_type": "Oil and Gas Lease", "state": "Pennsylvania", "county": "Washington",
+     "town": "Amwell Township", "township": "Amwell Township",
+     "lat": 40.1742, "lon": -80.2462, "system": "metes and bounds",
+     "legal": ("BEGINNING at an iron pin at the northwest corner of lands now or formerly of "
+               "Reynolds; thence S 82 deg E 1,420 feet to a post; thence S 6 deg W 3,160 feet "
+               "along lands of Maple Run to a stone; thence N 84 deg W 1,390 feet to a white oak; "
+               "thence N 5 deg E 3,090 feet to the place of beginning"),
+     "acres": "112.40", "source_deed": "Deed Book 1123, Page 456",
+     "lessor": "Robert E. Stanton and Patricia Stanton, his wife",
+     "lessee": "Keystone Shale Partners, LP", "effective_date": "October 1, 2024",
+     "term": "five (5) years", "royalty": "one-eighth (1/8)", "oil_royalty": "one-eighth (1/8)",
+     "bonus": "$3,000.00 per net acre"},
+
+    {"id": "09-ogl-greene-pa", "template": "metes_bounds_lease", "doc_type": "Oil and Gas Lease",
+     "state": "Pennsylvania", "county": "Greene", "town": "Morgan Township",
+     "township": "Morgan Township", "lat": 39.8962, "lon": -80.1811, "system": "metes and bounds",
+     "legal": ("BEGINNING at a fence post corner; thence along Township Road 388 N 71 deg E "
+               "980 feet; thence S 19 deg E 2,610 feet to a marked hickory; thence S 70 deg W "
+               "1,005 feet; thence N 18 deg W 2,640 feet to the point of beginning"),
+     "acres": "61.80", "source_deed": "Instrument No. 2016-004412",
+     "lessor": "Greene Hills Land Holdings, LLC", "lessee": "Keystone Shale Partners, LP",
+     "effective_date": "November 14, 2024", "term": "five (5) years",
+     "royalty": "fifteen percent (15%)", "oil_royalty": "one-eighth (1/8)",
+     "bonus": "$2,500.00 per net acre"},
+
+    {"id": "10-ogl-doddridge-wv", "template": "metes_bounds_lease", "doc_type": "Oil and Gas Lease",
+     "state": "West Virginia", "county": "Doddridge", "town": "McClellan District",
+     "township": "McClellan District", "lat": 39.2690, "lon": -80.7762,
+     "system": "metes and bounds",
+     "legal": ("Beginning at a sugar maple on the bank of Middle Island Creek; thence with the "
+               "creek N 44 deg E 62 poles; thence leaving the creek S 60 deg E 138 poles to a "
+               "stone; thence S 40 deg W 70 poles; thence N 58 deg W 142 poles to the beginning"),
+     "acres": "88.25", "source_deed": "Deed Book 244, Page 19",
+     "lessor": "Floyd and Wanda Carpenter, husband and wife", "lessee": "Allegheny Gas Company",
+     "effective_date": "August 19, 2024", "term": "five (5) years",
+     "royalty": "one-eighth (1/8)", "oil_royalty": "one-eighth (1/8)",
+     "bonus": "$1,800.00 per net acre"},
+
+    {"id": "11-ogl-belmont-oh", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "OH-PB", "state": "Ohio", "county": "Belmont", "town": "Mead Township",
+     "lat": 40.0801, "lon": -80.9009, "system": "metes and bounds (sectionalized)",
+     "legal": "Situate in Mead Township, Section 18, being 87.60 acres out of a 160-acre original tract",
+     "acres": "87.60", "lessor": "The Novak Revocable Living Trust",
+     "lessee": "Buckeye Utica Operating, LLC", "effective_date": "June 3, 2024",
+     "term": "five (5) years", "royalty": "one-sixth (1/6)", "bonus": "$4,000.00 per net acre",
+     "shut_in": "$100.00"},
+
+    {"id": "12-ogl-caddo-la", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "LA-BR", "state": "Louisiana", "county": "Caddo", "county_label": "Parish",
+     "town": "Shreveport", "town_lat": 32.5252, "town_lon": -93.7502,
+     "plss": {"mer": "LA", "twp": 18, "twp_dir": "N", "rng": 15, "rng_dir": "W",
+              "sec": 24, "aliquot": "all"},
+     "acres": "80.00", "lessor": "Beaulieu Land & Timber, L.L.C.", "lessee": "Caddo Pine Energy, LLC",
+     "effective_date": "December 2, 2024", "term": "three (3) years", "royalty": "one-fourth (1/4)",
+     "bonus": "$600.00 per net mineral acre", "shut_in": "$50.00"},
+
+    {"id": "13-ogl-campbell-wy", "template": "paidup_modern", "doc_type": "Oil and Gas Lease",
+     "state": "Wyoming", "county": "Campbell", "town": "Gillette",
+     "town_lat": 44.2911, "town_lon": -105.5022,
+     "plss": {"mer": "6th", "twp": 49, "twp_dir": "N", "rng": 71, "rng_dir": "W",
+              "sec": 5, "aliquot": "Lots 3 and 4, S/2 NW/4"},
+     "acres": "158.40", "lessor": "Powder River Grazing Association",
+     "lessee": "Powder River Resources, LLC", "effective_date": "April 1, 2024",
+     "term": "five (5) years", "royalty": "one-sixth (1/6)",
+     "bonus": "$350.00 per net mineral acre"},
+
+    {"id": "14-ogl-kern-ca", "template": "oil_gas_lease", "doc_type": "Oil and Gas Lease",
+     "form_no": "CA-88", "state": "California", "county": "Kern", "town": "Bakersfield",
+     "town_lat": 35.3733, "town_lon": -119.0187,
+     "plss": {"mer": "MDM", "twp": 30, "twp_dir": "S", "rng": 28, "rng_dir": "E",
+              "sec": 12, "aliquot": "NW/4"},
+     "acres": "160.00", "lessor": "San Joaquin Heritage Farms, Inc.",
+     "lessee": "San Joaquin Oil Company", "effective_date": "February 28, 2025",
+     "term": "three (3) years", "royalty": "one-sixth (1/6)",
+     "bonus": "$1,100.00 per net mineral acre", "shut_in": "$50.00"},
+
+    {"id": "15-memo-karnes-tx", "template": "memorandum",
+     "doc_type": "Memorandum of Oil and Gas Lease", "state": "Texas", "county": "Karnes",
+     "town": "Karnes City", "lat": 28.8853, "lon": -97.9003,
+     "system": "Texas abstract/block-section", "legal": "J. de la Garza Survey, Abstract No. 456",
+     "acres": "210.50", "lessor": "Esperanza Ranch Partners, Ltd.",
+     "lessee": "Eagle Ford Operating Company", "effective_date": "January 9, 2025",
+     "term": "three (3) years", "royalty": "one-fourth (1/4)",
+     "recording": {"instrument_no": "2025-0000487", "book": "1042", "page": "330",
+                   "recorded": "January 14, 2025", "recorder": "Karnes County Clerk"}},
+
+    {"id": "16-mineral-deed-stephens-ok", "template": "mineral_deed", "doc_type": "Mineral Deed",
+     "state": "Oklahoma", "county": "Stephens", "town": "Duncan",
+     "town_lat": 34.5023, "town_lon": -97.9578,
+     "plss": {"mer": "IM", "twp": 1, "twp_dir": "S", "rng": 6, "rng_dir": "W",
+              "sec": 27, "aliquot": "SW/4"},
+     "acres": "160.00", "interest": "one-half (1/2)", "warranty": "general",
+     "grantor": "Dorothy M. Albright, a widow", "grantee": "Chisholm Trail Royalties, LLC",
+     "consideration": "Ten Dollars and other good and valuable consideration",
+     "effective_date": "March 18, 2025"},
+
+    {"id": "17-royalty-deed-reagan-tx", "template": "royalty_deed", "doc_type": "Royalty Deed",
+     "state": "Texas", "county": "Reagan", "town": "Big Lake", "lat": 31.1932, "lon": -101.4663,
+     "system": "Texas abstract/block-section",
+     "legal": "Section 7, Block 2, H&TC RR Co. Survey, Abstract No. 89", "acres": "640.00",
+     "interest": "a 1/32 of 8/8", "grantor": "University Lands Heritage Trust",
+     "grantee": "Santa Rita Royalty Company", "consideration": "$48,000.00",
+     "effective_date": "May 30, 2025"},
+
+    {"id": "18-warranty-deed-garfield-co", "template": "warranty_deed",
+     "doc_type": "General Warranty Deed", "state": "Colorado", "county": "Garfield",
+     "town": "Glenwood Springs", "town_lat": 39.5505, "town_lon": -107.3248,
+     "plss": {"mer": "6th", "twp": 6, "twp_dir": "S", "rng": 92, "rng_dir": "W",
+              "sec": 14, "aliquot": "NE/4 SE/4"},
+     "acres": "40.00", "reservation": "one-half (1/2)", "grantor": "Roaring Fork Holdings, LLC",
+     "grantee": "Caleb and Marie Donnelly, as joint tenants", "consideration": "$385,000.00",
+     "effective_date": "April 11, 2025"},
+
+    {"id": "19-quitclaim-rio-arriba-nm", "template": "quitclaim", "doc_type": "Quitclaim Deed",
+     "state": "New Mexico", "county": "Rio Arriba", "town": "Tierra Amarilla",
+     "lat": 36.7045, "lon": -106.5464, "system": "Spanish/Mexican land grant (tract)",
+     "legal": ("A portion of the Tierra Amarilla Land Grant, Tract 7-B, as shown on the amended "
+               "grant plat of record"), "acres": "35.75", "grantor": "Ramon C. Trujillo",
+     "grantee": "The Trujillo Family, LLC",
+     "consideration": "$10.00 and natural love and affection", "effective_date": "June 1, 2025"},
+
+    {"id": "20-surface-use-dunn-nd", "template": "surface_use",
+     "doc_type": "Surface Use and Damage Agreement", "state": "North Dakota", "county": "Dunn",
+     "town": "Killdeer", "town_lat": 47.3722, "town_lon": -102.7521,
+     "plss": {"mer": "5th", "twp": 146, "twp_dir": "N", "rng": 95, "rng_dir": "W",
+              "sec": 8, "aliquot": "N/2"},
+     "acres": "320.00", "lessor": "Knutson Brothers Farm Partnership",
+     "lessee": "Bakken Ridge Energy, Inc.", "effective_date": "July 15, 2024",
+     "surface_payment": "$25,000.00", "road_payment": "$30.00"},
+
+    {"id": "21-easement-dewitt-tx", "template": "easement",
+     "doc_type": "Right-of-Way and Pipeline Easement", "state": "Texas", "county": "DeWitt",
+     "town": "Cuero", "lat": 29.0938, "lon": -97.2886, "system": "Texas abstract/block-section",
+     "legal": "out of the William Ponton Survey, Abstract No. 36", "acres": "4.20",
+     "perm_width": "30", "temp_width": "50", "rods": "402", "grantor": "Cuero Creek Ranch, Ltd.",
+     "grantee": "Guadalupe Midstream Partners, LP", "consideration": "$60,300.00 ($150.00 per rod)",
+     "effective_date": "August 4, 2024"},
+
+    {"id": "22-title-opinion-loving-tx", "template": "title_opinion",
+     "doc_type": "Drilling Title Opinion", "state": "Texas", "county": "Loving", "town": "Mentone",
+     "lat": 31.7060, "lon": -103.5977, "system": "Texas abstract/block-section",
+     "legal": "Section 30, Block C-24, PSL Survey, Abstract No. 612", "acres": "640.00",
+     "lessee": "Delaware Basin Resources, LP",
+     "examiner": "T. Lindqvist, Attorney at Law, Lindqvist & Reyes PLLC",
+     "abstractor": "Trans-Pecos Abstract Co.", "abstract_entries": "63",
+     "cert_date": "March 31, 2025", "mineral_owner": "Mentone Minerals, Ltd.",
+     "npri": "1/8 of 8/8", "npri_owner": "the Henderson Family",
+     "lease_royalty": "25% (1/4)", "nri": "0.65625", "effective_date": "April 28, 2025"},
+
+    {"id": "23-grazing-lease-carbon-mt", "template": "grazing_lease",
+     "doc_type": "Grazing and Ranch Lease", "state": "Montana", "county": "Carbon",
+     "town": "Red Lodge", "town_lat": 45.1863, "town_lon": -109.2466,
+     "plss": {"mer": "MPM", "twp": 7, "twp_dir": "S", "rng": 20, "rng_dir": "E",
+              "sec": [4, 9], "aliquot": "all"},
+     "acres": "1,280.00", "lessor": "Beartooth Mountain Land Trust",
+     "lessee": "Rock Creek Cattle Company", "effective_date": "March 1, 2025",
+     "term": "five (5) years", "rent": "$18.00 per acre",
+     "rent_schedule": "annually in advance on March 1", "aum": "260"},
+
+    {"id": "24-amendment-lea-nm", "template": "amendment",
+     "doc_type": "Lease Amendment and Extension", "state": "New Mexico", "county": "Lea",
+     "town": "Hobbs", "town_lat": 32.7026, "town_lon": -103.1360,
+     "plss": {"mer": "NMPM", "twp": 19, "twp_dir": "S", "rng": 38, "rng_dir": "E",
+              "sec": 33, "aliquot": "W/2"},
+     "acres": "320.00", "lessor": "James R. and Linda S. Whitaker, husband and wife",
+     "lessee": "Mesa Verde Resources, LP", "orig_date": "February 10, 2022",
+     "effective_date": "February 1, 2025", "term": "two (2) years", "royalty": "one-fourth (1/4)",
+     "bonus": "$500.00 per net mineral acre",
+     "recording": {"instrument_no": "2022-0001998", "book": "880", "page": "145"}},
 ]
+
+
+def preprocess(d: dict) -> dict:
+    """Derive legal text + coordinates for PLSS docs; compute provenance fields."""
+    if "plss" in d:
+        d["legal"] = plss_legal(d["plss"])
+        lat, lon = plss_centroid(d["plss"])
+        d["lat"], d["lon"] = lat, lon
+        d["system"] = f"PLSS ({MERIDIANS[d['plss']['mer']][2]})"
+        d["coordinate_basis"] = "PLSS tract centroid (computed from township-range-section)"
+        d["principal_meridian"] = MERIDIANS[d["plss"]["mer"]][2]
+        d["dist_to_town_mi"] = haversine_mi((lat, lon), (d["town_lat"], d["town_lon"]))
+    else:
+        d["coordinate_basis"] = "county/town approximate"
+        d["principal_meridian"] = None
+        d["dist_to_town_mi"] = None
+    return d
 
 
 def render_all() -> None:
     LEASES_DIR.mkdir(parents=True, exist_ok=True)
     manifest = []
-    for d in DOCS:
+    print(f"{'id':32} {'coord basis':14} {'centroid':>20}  dist-to-seat")
+    for d in map(preprocess, DOCS):
         blocks = TEMPLATES[d["template"]](d)
-        md_path = LEASES_DIR / f"{d['id']}.md"
-        pdf_path = LEASES_DIR / f"{d['id']}.pdf"
-        md_path.write_text(to_markdown(blocks), encoding="utf-8")
-        pdf_path.write_bytes(build_pdf(to_lines(blocks)))
+        (LEASES_DIR / f"{d['id']}.md").write_text(to_markdown(blocks), encoding="utf-8")
+        (LEASES_DIR / f"{d['id']}.pdf").write_bytes(build_pdf(to_lines(blocks)))
+
+        dist = d["dist_to_town_mi"]
+        basis = "PLSS-computed" if "plss" in d else "town-approx"
+        print(f"{d['id']:32} {basis:14} {d['lat']:9.4f},{d['lon']:9.4f}  "
+              f"{(str(dist) + ' mi to ' + d['town']) if dist is not None else '(town point)'}")
 
         manifest.append({
-            "id": d["id"],
-            "markdown": f"leases/{d['id']}.md",
-            "pdf": f"leases/{d['id']}.pdf",
-            "doc_type": d["doc_type"],
-            "state": d["state"],
-            "county": d["county"],
-            "county_label": d.get("county_label", "County"),
-            "municipality": d.get("municipality"),
-            "latitude": d["lat"],
-            "longitude": d["lon"],
-            "legal_description_system": d["system"],
-            "legal_description": d["legal"],
+            "id": d["id"], "markdown": f"leases/{d['id']}.md", "pdf": f"leases/{d['id']}.pdf",
+            "doc_type": d["doc_type"], "state": d["state"], "county": d["county"],
+            "county_label": d.get("county_label", "County"), "nearest_town": d["town"],
+            "latitude": d["lat"], "longitude": d["lon"],
+            "coordinate_basis": d["coordinate_basis"],
+            "principal_meridian": d["principal_meridian"],
+            "distance_to_county_seat_mi": d["dist_to_town_mi"],
+            "legal_description_system": d["system"], "legal_description": d["legal"],
             "acres": d.get("acres"),
-            # answer-key fields for extraction/retrieval testing (present where applicable)
             "lessor_or_grantor": d.get("lessor") or d.get("grantor"),
             "lessee_or_grantee": d.get("lessee") or d.get("grantee"),
-            "effective_date": d.get("effective_date"),
-            "royalty": d.get("royalty"),
-            "bonus": d.get("bonus"),
-            "primary_term": d.get("term"),
+            "effective_date": d.get("effective_date"), "royalty": d.get("royalty"),
+            "bonus": d.get("bonus"), "primary_term": d.get("term"),
         })
 
     (OUT_DIR / "manifest.json").write_text(
-        json.dumps({"documents": manifest}, indent=2) + "\n", encoding="utf-8"
-    )
-    print(f"Generated {len(DOCS)} documents (.md + .pdf) in {LEASES_DIR}")
+        json.dumps({"documents": manifest}, indent=2) + "\n", encoding="utf-8")
+    plss_n = sum(1 for d in DOCS if "plss" in d)
+    print(f"\nGenerated {len(DOCS)} documents (.md + .pdf) in {LEASES_DIR}")
+    print(f"{plss_n} PLSS tracts geolocated from their legal descriptions; "
+          f"{len(DOCS) - plss_n} town-approximate.")
     print(f"Wrote answer key: {OUT_DIR / 'manifest.json'}")
 
 

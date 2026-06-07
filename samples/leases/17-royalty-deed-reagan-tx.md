@@ -12,7 +12,7 @@ Section 7, Block 2, H&TC RR Co. Survey, Abstract No. 89, containing 640.00 acres
 
 ## Non-Participating Nature
 
-The interest conveyed is a non-participating royalty: Grantee shall not have the right to execute leases, to receive bonus or delay rentals, or to participate in the making of oil and gas leases, all such rights being reserved to the mineral owner.
+The interest conveyed is a non-participating royalty: Grantee shall not have the right to execute leases, to receive bonus or delay rentals, or to join in the making of oil and gas leases, all such executive rights being reserved to the mineral owner.
 
 
 GRANTOR: University Lands Heritage Trust
