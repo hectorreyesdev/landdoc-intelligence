@@ -1,7 +1,8 @@
 # Runbook
 
-> Greenfield: `/backend` and `/frontend` are not scaffolded yet, so the commands below are the
-> intended workflow (mirrors `CLAUDE.md` → Build / test / run). Update once projects exist.
+> `/backend` is scaffolded — the backend commands below are real (run `dotnet` from `backend/`).
+> `/frontend` is not scaffolded yet, so the `npm` commands remain the intended workflow. Mirrors
+> `CLAUDE.md` → Build / test / run.
 
 ## Prerequisites
 - **.NET 10 SDK** (LTS).
@@ -24,11 +25,19 @@
 - Backend: `dotnet build`
 - Frontend: `npm run build`
 
-## Configuration & secrets (names only — never commit values)
-Set via `dotnet user-secrets` (dev) or environment variables; prod would use Azure Key Vault.
+## Configuration & secrets (names only — never commit secret values)
+Provider/model selection and non-secret tuning live in `appsettings.json`; secrets go in
+`dotnet user-secrets` (dev) or environment variables (prod would use Azure Key Vault).
+
+Settings (non-secret, in `appsettings.json`):
 - `ModelClient:ChatProvider` — `foundry` | `anthropic`
 - `ModelClient:EmbeddingProvider` — `local` | `foundry`
 - `ModelClient:ChatModel` — e.g. `claude-opus-4-8`
+- `Embedding:Dimension` — local embedding vector length (default 256)
+- `Chunking:MaxChars` / `Chunking:Overlap` — chunk window + overlap (default 120 / 30)
+- `Retrieval:TopK` — top-k chunks for `/ask` (default 5; read path not built yet)
+
+Secrets (never commit values):
 - Foundry: endpoint + key — TODO confirm key names (e.g. `Foundry:Endpoint`, `Foundry:ApiKey`)
 - Anthropic: `ANTHROPIC_API_KEY`
 - Azure OpenAI embeddings (prod, out of scope): endpoint / deployment / key

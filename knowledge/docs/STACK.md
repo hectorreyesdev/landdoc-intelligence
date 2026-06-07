@@ -1,6 +1,6 @@
 # Stack
 
-Seeded from `CLAUDE.md`. Rows marked `TODO` are not pinned yet — greenfield, no manifests exist.
+Seeded from `CLAUDE.md`. Backend rows are pinned from the `backend/` manifests; frontend rows stay `TODO` until `/frontend` is scaffolded.
 
 | Layer | Choice | Version | Why |
 |---|---|---|---|
@@ -16,10 +16,10 @@ Seeded from `CLAUDE.md`. Rows marked `TODO` are not pinned yet — greenfield, n
 | Frontend | React | TODO: pin | SPA: upload, fields, ask, cited answer — React over Blazor, see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md) |
 | Language (frontend) | TypeScript | TODO: pin (`strict`) | Type-safe UI + typed API client — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md) |
 | Build (frontend) | TODO: choose (Vite likely) | TODO | Dev server + bundling |
-| PDF text extraction | TODO: choose (e.g. PdfPig) | TODO | PDF → text for chunking |
-| Test (backend) | TODO: choose (xUnit likely) | TODO | `dotnet test` |
+| PDF text extraction | `UglyToad.PdfPig` (NuGet) | 1.7.0-custom-5 | PDF → text for chunking (text-based; no OCR). Only prerelease-tagged builds are published |
+| Test (backend) | xUnit · `Microsoft.NET.Test.Sdk` · `Microsoft.AspNetCore.Mvc.Testing` | 2.9.3 · 17.14.1 · 10.0.8 | `dotnet test`; `WebApplicationFactory` integration tests |
 | Test (frontend) | TODO: choose (Vitest likely) | TODO | `npm test` |
 | Secrets (dev) | `dotnet user-secrets` / env vars | n/a | Never commit secrets |
 | Secrets (prod) | Azure Key Vault | n/a (out of scope) | Production path only |
 
-> TODO: replace the `TODO` rows once `/backend` and `/frontend` are scaffolded and manifests exist.
+> TODO: replace the remaining frontend `TODO` rows once `/frontend` is scaffolded and its manifest exists.

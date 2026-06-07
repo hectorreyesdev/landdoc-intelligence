@@ -59,8 +59,8 @@ suite stays green (`dotnet test` / `npm test`), the governing spec is known (it 
 - `npm run dev`
 - `npm test`
 
-> TODO: solution and projects are not scaffolded yet. Create `/backend` and `/frontend`, then
-> make these commands real and delete this note.
+> TODO: `/frontend` is not scaffolded yet — its `npm` commands are intended until it exists.
+> (`/backend` is scaffolded; the `dotnet` commands above are real.)
 
 ## Guardrails — what NOT to touch
 - **Secrets** — never commit them. Dev: `dotnet user-secrets` / environment variables. Prod:
