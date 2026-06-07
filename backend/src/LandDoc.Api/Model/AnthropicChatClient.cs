@@ -1,20 +1,20 @@
-using System.Net.Http.Json;
 using System.Text;
-using System.Text.Json;
+using Anthropic;
+using Anthropic.Models.Messages;
 using Microsoft.Extensions.Options;
 
 namespace LandDoc.Api.Model;
 
 /// <summary>
-/// Anthropic API direct chat adapter — the slice-default provider (ADR-0010). Calls the Anthropic
-/// Messages REST API directly so no third-party NuGet package is needed in the slice. Base URL and
-/// credentials come from <see cref="ModelClientOptions"/> so a later Foundry gateway swap is
-/// config-only. API key must be set via <c>dotnet user-secrets</c> or environment variable
+/// Anthropic API direct chat adapter — the slice-default provider (ADR-0010). Uses the official
+/// Anthropic .NET SDK (NuGet <c>Anthropic</c>, published by Anthropic). API key, model id, and base
+/// URL come from <see cref="ModelClientOptions"/> so a later Foundry gateway swap stays config-only
+/// (ADR-0007). The API key must be set via <c>dotnet user-secrets</c> or environment variable
 /// (<c>ModelClient__ApiKey</c>) — never committed or hardcoded.
 /// </summary>
 public sealed class AnthropicChatClient : IChatClient
 {
-    private static readonly HttpClient Http = new();
+    private const int MaxTokens = 1024;
 
     private const string SystemPrompt =
         "Answer using only the supplied passages. " +
@@ -22,9 +22,8 @@ public sealed class AnthropicChatClient : IChatClient
         "\"The answer is not found in the document(s).\" " +
         "Do not fabricate or infer information beyond what the passages state.";
 
-    private readonly string _apiKey;
+    private readonly AnthropicClient _client;
     private readonly string _model;
-    private readonly string _messagesUrl;
 
     public AnthropicChatClient(IOptions<ModelClientOptions> options)
     {
@@ -37,14 +36,13 @@ public sealed class AnthropicChatClient : IChatClient
                 "Set it via 'dotnet user-secrets set ModelClient:ApiKey <key>' or the " +
                 "ModelClient__ApiKey environment variable. Never commit it.");
 
-        _apiKey = opts.ApiKey;
         _model = opts.Model;
 
-        // Base URL from config so swapping to a Foundry gateway is config-only (ADR-0007).
-        var baseUrl = string.IsNullOrWhiteSpace(opts.BaseUrl)
-            ? "https://api.anthropic.com"
-            : opts.BaseUrl.TrimEnd('/');
-        _messagesUrl = $"{baseUrl}/v1/messages";
+        // Base URL from config so swapping to a Foundry gateway is config-only (ADR-0007); the SDK
+        // defaults to https://api.anthropic.com when BaseUrl is left unset.
+        _client = string.IsNullOrWhiteSpace(opts.BaseUrl)
+            ? new AnthropicClient { ApiKey = opts.ApiKey }
+            : new AnthropicClient { ApiKey = opts.ApiKey, BaseUrl = opts.BaseUrl };
     }
 
     public Task<IReadOnlyList<ExtractedField>> ExtractFieldsAsync(
@@ -66,32 +64,27 @@ public sealed class AnthropicChatClient : IChatClient
             contextText.AppendLine();
         }
 
-        var body = new
+        var parameters = new MessageCreateParams
         {
-            model = _model,
-            max_tokens = 1024,
-            system = SystemPrompt,
-            messages = new[]
-            {
-                new { role = "user", content = $"Passages:\n{contextText}\nQuestion: {question}" }
-            }
+            Model = _model,
+            MaxTokens = MaxTokens,
+            System = SystemPrompt,
+            Messages =
+            [
+                new()
+                {
+                    Role = Role.User,
+                    Content = $"Passages:\n{contextText}\nQuestion: {question}",
+                },
+            ],
         };
 
-        using var request = new HttpRequestMessage(HttpMethod.Post, _messagesUrl);
-        request.Headers.Add("x-api-key", _apiKey);
-        request.Headers.Add("anthropic-version", "2023-06-01");
-        request.Content = JsonContent.Create(body);
+        var message = await _client.Messages.Create(parameters, cancellationToken);
 
-        using var response = await Http.SendAsync(request, cancellationToken);
-        response.EnsureSuccessStatusCode();
-
-        using var doc = await JsonDocument.ParseAsync(
-            await response.Content.ReadAsStreamAsync(cancellationToken),
-            cancellationToken: cancellationToken);
-
-        return doc.RootElement
-            .GetProperty("content")[0]
-            .GetProperty("text")
-            .GetString() ?? string.Empty;
+        // Grounded answer is the first text block; the union wrapper's .Value unwraps each block.
+        return message.Content
+            .Select(block => block.Value)
+            .OfType<TextBlock>()
+            .FirstOrDefault()?.Text ?? string.Empty;
     }
 }
