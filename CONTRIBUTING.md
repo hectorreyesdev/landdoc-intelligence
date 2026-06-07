@@ -5,7 +5,7 @@ be visible, which is why the session journal under `knowledge/logs/` is committe
 
 ## Doc-first workflow
 Docs are authored **before** code, as the design the scaffold will implement:
-- `/kb-init` — scaffold the doc tree (idempotent; seeds derivable facts, leaves judgment as `AUTHOR` markers).
+- `/kb-init` — scaffold the doc tree (idempotent; seeds derivable facts, clarifies the judgment with you, drafts each doc in full, asks to accept).
 - `/spec` — open a feature spec under [`knowledge/docs/specs/`](knowledge/docs/specs/README.md) (`NNNN-<slug>.md`).
 - `/issues` — turn an accepted spec into dependency-ordered GitHub issues (on approval).
 - `/adr` — record an architecture decision in [`knowledge/docs/decisions/`](knowledge/docs/decisions/) (Nygard format).
