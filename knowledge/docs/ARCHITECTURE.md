@@ -28,8 +28,8 @@ flowchart TD
     ingestion -->|"IEmbeddingClient"| emb["Embedding port"]
     retrieval -->|"IEmbeddingClient"| emb
 
-    chat -->|"primary"| foundryC["FoundryChatClient → Microsoft Foundry"]
-    chat -->|"fallback"| anthropicC["AnthropicChatClient → Anthropic API"]
+    chat -->|"slice default"| anthropicC["AnthropicChatClient → Anthropic API"]
+    chat -.->|"prod primary"| foundryC["FoundryChatClient → Microsoft Foundry"]
     emb -->|"slice default"| localE["LocalEmbeddingClient"]
     emb -.->|"prod path"| foundryE["FoundryEmbeddingClient → Azure OpenAI"]
 ```
@@ -44,7 +44,7 @@ flowchart TD
   - `Retrieval` — question → embed → top-k chunks from the vector store.
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).
 - **Ports** — `IChatClient` (chat/completions) · `IEmbeddingClient` (embeddings only).
-- **Adapters** — `FoundryChatClient` (primary) / `AnthropicChatClient` (fallback) ·
+- **Adapters** — `AnthropicChatClient` (slice default + prod fallback — [ADR-0010](decisions/0010-anthropic-direct-slice-default-chat-adapter.md)/[0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md), official Anthropic .NET SDK) / `FoundryChatClient` (prod primary, stubbed in the slice) ·
   `LocalEmbeddingClient` (slice — deterministic hashing, see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)) / `FoundryEmbeddingClient` (prod).
 - **Vector store** — in-memory cosine similarity over `float[]` behind a narrow `IVectorStore` seam
   (add chunks at ingest; `TopK(queryVector, k)` at ask) so the prod swap is an adapter change (slice);

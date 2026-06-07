@@ -49,7 +49,7 @@ sequenceDiagram
     note over V: empty store → 409
     V-->>API: Relevant chunks
     API->>C: Answer grounded in chunks (IChatClient)
-    note over C: Foundry primary (config-selected adapter);<br/>ADR-0007 Anthropic fallback deferred
+    note over C: slice default Anthropic-direct (config-selected, ADR-0010);<br/>Foundry production-primary + failover deferred (ADR-0007)
     C-->>API: Answer + citations
     API-->>SPA: Answer + citations (≥1, each resolves)
     SPA-->>A: Cited answer
@@ -68,6 +68,8 @@ the cited chunk IDs are returned so the UI can resolve each claim to its source 
   ([spec 0002](specs/0002-rag-qa-with-citations.md)).
 - Repeated document context sent to the chat model is intended to rely on **prompt caching** to cut
   cost/latency — an optimization **deferred** for the slice (not required by spec 0002).
-- Chat is designed **Foundry-primary with Anthropic-direct fallback** on availability failures
-  ([ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md)); the slice wires
-  only the config-selected adapter — the **failover wrapper is deferred** to its own spec.
+- The slice wires the **Anthropic-direct** chat adapter as the config-selected default
+  ([ADR-0010](decisions/0010-anthropic-direct-slice-default-chat-adapter.md), via the official
+  Anthropic .NET SDK). Production keeps the **Foundry-primary, Anthropic-direct fallback** topology on
+  availability failures ([ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md));
+  the **failover wrapper is deferred** to its own spec.

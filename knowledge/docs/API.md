@@ -1,8 +1,8 @@
 # API
 
-> **Partly built.** `POST /documents` is implemented (spec 0001 — ingest write path). `POST /ask` is
-> routed but returns `501` pending spec 0002 (read path). `GET /documents/{id}` and a list endpoint
-> remain intended surface. The shapes below are the accepted-spec contracts.
+> **Partly built.** `POST /documents` (spec 0001 — ingest write path) and `POST /ask` (spec 0002 —
+> read path) are both implemented. `GET /documents/{id}` and a list endpoint remain intended surface.
+> The shapes below are the accepted-spec contracts.
 
 Base path: none — endpoints are served at the root (`/documents`, `/ask`), matching specs 0001/0002.
 The SPA reaches them **same-origin** via relative paths (dev: Vite dev-proxy; prod: Azure Static Web
@@ -34,7 +34,7 @@ Fetch a document and its extracted fields.
 - The accepted slice specs (0001 write path, 0002 read path) do **not** build this read-back endpoint;
   it remains intended surface for a later spec.
 
-### `POST /ask`  ·  spec [0002](specs/0002-rag-qa-with-citations.md)  ·  *routed; returns `501` until 0002 is built*
+### `POST /ask`  ·  spec [0002](specs/0002-rag-qa-with-citations.md)
 Ask a question, grounded in chunks retrieved across **all** ingested documents (global corpus query —
 see [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
 - Request:

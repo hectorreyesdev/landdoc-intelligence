@@ -9,6 +9,8 @@ erDiagram
     DOCUMENT ||--o{ CHUNK : "split into"
     DOCUMENT ||--o{ EXTRACTED_FIELD : "yields"
     CHUNK ||--o{ CITATION : "cited by"
+    CHUNK ||--o{ SCORED_CHUNK : "scored at retrieval"
+    CHUNK ||--o{ QA_PASSAGE : "projected for chat"
     ANSWER ||--o{ CITATION : "supported by"
 
     DOCUMENT {
@@ -29,7 +31,6 @@ erDiagram
     }
     ANSWER {
       Guid Id
-      Guid DocumentId
       string Question
       string Text
     }
@@ -37,6 +38,15 @@ erDiagram
       Guid ChunkId
       Guid DocumentId
       double Score
+      string Text "resolved from store"
+    }
+    SCORED_CHUNK {
+      double Score "cosine; wraps a Chunk"
+    }
+    QA_PASSAGE {
+      Guid ChunkId
+      Guid DocumentId
+      string Text
     }
 ```
 
@@ -48,10 +58,17 @@ erDiagram
 - **Chunk** — a contiguous slice of a document's text plus its embedding vector.
 - **ExtractedField** — a structured field pulled from the document (e.g. royalty, lessor), with the
   chunk it came from (`SourceChunkId` may be null when a field isn't pinned to a chunk).
-- **Answer** — a generated response to a question about a document.
+- **Answer** — a generated response to a question over the **whole corpus** (global `/ask`, ADR-0009),
+  not scoped to one document — its supporting `Citation`s each carry a `DocumentId`. Conceptual: the
+  slice stores no `Answer` record (the `/ask` response is `answer` + `citations[]`).
 - **Citation** — a pointer from an answer (or extracted field) to the chunk that supports it (carries
   `ChunkId` + `DocumentId` + `Score`). The `POST /ask` response DTO additionally inlines the chunk
   `text` (resolved from the store) so the UI can show the source without a second call.
+- **ScoredChunk** — a retrieved `Chunk` paired with its cosine `Score`; the `IVectorStore.TopK` result.
+  Transient — not stored.
+- **QaPassage** — the chat-context projection of a retrieved chunk (`ChunkId`, `DocumentId`, `Text`)
+  passed to `IChatClient.AnswerAsync`; keeps the chat port free of `Storage` types (ADR-0002 / ADR-0004).
+  Transient — not stored.
 
 ## Invariants
 - Every `Chunk` belongs to exactly one `Document`.
