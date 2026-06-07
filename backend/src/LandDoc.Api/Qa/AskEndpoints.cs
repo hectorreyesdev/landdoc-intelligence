@@ -1,14 +1,12 @@
 using LandDoc.Api.Model;
 using LandDoc.Api.Retrieval;
-using LandDoc.Api.Storage;
-using Microsoft.Extensions.Options;
 
 namespace LandDoc.Api.Qa;
 
 /// <summary>
-/// Maps the RAG Q&amp;A read path (spec 0002): POST /ask embeds the query, retrieves top-k chunks from
-/// the shared store, calls the chat adapter for a grounded answer, and returns the answer with
-/// citations. Read-only — never mutates the store.
+/// Maps the RAG Q&amp;A read path (spec 0002): POST /ask retrieves top-k chunks via
+/// <see cref="ChunkRetriever"/>, calls the chat adapter for a grounded answer, and returns the answer
+/// with citations. Read-only — never mutates the store.
 /// </summary>
 public static class AskEndpoints
 {
@@ -16,10 +14,8 @@ public static class AskEndpoints
     {
         app.MapPost("/ask", async (
             AskRequest? request,
-            IEmbeddingClient embedder,
-            IVectorStore store,
+            ChunkRetriever retriever,
             IChatClient chat,
-            IOptions<RetrievalOptions> retrievalOptions,
             CancellationToken ct) =>
         {
             if (request is null || string.IsNullOrWhiteSpace(request.Question))
@@ -30,9 +26,7 @@ public static class AskEndpoints
                     detail: "The 'question' field is required and must not be empty or whitespace.");
             }
 
-            var queryVector = await embedder.EmbedAsync(request.Question, ct);
-            var k = retrievalOptions.Value.TopK;
-            var topK = store.TopK(queryVector, k);
+            var topK = await retriever.RetrieveAsync(request.Question, ct);
 
             if (topK.Count == 0)
             {
