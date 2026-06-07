@@ -14,22 +14,18 @@ erDiagram
     DOCUMENT {
       Guid Id
       string FileName
-      DateTime UploadedAt
       string Status
     }
     CHUNK {
       Guid Id
       Guid DocumentId
-      int Index
       string Text
-      vector Embedding "float[] cosine vector"
+      vector Vector "float[] cosine vector"
     }
     EXTRACTED_FIELD {
-      Guid Id
-      Guid DocumentId
       string Name
       string Value
-      Guid SourceChunkId
+      Guid SourceChunkId "nullable"
     }
     ANSWER {
       Guid Id
@@ -45,9 +41,10 @@ erDiagram
 ```
 
 ## Entities
-- **Document** — an uploaded PDF and its ingest status (`Status` is `"ready"` once ingested). The
-  `POST /documents` response also returns `chunkCount` — a **derived** value (the count of the
-  document's stored chunks), not a stored field.
+- **Document** — an uploaded PDF and its ingest status (`Status` is `"ready"` once ingested). There is
+  no stored `Document` record in the slice: a document is identified by a generated `documentId` and
+  surfaced through the `POST /documents` response (`id`, `fileName`, `status`, the extracted `fields`,
+  and a **derived** `chunkCount` — the count of the document's stored chunks, not a stored field).
 - **Chunk** — a contiguous slice of a document's text plus its embedding vector.
 - **ExtractedField** — a structured field pulled from the document (e.g. royalty, lessor), with the
   chunk it came from (`SourceChunkId` may be null when a field isn't pinned to a chunk).
