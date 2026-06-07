@@ -57,6 +57,12 @@ a later retrieval/Q&A spec will read.
   overlap — tune so `synthetic-lease-01.pdf` yields N > 1 chunks)*.
 - **Store:** in-memory, process-lifetime only, registered as a shared singleton so a later retrieval
   spec reads the same instance (ADR-0005). No durable persistence (PRD non-goal).
+- **Stored chunk contract (the 0001→0002 seam):** each stored `Chunk` is `{ Id, DocumentId, Text,
+  Vector }` — a stable `Id`, the owning `DocumentId`, the **source `Text`** it was chunked from, and
+  its embedding `Vector`. The read path ([[knowledge/docs/specs/0002-rag-qa-with-citations]]) resolves
+  `chunkId → { documentId, text }` from the store to build citations, so dropping `Text` or using
+  unstable ids silently breaks 0002's citations. This shape is part of the **write-side** contract,
+  not an 0002 concern.
 - **Errors:** ASP.NET Core `ProblemDetails` (RFC 7807): `400` for a missing/empty/non-PDF file.
 - **Out of scope for this spec:** `GET /documents/{id}`, retrieval, and `POST /documents/{id}/ask`
   (read path — separate specs); the chat availability fallback; Azure AI Search; auth/RBAC;
@@ -71,6 +77,10 @@ a later retrieval/Q&A spec will read.
 - **Storage assertion:** after that request, the in-memory store holds exactly **N chunks** for the
   returned document id, each carrying a non-empty `float[]` embedding, and **all N vectors share the
   same length** (cosine invariant).
+- **Stored chunk shape (the 0001→0002 seam):** each stored chunk **retains its source `Text`**
+  (non-empty) and is **resolvable by a stable `Id`** carrying the correct `DocumentId` — i.e. the full
+  `{ Id, DocumentId, Text, Vector }` shape, asserted explicitly so a "vector-only" store that drops
+  `Text` can't pass while silently breaking 0002's citations.
 - **Deterministic embeddings:** embedding the same chunk text twice yields identical vectors
   (unit test over `LocalEmbeddingClient`).
 - **Extraction wiring:** with the fake `IChatClient` returning canned fields, those exact fields
