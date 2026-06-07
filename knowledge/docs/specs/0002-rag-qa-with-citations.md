@@ -74,8 +74,22 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   the source chunk. (Offline tests assert the contract + retrieval; the real name is a live check.)
 - **Deterministic retrieval:** the same question over the same store yields the same top-k chunk ids
   in the same order (hashing embeddings + stable tie-break).
-- **Strict no-grounding:** `POST /ask` against an **empty store** returns `409 ProblemDetails`; no
-  `200`/no answer-without-citation is ever produced.
+- **No-grounding — empty store:** `POST /ask` against an **empty store** returns `409 ProblemDetails`;
+  no `200`/no answer-without-citation is ever produced.
+- **No-grounding — out-of-corpus question (anti-hallucination, the trust beat):** with the fixture
+  ingested (store **populated**), `POST /ask` with an **out-of-corpus** question (one whose answer is
+  not in any chunk — e.g. `"What is the offshore platform's water depth?"` against a land lease)
+  returns `200` where the `answer` **signals not-found** (does not fabricate) **and** `citations[]` is
+  **still ≥1** — the top-k chunks that were searched — each resolving to a stored chunk. This is the
+  named test (e.g. `Ask_OutOfCorpusQuestion_AnswerSignalsNotFound_AndStillCites`), not prose.
+  - *Contract half (offline, fake `IChatClient`):* the fake returns a canned "not found in the
+    document(s)" answer; assert the response carries that answer **and** ≥1 resolving citation. The
+    assertion keys off the fake's exact output, not fuzzy NL parsing *(if we later want a
+    machine-checkable signal, add a `grounded: false` flag — a separate contract change, out of scope
+    here)*.
+  - *Real-model half (manual, live, real adapter):* given only the retrieved chunks, the real model
+    **admits it can't answer** rather than hallucinating, with citations showing where it looked —
+    same offline-contract / live-correctness split used for the lessee check above.
 - **Bad input:** missing / empty / whitespace `question` → `400 ProblemDetails`.
 - **Read-only:** the store contents (chunk count, vectors) are unchanged after any number of `/ask`
   calls.
