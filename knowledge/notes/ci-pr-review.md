@@ -55,3 +55,30 @@ created by **`/issues`** from an accepted spec (the spec→issue→PR→review l
 spec + doc references and its dependencies as body text (`Blocked by: #N`) — native blocked-by links
 aren't settable via the GitHub tools/`gh`, only the UI. Review still happens on the PR (the reviewer
 above) plus the local `/code-review` skill in-session.
+
+## The deterministic CI gate (`ci.yml`, added 2026-06-07)
+A third workflow, **`.github/workflows/ci.yml`** ("CI") — hand-authored, not App-generated: `dotnet
+build` + `dotnet test` on `pull_request` → `main` and `push` → `main` (paths `backend/**` + the workflow
+file). Restore runs **`--locked-mode`**, so `packages.lock.json` must be in sync
+(`RestorePackagesWithLockFile=true`) — adding a NuGet package **without** committing the regenerated lock
+**fails CI**, which doubles as a supply-chain/provenance gate (the lock diff is where you eyeball a new
+package's identity). The reviewer and `@claude` only read/write code; **`ci.yml` is the only check that
+compiles the code and runs the tests** — without it a PR could go green having never built.
+
+## Driving `@claude` through the loop (in practice, 2026-06-07)
+- **The runner has no `dotnet restore`** — `@claude` can edit code but **cannot add NuGet packages,
+  regenerate the lock, or run tests** (it will work around a package need, e.g. raw HTTP instead of an
+  SDK). Do dependency/lock changes and local verification yourself; let the bot do pure code edits;
+  gate everything on `ci.yml`. Verifying the bot's branch locally = a throwaway `git worktree` off
+  `origin/<branch>`, run locked-restore + build + test, push the fix to the same branch.
+- **Amend a PR vs. open a new one:** `@claude` triggered by a **comment on a PR** pushes its fix to that
+  PR's branch; `@claude` triggered by a **new issue** opens a **new** branch/PR. To fix a review finding
+  on an open PR, comment `@claude` on the PR — don't file an issue (that forces merge-first).
+- **Fix-then-merge:** resolve review findings on the PR branch before merging; never merge a PR with
+  open findings and chase them post-merge.
+- **The bot can't open *gated* PRs yet:** PRs opened by the default `GITHUB_TOKEN` **don't trigger**
+  `pull_request` workflows (GitHub's recursion guard), and the repo's "Allow Actions to create and
+  approve PRs" is **off** (`can_approve_pull_request_reviews: false`). So the bot pushes a branch + a
+  "Create PR" link and a **human clicks it** (a human-opened PR fires CI + review). To let the bot open
+  PRs that still trigger CI, give the action a **GitHub App (or PAT) token** as `github_token` instead of
+  `GITHUB_TOKEN`. Parked.
