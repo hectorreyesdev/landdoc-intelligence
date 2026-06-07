@@ -19,4 +19,17 @@ Docs are authored **before** code, as the design the scaffold will implement:
 - No `Co-Authored-By` / "Generated with" trailers — keep messages clean.
 - Never commit secrets (dev: `dotnet user-secrets` / env vars; prod: Azure Key Vault).
 
-> [!note] AUTHOR: branch & PR conventions, and the definition of done for this repo.
+## Branches & PRs
+- Work on **feature branches**; open a **PR into `main`** and **squash-merge** — reviewable history
+  even when solo.
+- The PR is where review runs (`/code-review`) and, once it exists, CI — vet before merge.
+- Keep one logical change per PR; reference the spec/ADR it implements.
+
+## Definition of done
+A change is **done** when all of these hold:
+- **Tests green + clean build** — `dotnet test` / `npm test` pass (the `tdd` skill's bar).
+- **Spec exists** — a feature/non-trivial change has a committed `specs/NNNN-*.md` *before*
+  implementation (spec-first).
+- **ADR for architectural calls** — any architecture decision is recorded (or superseded) under
+  `wiki/docs/decisions/`.
+- **Docs reconciled** — doc drift is closed and a session log appended via `/wrap`.

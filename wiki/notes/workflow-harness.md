@@ -4,11 +4,14 @@ The *what-we-know* view of how this repo's build harness works; the individual c
 hold the operational detail.
 
 ## The four workflow commands share a spine
-`/adr`, `/spec`, `/reconcile` follow **clarify → draft-in-full → accept → act**:
+`/wiki-init`, `/adr`, `/spec`, `/reconcile` follow **clarify → draft-in-full → accept → act**:
 - **Clarify** genuine ambiguity first — ask only if getting it wrong would change the output; don't over-ask.
 - **Draft the judgment in full** — no `> [!note] AUTHOR:` deferral; flag minor open defaults inline as `*(assumption: …)*`.
 - **Accept gate** (Accept / Revise / Keep) before the irreversible step.
-- **Act:** `/adr` flips Status→Accepted + propagates links; `/spec` flips→Accepted + commits spec-first; `/reconcile` applies the ratified edit as a staged diff.
+- **Act:** `/wiki-init` writes the scaffolded doc tree (accept per group); `/adr` flips Status→Accepted + propagates links; `/spec` flips→Accepted + commits spec-first; `/reconcile` applies the ratified edit as a staged diff.
+
+The AUTHOR-marker deferral pattern (seed a `> [!note] AUTHOR:` blank, human fills later) is **retired** —
+every command drafts judgment in full and ratifies at the accept gate instead.
 
 `/wrap` is the **bookkeeper**, not an author: it clarifies (bounded), writes only low-judgment
 narrative (logs/notes/lessons), **flags** doc drift + missing artifacts for the trio to author, and

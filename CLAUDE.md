@@ -76,8 +76,8 @@ suite stays green (`dotnet test` / `npm test`), the governing spec is known (it 
 
 ## Project docs — where things live, and what each holds
 Docs are authored as **design intent** before code and kept current by `/wrap`. **To answer a
-question about the system, read the relevant file below before guessing.** Unsettled judgment sits
-behind `> [!note] AUTHOR:` markers — surface those, don't invent answers.
+question about the system, read the relevant file below before guessing.** Where a doc is silent or
+unsettled, surface the gap and ask — don't invent answers.
 
 ```
 README.md          what this is + repo map (browse-first entry point)

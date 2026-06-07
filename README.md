@@ -7,7 +7,8 @@ config-swappable ports — `IChatClient` (Microsoft Foundry primary, Anthropic f
 `IEmbeddingClient` (local in-memory slice default, Azure OpenAI production) — so providers change by
 configuration, not code.
 
-> [!note] AUTHOR: one-sentence positioning — what makes this slice worth a hiring manager's time?
+Senior-level judgment made visible: deliberate scope (build vs. stub), a spec- and ADR-first
+workflow, and an agentic process that's part of the deliverable.
 
 ## Repo map
 - [`CLAUDE.md`](CLAUDE.md) — project constitution (architecture · conventions · guardrails)
