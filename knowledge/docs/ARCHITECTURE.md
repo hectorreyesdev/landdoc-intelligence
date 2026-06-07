@@ -70,7 +70,9 @@ flowchart TD
 - **Logging / observability** — minimal for the slice; the observability stack is out of scope.
 
 ## Key boundaries
-- SPA ↔ API: HTTP/JSON only (typed API client on the frontend).
+- SPA ↔ API: HTTP/JSON only (typed API client on the frontend), **single-origin** — the typed client
+  calls relative paths; dev fronts the API via the Vite dev-proxy and prod via an Azure Static Web Apps
+  linked backend, so there is no CORS. See [ADR-0011](decisions/0011-single-origin-spa-api-topology.md).
 - Modules ↔ providers: only through `IChatClient` / `IEmbeddingClient`.
 - Slice ↔ production: in-memory store + local embeddings are slice-only; Azure AI Search, Azure
   OpenAI embeddings, and Key Vault are the named (unbuilt) production path.

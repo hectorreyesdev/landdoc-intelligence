@@ -5,6 +5,8 @@
 > remain intended surface. The shapes below are the accepted-spec contracts.
 
 Base path: none — endpoints are served at the root (`/documents`, `/ask`), matching specs 0001/0002.
+The SPA reaches them **same-origin** via relative paths (dev: Vite dev-proxy; prod: Azure Static Web
+Apps linked backend — no CORS; see [ADR-0011](decisions/0011-single-origin-spa-api-topology.md)).
 Media type: `application/json`, except upload (`multipart/form-data`).
 
 ## Endpoints (proposed)

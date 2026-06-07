@@ -15,7 +15,9 @@
 
 ## Run
 - Backend: `dotnet run --project src/LandDoc.Api`
-- Frontend: `npm run dev`
+- Frontend: `npm run dev` — the Vite dev server proxies `/documents` and `/ask` to the backend so the
+  browser stays **single-origin** (no CORS); the typed client calls relative paths. See
+  [ADR-0011](decisions/0011-single-origin-spa-api-topology.md).
 
 ## Test
 - Backend: `dotnet test`
@@ -44,6 +46,9 @@ Secrets (never commit values):
 
 ## Deploy
 - Out of scope for the slice — no cloud infrastructure is provisioned. Runs locally only.
+- Intended prod topology (named, not built): the SPA on **Azure Static Web Apps** with a **linked
+  backend** reverse-proxying the API under the SWA origin — single-origin, still no CORS. See
+  [ADR-0011](decisions/0011-single-origin-spa-api-topology.md).
 
 ## Observability
 - Minimal (console logging). The observability stack is explicitly out of scope.
