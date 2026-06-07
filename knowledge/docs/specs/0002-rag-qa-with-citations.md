@@ -1,6 +1,7 @@
 # 0002 — RAG Q&A with Citations (Read Path)
 
-**Status:** Accepted
+**Status:** Accepted · _Amended 2026-06-07 — `IChatClient` takes a `QaPassage` port DTO (not storage
+`Chunk`) + the slice-default chat adapter is Anthropic-direct (see ADR-0010)._
 
 ## What to build
 The retrieval-augmented **read path** — the complement to the ingest write path
@@ -36,9 +37,19 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   `POST /documents/{id}/ask` shape sketched in `API.md`/`DATA-FLOW.md` (reconcile both on merge).
 - **Ports:** `IEmbeddingClient` embeds the query (must be the **same** adapter/model that embedded the
   chunks — `LocalEmbeddingClient` deterministic hashing for the slice — so vectors share a dimension,
-  the cosine invariant in DATA-MODEL). `IChatClient` composes the answer, config-selected adapter
-  (Foundry primary, model id from config — default `claude-opus-4-8`). The acceptance test injects a
-  **fake `IChatClient`** so the test is deterministic and offline.
+  the cosine invariant in DATA-MODEL). `IChatClient` composes the answer via the config-selected
+  adapter (`ModelClient:ChatProvider`). **Slice default: Anthropic-direct** (`AnthropicChatClient`,
+  official Anthropic .NET SDK; model id from `ModelClient:Model`, default `claude-opus-4-8`; API key
+  from `ModelClient:ApiKey` via `dotnet user-secrets`) — standing up the Foundry gateway is off the
+  slice's critical path. **Foundry remains the production primary per ADR-0007** — this is a
+  slice-scoped default, the swap is config-only, and ADR-0007 is **not** superseded (see ADR-0010).
+  The acceptance test injects a **fake `IChatClient`** so the test is deterministic and offline.
+- **Port hygiene (`IChatClient` — amended):** `AnswerAsync` takes a QA-context DTO —
+  `QaPassage(Guid ChunkId, Guid DocumentId, string Text)` in the `Model` namespace — **not** the
+  storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports, ADR-0002 /
+  ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat call and
+  → `Citation` for the response. `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
+  in `IChatClient`'s own doc-comment that changing the interface requires a spec.
 - **Retrieval:** top-k by cosine similarity via linear scan over the in-memory store (ADR-0005),
   through the narrow store seam that ADR-0005 calls for *(assumption: a small `IVectorStore`-style
   read method `TopK(queryVector, k)`; introduce it here if 0001 didn't)*. *(assumption: `k = 5`,
@@ -54,10 +65,11 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   citation** — upholds the core invariant (DATA-MODEL / ARCHITECTURE).
 - **Errors:** `ProblemDetails` (RFC 7807) — `400` for a missing/empty/whitespace `question`; `409`
   for an empty store.
-- **Out of scope for this spec:** the Foundry→Anthropic availability **failover** (ADR-0007 — its own
-  later spec; only the config-selected adapter is wired here) · prompt-caching optimization *(noted in
-  DATA-FLOW; not required for acceptance)* · Azure AI Search · reranking/ANN indexing · multi-turn
-  conversation history · streaming responses · auth/RBAC · observability.
+- **Out of scope for this spec:** the Foundry→Anthropic availability **failover / runtime provider
+  switching** (ADR-0007 — its own later spec; this spec wires **one** real adapter — the slice-default
+  Anthropic-direct — plus the Foundry stub) · prompt-caching optimization *(noted in DATA-FLOW; not
+  required for acceptance)* · Azure AI Search · reranking/ANN indexing · multi-turn conversation
+  history · streaming responses · auth/RBAC · observability.
 
 ## How to verify
 - **Happy path (integration, `WebApplicationFactory`, fake `IChatClient`):** with
@@ -104,7 +116,10 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   (in-memory top-k cosine + store seam) ·
   [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]] (both ports) ·
   [[knowledge/docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback]] (failover —
-  **deferred**, not built here) · [[knowledge/docs/decisions/0004-modular-monolith-over-microservices]] ·
+  **deferred**; Foundry stays production-primary, complemented by ADR-0010) ·
+  [[knowledge/docs/decisions/0010-anthropic-direct-slice-default-chat-adapter]] (slice-default chat
+  adapter — Anthropic-direct; does **not** supersede 0007) ·
+  [[knowledge/docs/decisions/0004-modular-monolith-over-microservices]] ·
   [[knowledge/docs/decisions/0003-dotnet-10-lts]].
 - **Docs to reconcile on merge:** `API.md` (replace `POST /documents/{id}/ask` with global
   `POST /ask`; citation gains `documentId`) · `DATA-FLOW.md` (ask sequence → global, no doc id) ·
