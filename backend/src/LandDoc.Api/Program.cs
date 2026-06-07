@@ -34,6 +34,9 @@ builder.Services.AddSingleton<IChatClient>(sp => chatProvider.ToLowerInvariant()
     _ => throw new InvalidOperationException($"Unknown ModelClient:ChatProvider '{chatProvider}'."),
 });
 
+// Retrieval (read path): question → embed → top-k (spec 0004).
+builder.Services.AddScoped<ChunkRetriever>();
+
 // Ingestion pipeline (write path): parse → extract → chunk → embed → store.
 builder.Services.AddScoped<PdfTextExtractor>();
 builder.Services.AddScoped<TextChunker>();
