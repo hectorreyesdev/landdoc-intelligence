@@ -93,4 +93,15 @@ public sealed class ChunkRetrieverTests
                 $"Score at index {i} ({result[i].Score}) must be >= index {i + 1} ({result[i + 1].Score})");
         }
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task RetrieveAsync_BlankQuestion_Throws(string? question)
+    {
+        var retriever = CreateRetriever(CreateEmbedder(), new InMemoryVectorStore(), topK: 5);
+
+        await Assert.ThrowsAnyAsync<ArgumentException>(() => retriever.RetrieveAsync(question!));
+    }
 }

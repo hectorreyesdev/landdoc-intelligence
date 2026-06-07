@@ -27,6 +27,8 @@ public sealed class ChunkRetriever
 
     public async Task<IReadOnlyList<ScoredChunk>> RetrieveAsync(string question, CancellationToken ct = default)
     {
+        ArgumentException.ThrowIfNullOrWhiteSpace(question);
+
         var queryVector = await _embedder.EmbedAsync(question, ct);
         return _store.TopK(queryVector, _options.TopK);
     }
