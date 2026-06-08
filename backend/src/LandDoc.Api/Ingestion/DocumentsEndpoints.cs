@@ -1,3 +1,5 @@
+using LandDoc.Api.Storage;
+
 namespace LandDoc.Api.Ingestion;
 
 /// <summary>
@@ -29,6 +31,7 @@ public static class DocumentsEndpoints
             var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
             DocumentFormat format;
+            string contentType;
             if (extension == ".pdf")
             {
                 if (!LooksLikePdf(content))
@@ -39,10 +42,17 @@ public static class DocumentsEndpoints
                         statusCode: StatusCodes.Status400BadRequest);
                 }
                 format = DocumentFormat.Pdf;
+                contentType = "application/pdf";
             }
-            else if (extension is ".txt" or ".md" or ".markdown")
+            else if (extension == ".txt")
             {
                 format = DocumentFormat.PlainText;
+                contentType = "text/plain";
+            }
+            else if (extension is ".md" or ".markdown")
+            {
+                format = DocumentFormat.PlainText;
+                contentType = "text/markdown";
             }
             else
             {
@@ -52,10 +62,31 @@ public static class DocumentsEndpoints
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var response = await ingestion.IngestAsync(file.FileName, content, format, cancellationToken);
+            var response = await ingestion.IngestAsync(file.FileName, content, format, contentType, cancellationToken);
             return Results.Created($"/documents/{response.Id}", response);
         })
         .DisableAntiforgery();
+
+        // Read-back surface (spec 0006). The original file is served inline so the SPA embeds it in an
+        // <iframe>; list returns 200 with [] when nothing is ingested (not 404).
+        app.MapGet("/documents", async (IDocumentStore store, CancellationToken cancellationToken) =>
+            Results.Ok(await store.ListAsync(cancellationToken)));
+
+        app.MapGet("/documents/{id:guid}", async (Guid id, IDocumentStore store, CancellationToken cancellationToken) =>
+        {
+            var document = await store.GetAsync(id, cancellationToken);
+            return document is null
+                ? Results.Problem(title: "Document not found.", statusCode: StatusCodes.Status404NotFound)
+                : Results.Ok(document);
+        });
+
+        app.MapGet("/documents/{id:guid}/file", async (Guid id, IDocumentStore store, CancellationToken cancellationToken) =>
+        {
+            var file = await store.GetFileAsync(id, cancellationToken);
+            return file is null
+                ? Results.Problem(title: "Document not found.", statusCode: StatusCodes.Status404NotFound)
+                : Results.File(file.Content, file.ContentType);
+        });
 
         return app;
     }

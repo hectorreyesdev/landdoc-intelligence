@@ -42,4 +42,11 @@ internal static class IngestionTestHelpers
         var scored = await store.TopKAsync(probe, int.MaxValue);
         return scored.Select(s => s.Chunk).ToList();
     }
+
+    /// <summary>Returns every document currently in the shared document store (spec 0006).</summary>
+    public static async Task<IReadOnlyList<DocumentMetadata>> StoredDocumentsAsync(WebApplicationFactory<Program> factory)
+    {
+        var store = factory.Services.GetRequiredService<IDocumentStore>();
+        return await store.ListAsync();
+    }
 }

@@ -44,7 +44,7 @@ public static class AskEndpoints
             var answer = await chat.AnswerAsync(request.Question, passages, ct);
 
             var citations = topK
-                .Select(sc => new Citation(sc.Chunk.Id, sc.Chunk.DocumentId, sc.Score, sc.Chunk.Text))
+                .Select(sc => new Citation(sc.Chunk.Id, sc.Chunk.DocumentId, sc.Score, sc.Chunk.Text, sc.Chunk.Source))
                 .ToList();
 
             return Results.Ok(new AskResponse(answer, citations));

@@ -14,5 +14,8 @@ internal static class TestModuleInitializer
 
         // Pin the in-memory vector store so CI (no Azure AI Search creds) stays green (ADR-0017).
         Environment.SetEnvironmentVariable("VectorStore__Provider", "inmemory");
+
+        // Pin the in-memory document store so CI (no Azure Storage creds) stays green (ADR-0018).
+        Environment.SetEnvironmentVariable("DocumentStore__Provider", "inmemory");
     }
 }
