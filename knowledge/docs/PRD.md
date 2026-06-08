@@ -42,8 +42,12 @@ retrieval · cited Q&A · React UI for upload / fields / ask.
 
 ## Open questions
 Resolved by the accepted slice specs:
-- **Extracted-field set** — lessor, lessee, legal description, royalty, key dates
-  ([spec 0001](specs/0001-document-ingestion-write-path.md)).
+- **Extracted-field set** — a single **generic, role-neutral schema** across all 23 sample instrument
+  types (not OGL-only): universal core (`DocumentType`, `Parties[{role, name}]`, `EffectiveDate`,
+  `LegalDescription`, `County`, `State`), conditional economics (`Acres`, `Royalty`, `Bonus`,
+  `PrimaryTerm`), and an open `OtherNotableTerms` slot — flattened to the existing `ExtractedField` list
+  ([spec 0001](specs/0001-document-ingestion-write-path.md),
+  [ADR-0015](decisions/0015-field-extraction-generic-role-neutral-schema-land-document-types.md)).
 - **One document vs. corpus** — a global corpus query: `POST /ask` retrieves across all ingested
   documents ([spec 0002](specs/0002-rag-qa-with-citations.md),
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).

@@ -11,7 +11,7 @@ export function Answer({ answer }: { answer: AskResponse }): ReactElement | null
     return null
   }
   return (
-    <div className="panel-result">
+    <div className="panel-result answer-result">
       <h3>Answer</h3>
       <p className="answer-text">{answer.answer}</p>
       <h4>Citations</h4>
