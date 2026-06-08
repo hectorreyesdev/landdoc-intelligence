@@ -206,6 +206,72 @@ public sealed class AskEndpointTests
         }
     }
 
+    [Fact]
+    public async Task Ask_QaPassages_HaveNonEmptySourceNameEqualToIngestedFileName()
+    {
+        var capturingClient = new CapturingChatClient();
+        using var factory = new CapturingChatFactory(capturingClient);
+        var client = factory.CreateClient();
+
+        await IngestionTestHelpers.PostFixtureAsync(client);
+
+        var response = await client.PostAsJsonAsync("/ask", new { question = "Who is the lessee?" });
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.NotNull(capturingClient.LastPassages);
+        Assert.NotEmpty(capturingClient.LastPassages!);
+        Assert.All(capturingClient.LastPassages!, p =>
+        {
+            Assert.False(string.IsNullOrWhiteSpace(p.SourceName));
+            Assert.Equal("synthetic-lease-01.pdf", p.SourceName);
+        });
+    }
+
+    private sealed class CapturingChatClient : IChatClient
+    {
+        public IReadOnlyList<QaPassage>? LastPassages { get; private set; }
+
+        public Task<IReadOnlyList<ExtractedField>> ExtractFieldsAsync(
+            string documentText,
+            CancellationToken cancellationToken = default)
+        {
+            IReadOnlyList<ExtractedField> fields =
+            [
+                new ExtractedField("Lessor", "John Q. Landowner", null),
+                new ExtractedField("Lessee", "Acme Minerals LLC", null),
+                new ExtractedField("LegalDescription", "Section 14, Block 2, T-1-N, Permian County", null),
+                new ExtractedField("Royalty", "3/16", null),
+                new ExtractedField("EffectiveDate", "2026-01-15", null),
+            ];
+            return Task.FromResult(fields);
+        }
+
+        public Task<string> AnswerAsync(
+            string question,
+            IReadOnlyList<QaPassage> context,
+            CancellationToken cancellationToken = default)
+        {
+            LastPassages = context;
+            return Task.FromResult("The lessee is Acme Minerals LLC.");
+        }
+    }
+
+    private sealed class CapturingChatFactory : WebApplicationFactory<Program>
+    {
+        private readonly IChatClient _client;
+
+        public CapturingChatFactory(IChatClient client) => _client = client;
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IChatClient>();
+                services.AddSingleton(_client);
+            });
+        }
+    }
+
     /// <summary>
     /// <see cref="WebApplicationFactory{Program}"/> wired with a chat client whose
     /// <see cref="IChatClient.AnswerAsync"/> always returns a "not found" canned answer, while

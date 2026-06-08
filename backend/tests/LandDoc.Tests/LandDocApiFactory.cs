@@ -8,9 +8,10 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace LandDoc.Tests;
 
 /// <summary>
-/// Hosts the API in-process for integration tests and swaps the real <see cref="IChatClient"/> for a
-/// deterministic <see cref="FakeChatClient"/>. The real <c>LocalEmbeddingClient</c> is left in place —
-/// it's deterministic and offline, so it runs for real.
+/// Hosts the API in-process for integration tests. The assembly-wide <see cref="TestModuleInitializer"/>
+/// sets <c>ModelClient__EmbeddingProvider=local</c> so every factory uses the offline
+/// <see cref="LocalEmbeddingClient"/> regardless of the appsettings default. Swaps
+/// <see cref="IChatClient"/> for a deterministic <see cref="FakeChatClient"/>.
 /// </summary>
 public sealed class LandDocApiFactory : WebApplicationFactory<Program>
 {

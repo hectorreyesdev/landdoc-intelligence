@@ -34,7 +34,7 @@ question) / `409` (empty store), same citations and ordering.
 - **Do not modify any existing passing test.** The 18 existing tests (incl. the `/ask` integration
   suite) stay green and keep exercising the same behavior through the endpoint.
 - **Out of scope:** reranking / ANN indexing / Azure AI Search · any change to `k`'s default or the
-  cosine / deterministic-tie-break semantics · multi-turn · the Foundry→Anthropic failover (ADR-0007).
+  cosine / deterministic-tie-break semantics · multi-turn · the chat-provider failover (ADR-0012, supersedes ADR-0007).
 
 ## How to verify
 - **Suite green (tdd):** `dotnet build` + `dotnet test` pass, **including the existing 18** — the `/ask`

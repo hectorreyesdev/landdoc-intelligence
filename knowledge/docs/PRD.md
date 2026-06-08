@@ -9,7 +9,7 @@ means manually reading dozens of pages, and any answer must be traceable back to
 - Ingest a land/title PDF and extract its key structured fields automatically.
 - Answer free-text questions about an uploaded document with **citations** to the source chunk.
 - Prove the full ingest → extract → embed → retrieve → answer loop end to end (vertical slice).
-- Keep model access provider-swappable (Foundry primary, Anthropic fallback) by **config only**.
+- Keep model access provider-swappable (Azure OpenAI GPT live, Anthropic-direct fallback — ADR-0012) by **config only**.
 
 ## Non-goals
 "Production hardening" — explicitly out of scope (see `CLAUDE.md` → Out of scope):
@@ -36,20 +36,27 @@ retrieval · cited Q&A · React UI for upload / fields / ask.
 ## Success metrics
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.
 - Every answer carries at least one citation resolvable to a source chunk.
-- Swapping `ModelClient:ChatProvider` between Foundry and Anthropic requires **no code change**.
+- Swapping `ModelClient:ChatProvider` between Azure OpenAI and Anthropic requires **no code change**.
 > TODO: extracted-field set is fixed (lessor, lessee, legal description, royalty, key dates — spec
 > 0001); still open: an acceptable retrieval-quality bar for the demo.
 
 ## Open questions
 Resolved by the accepted slice specs:
-- **Extracted-field set** — lessor, lessee, legal description, royalty, key dates
-  ([spec 0001](specs/0001-document-ingestion-write-path.md)).
+- **Extracted-field set** — a single **generic, role-neutral schema** across all 23 sample instrument
+  types (not OGL-only): universal core (`DocumentType`, `Parties[{role, name}]`, `EffectiveDate`,
+  `LegalDescription`, `County`, `State`), conditional economics (`Acres`, `Royalty`, `Bonus`,
+  `PrimaryTerm`), and an open `OtherNotableTerms` slot — flattened to the existing `ExtractedField` list
+  ([spec 0001](specs/0001-document-ingestion-write-path.md),
+  [ADR-0015](decisions/0015-field-extraction-generic-role-neutral-schema-land-document-types.md)).
 - **One document vs. corpus** — a global corpus query: `POST /ask` retrieves across all ingested
   documents ([spec 0002](specs/0002-rag-qa-with-citations.md),
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
-- **Local embedding model** — deterministic hashing / bag-of-words for the slice (no ONNX, no cloud)
+- **Embedding model** — live slice default is Azure OpenAI `text-embedding-3-small`
+  (`AzureOpenAIEmbeddingClient`), after the deterministic hashing embedder failed retrieval *selection*
+  at corpus scale; the hashing embedder is demoted to the offline/test default
   ([spec 0001](specs/0001-document-ingestion-write-path.md),
-  [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+  [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md),
+  superseding [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
 
 Still open:
 - Primary persona + the 2–3 questions they most need answered (see Users / personas).

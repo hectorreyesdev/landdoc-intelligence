@@ -2,7 +2,23 @@
 
 **Status:** Accepted · _Amended 2026-06-07 — reconciled the "currently 501" framing: `POST /ask` is
 now **live** (spec 0002 merged, PR #10). The `501` path is retained as **defensive** degradation, no
-longer the present state; the manual E2E now expects a real cited answer._
+longer the present state; the manual E2E now expects a real cited answer._ · _Amended 2026-06-08 —
+**multi-file batch upload** and **multi-format ingest** (PDF, text, Markdown) brought **into** scope,
+aligning the upload control with [[knowledge/docs/specs/0005-ingest-markdown-and-text-documents]]; both
+were previously out-of-scope. State 1, the out-of-scope list, and the acceptance checks updated. The
+typed client signature and the backend contract are **unchanged** — a batch is one `POST /documents`
+request per file, looped client-side. **Drag-and-drop ingest** (files dropped from Finder/Explorer
+anywhere on the page) is now **in** scope — previously listed as out — and the page is a **two-column
+layout** (upload + the ingested-document grid on the left; ask + answer-with-citations on the right)
+so a long citations list never pushes the document list down. There is **no separate Upload button** —
+choosing files in the picker (or dropping them) ingests them immediately._ · _Amended 2026-06-08
+(visual pass) — a professional restyle in the **Antero brand palette** (deep green + orange, sage
+surfaces) with a light/dark **theme toggle** (persisted to localStorage,
+applied as `data-theme` on the document root; OS preference as the first-run default), **load
+animations** (a dots indicator while `/ask` is pending and an entrance for the answer/citations), an
+upload **progress bar** (replacing the "n of N" text), and **tile lifecycle** in the document grid:
+each file appears as a grayed, shimmering placeholder that **solidifies** into its card the moment its
+upload resolves (or an error tile on failure). `prefers-reduced-motion` disables the animations._
 
 ## What to build
 The React + TypeScript SPA that closes the demo loop — the human-facing front of the RAG slice. It
@@ -33,9 +49,18 @@ fields, types a question, and gets a grounded answer with citations — and when
   scaffold). **Function components + hooks only** (no class components); explicit return types on
   exported functions; **no `any`** (use `unknown` + narrow); a single typed client wraps `fetch`.
 - **The four UI states (the `CLAUDE.md` flow):**
-  1. **Upload** — file input + submit; accepts one PDF; guarded/disabled while a request is in flight.
+  1. **Upload** — a file input with **no separate submit button**: files ingest the moment they're
+     **chosen via the picker or dragged from Finder/Explorer anywhere on the page** (an all-unsupported
+     drop is ignored with a note). Accepts **one or more** files, each a PDF or a text/Markdown document
+     (`.pdf` / `.txt` / `.md` / `.markdown`, the set
+     [[knowledge/docs/specs/0005-ingest-markdown-and-text-documents]] ingests). The input is disabled
+     while a batch is in flight. A batch ingests **one `POST /documents` request per file**, sequentially;
+     each file reports its **own** outcome — an extracted-fields view on success, an inline error on
+     failure (one bad file never sinks the others) — with a per-file progress indicator.
   2. **Extracted-fields view** — after a `201`, renders `fileName`, `status`, `chunkCount`, and the
-     `fields[]` (each `name` / `value`; `sourceChunkId` shown when present).
+     `fields[]` (each `name` / `value`; `sourceChunkId` shown when present). Rendered as a tile in the
+     document grid; while a file is in flight it shows a grayed **placeholder** tile that **solidifies**
+     into this view on completion (or an **error tile** on failure).
   3. **Question box** — text input + ask button, enabled once ≥1 document is ingested *(a pre-ingest
      ask is allowed but surfaces the `409` state below)*.
   4. **Answer-with-citations** — renders `answer` and `citations[]`, each citation showing its
@@ -73,8 +98,10 @@ fields, types a question, and gets a grounded answer with citations — and when
 - **Out of scope for this spec:** any change to the `/ask` or `/documents` backend (spec 0002 is
   already merged — this slice only *consumes* the endpoints, and tolerates a `501` defensively) ·
   auth/RBAC · client routing / multi-page · global-state libraries (Redux
-  etc.) · a component / design-system library *(assumption: hand-rolled minimal CSS)* · upload
-  progress / drag-drop polish · multi-file batch upload · accessibility beyond basic labels ·
+  etc.) · a component / design-system library *(assumption: hand-rolled minimal CSS)* · progress-bar
+  polish *(basic multi-file batch upload with a per-file progress label and **drag-and-drop ingest**
+  landed in the 2026-06-08 amendment; the batch is **sequential**, not concurrent — richer progress UI
+  stays out)* · accessibility beyond basic labels ·
   production build / hosting / deploy · streaming answers · TS-type codegen from the API contract
   (ADR-0006 names it a possible later step).
 
@@ -86,6 +113,26 @@ The acceptance target — each item is observably true or it isn't.
   0001-shaped `201`, submitting renders the extracted-fields view showing `fileName`, `chunkCount`,
   and **every** `fields[]` entry's `name`/`value` — asserted from the mocked response, not hardcoded
   copy.
+- **Multi-file + multi-format upload (`useDocuments` hook + component tests, mocked client):** the file
+  input carries `multiple` and an `accept` covering `.pdf`/`.txt`/`.md`/`.markdown`; a batch issues
+  **one** `uploadDocument` call per file; a non-PDF (Markdown) file ingests; and a **partial failure**
+  (one file errors mid-batch) yields a `ready` tile for the success and an `error` tile for the failure
+  (`hasReady` becomes true) — the bad file never sinks the others.
+- **Tile lifecycle (`useDocuments` hook test):** ingest adds an `uploading` placeholder tile **up front**
+  (with batch `progress`), then resolves it **in place** to a `ready` tile (same key) on success or an
+  `error` tile on failure; `progress` clears when the batch finishes.
+- **Drag-and-drop ingest (component test):** a file dropped on the page (a `drop` event carrying
+  `dataTransfer.files`) feeds `onFiles` with the accepted files; a drop whose files are **all**
+  unsupported extensions is ignored with an inline note and calls `onFiles` **not at all**.
+- **Upload progress bar (component test):** while a batch is in flight the control shows a
+  `role="progressbar"` reflecting `aria-valuenow`/`aria-valuemax` and disables the input — no "n of N"
+  text.
+- **Theme toggle (component test):** defaults to light (OS preference honored), toggles to dark on
+  click, applies `data-theme` to the document root, and **persists** the choice to localStorage.
+- **Ask loading (component test):** while `/ask` is pending a `role="status"` "searching…" indicator
+  shows; it's replaced by the answer (or an error) once the call resolves.
+- **Layout (structural):** the document list renders **under the upload section** (same column), so the
+  ask column's citations list grows independently and never displaces it.
 - **Ask → answer + citations (component test, mocked client):** given a mocked `ask` returning a
   0002-shaped `200`, asking renders the `answer` **and** every citation's
   `documentId`/`chunkId`/`score`/`text`. **No answer renders without ≥1 citation** — assert an
@@ -114,6 +161,8 @@ The acceptance target — each item is observably true or it isn't.
 
 ## Links
 - **Consumes:** [[knowledge/docs/specs/0001-document-ingestion-write-path]] (`POST /documents`, live) ·
+  [[knowledge/docs/specs/0005-ingest-markdown-and-text-documents]] (multi-format ingest — the upload
+  control accepts the same `.pdf`/`.txt`/`.md`/`.markdown` set, one request per file) ·
   [[knowledge/docs/specs/0002-rag-qa-with-citations]] (`POST /ask`; **now live**, merged PR #10 — the UI
   still degrades defensively on a `501`).
 - **ADRs:** [[knowledge/docs/decisions/0006-react-typescript-frontend-over-blazor]] (React + TS SPA,

@@ -1,6 +1,6 @@
 # 0010. Anthropic-direct as the slice-default chat adapter
 
-- Status: Accepted
+- Status: Superseded by [ADR-0012](0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md)
 - Date: 2026-06-07
 
 ## Context

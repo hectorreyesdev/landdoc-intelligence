@@ -24,6 +24,7 @@ The ubiquitous language for LandDoc Intelligence — domain terms and project/ar
 - **Citation** — a pointer from an answer/field back to the source chunk that supports it.
 - **`IChatClient` / `IEmbeddingClient`** — the two model-access ports.
 - **Adapter / Port** — hexagonal terms: port = interface, adapter = provider implementation.
-- **Foundry** — Microsoft Foundry, the primary model gateway (can serve Claude or GPT); chat fallback is Anthropic-direct, see [ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md).
+- **Foundry** — Microsoft Foundry / Azure AI Services, the Azure model gateway. Hosts the live Azure OpenAI GPT chat deployment and the live embedding model (`text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)); the Foundry-serves-Claude chat primary was retired (needs Enterprise/MCA-E) — see [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md).
+- **Azure OpenAI** — directly-sold Azure model service (PAYG-eligible); serves the live slice chat model (`gpt-5.4-mini`, OpenAI Chat Completions) via `AzureOpenAIChatClient` — see [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md).
 - **Modular monolith** — one deployable process, modules separated by namespace; chosen over microservices, see [ADR-0004](decisions/0004-modular-monolith-over-microservices.md).
 - **Vertical slice** — a thin end-to-end implementation proving the whole flow, not production-grade.

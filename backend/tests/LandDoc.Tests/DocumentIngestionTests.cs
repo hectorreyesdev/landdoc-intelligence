@@ -2,6 +2,12 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using LandDoc.Api.Ingestion;
+using LandDoc.Api.Model;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LandDoc.Tests;
 
@@ -10,12 +16,14 @@ namespace LandDoc.Tests;
 /// the 201 assertion below fails (the intended reason). The contract assertions after it are written now
 /// so the test turns green once the ingest pipeline lands — no test rewrite needed.
 /// </summary>
-public sealed class DocumentIngestionTests(LandDocApiFactory factory) : IClassFixture<LandDocApiFactory>
+public sealed class DocumentIngestionTests
 {
     [Fact]
     public async Task PostDocuments_HappyPath_Returns201_WithFullContract()
     {
-        var client = factory.CreateClient();
+        // Isolated factory with small chunk size so the fixture yields > 1 chunk.
+        using var smallFactory = new SmallChunkFactory();
+        var client = smallFactory.CreateClient();
 
         var fixturePath = Path.Combine(AppContext.BaseDirectory, "Fixtures", "synthetic-lease-01.pdf");
         var pdfBytes = await File.ReadAllBytesAsync(fixturePath);
@@ -41,6 +49,21 @@ public sealed class DocumentIngestionTests(LandDocApiFactory factory) : IClassFi
         foreach (var expected in new[] { "lessor", "lessee", "legal", "royalty", "date" })
         {
             Assert.Contains(body.Fields, field => field.Name.Contains(expected, StringComparison.OrdinalIgnoreCase));
+        }
+    }
+
+    /// <summary>Pins small chunk size so the fixture yields > 1 chunk regardless of the production default.</summary>
+    private sealed class SmallChunkFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseSetting("Chunking:MaxChars", "80");
+            builder.UseSetting("Chunking:Overlap", "20");
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IChatClient>();
+                services.AddSingleton<IChatClient, FakeChatClient>();
+            });
         }
     }
 }

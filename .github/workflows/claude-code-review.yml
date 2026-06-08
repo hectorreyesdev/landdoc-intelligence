@@ -36,6 +36,11 @@ jobs:
         uses: anthropics/claude-code-action@v1
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Let Claude's own pushes (a Bot actor) trigger this review — otherwise the action's
+          # human-actor gate fails with "Workflow initiated by non-human actor: claude (type: Bot)".
+          # Tight by design: only the claude bot, not all bots. If the gate still reports a different
+          # login (e.g. 'claude[bot]'), set this to that value or '*' to allow any bot.
+          allowed_bots: 'claude'
           plugin_marketplaces: 'https://github.com/anthropics/claude-code.git'
           plugins: 'code-review@claude-code-plugins'
           prompt: '/code-review:code-review --comment ${{ github.repository }}/pull/${{ github.event.pull_request.number }}'

@@ -14,9 +14,10 @@ sequenceDiagram
     participant V as Vector store
     participant C as IChatClient
 
-    A->>SPA: Upload PDF
-    SPA->>API: POST /documents (PDF)
-    API->>API: Parse text
+    A->>SPA: Upload document (PDF or text/markdown)
+    SPA->>API: POST /documents (multipart file)
+    API->>API: Select by extension — parse PDF, or UTF-8-decode .txt/.md/.markdown
+    note over API: unsupported extension (or bad .pdf) → 400
     API->>C: Extract fields (Extraction, IChatClient)
     C-->>API: Structured fields
     API->>API: Chunk text
@@ -49,7 +50,7 @@ sequenceDiagram
     note over V: empty store → 409
     V-->>API: Relevant chunks
     API->>C: Answer grounded in chunks (IChatClient)
-    note over C: slice default Anthropic-direct (config-selected, ADR-0010);<br/>Foundry production-primary + failover deferred (ADR-0007)
+    note over C: live slice default Azure OpenAI GPT (config-selected, ADR-0012);<br/>Anthropic-direct config-swap fallback · auto-failover deferred
     C-->>API: Answer + citations
     API-->>SPA: Answer + citations (≥1, each resolves)
     SPA-->>A: Cited answer
@@ -60,16 +61,18 @@ the cited chunk IDs are returned so the UI can resolve each claim to its source 
 
 ## Notes
 - The same `IEmbeddingClient` embeds chunks at ingest and the query at ask — they must share a model
-  (and thus dimension) for cosine similarity to be meaningful (`LocalEmbeddingClient`, deterministic
-  hashing, for the slice — see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+  (and thus dimension) for cosine similarity to be meaningful. Config-selected via
+  `ModelClient:EmbeddingProvider`: live slice default `AzureOpenAIEmbeddingClient`
+  (`text-embedding-3-small`), with `LocalEmbeddingClient` (deterministic hashing) as the offline/test
+  embedder — see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md).
 - Retrieval is **global** — top-k across all ingested documents (see
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)); each citation carries `documentId`.
   An answer is never returned without ≥1 citation; an empty store returns `409`
   ([spec 0002](specs/0002-rag-qa-with-citations.md)).
 - Repeated document context sent to the chat model is intended to rely on **prompt caching** to cut
   cost/latency — an optimization **deferred** for the slice (not required by spec 0002).
-- The slice wires the **Anthropic-direct** chat adapter as the config-selected default
-  ([ADR-0010](decisions/0010-anthropic-direct-slice-default-chat-adapter.md), via the official
-  Anthropic .NET SDK). Production keeps the **Foundry-primary, Anthropic-direct fallback** topology on
-  availability failures ([ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md));
-  the **failover wrapper is deferred** to its own spec.
+- The live slice default chat adapter is **Azure OpenAI GPT** (`AzureOpenAIChatClient`, OpenAI Chat
+  Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md),
+  supersedes ADR-0007/0010); **Anthropic-direct** (official Anthropic .NET SDK) is the config-swap
+  fallback. Provider + model are config-selected and the swap is config-only; an availability
+  **auto-failover wrapper is deferred** to its own spec.

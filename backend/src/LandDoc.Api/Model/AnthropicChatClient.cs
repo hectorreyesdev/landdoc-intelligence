@@ -6,11 +6,11 @@ using Microsoft.Extensions.Options;
 namespace LandDoc.Api.Model;
 
 /// <summary>
-/// Anthropic API direct chat adapter — the slice-default provider (ADR-0010). Uses the official
-/// Anthropic .NET SDK (NuGet <c>Anthropic</c>, published by Anthropic). API key, model id, and base
-/// URL come from <see cref="ModelClientOptions"/> so a later Foundry gateway swap stays config-only
-/// (ADR-0007). The API key must be set via <c>dotnet user-secrets</c> or environment variable
-/// (<c>ModelClient__ApiKey</c>) — never committed or hardcoded.
+/// Anthropic API direct chat adapter — the config-swap fallback provider (ADR-0012; Azure OpenAI GPT is
+/// the live slice default). Uses the official Anthropic .NET SDK (NuGet <c>Anthropic</c>). API key,
+/// model id, and base URL come from <see cref="AnthropicOptions"/> (the per-provider <c>Anthropic</c>
+/// config section). The API key must be set via <c>dotnet user-secrets</c> or environment variable
+/// (<c>Anthropic__ApiKey</c>) — never committed or hardcoded.
 /// </summary>
 public sealed class AnthropicChatClient : IChatClient
 {
@@ -25,21 +25,21 @@ public sealed class AnthropicChatClient : IChatClient
     private readonly AnthropicClient _client;
     private readonly string _model;
 
-    public AnthropicChatClient(IOptions<ModelClientOptions> options)
+    public AnthropicChatClient(IOptions<AnthropicOptions> options)
     {
         ArgumentNullException.ThrowIfNull(options);
         var opts = options.Value;
 
         if (string.IsNullOrWhiteSpace(opts.ApiKey))
             throw new InvalidOperationException(
-                "ModelClient:ApiKey is required for AnthropicChatClient. " +
-                "Set it via 'dotnet user-secrets set ModelClient:ApiKey <key>' or the " +
-                "ModelClient__ApiKey environment variable. Never commit it.");
+                "Anthropic:ApiKey is required for AnthropicChatClient. " +
+                "Set it via 'dotnet user-secrets set Anthropic:ApiKey <key>' or the " +
+                "Anthropic__ApiKey environment variable. Never commit it.");
 
         _model = opts.Model;
 
-        // Base URL from config so swapping to a Foundry gateway is config-only (ADR-0007); the SDK
-        // defaults to https://api.anthropic.com when BaseUrl is left unset.
+        // Base URL from config so routing through a gateway stays config-only; the SDK defaults to
+        // https://api.anthropic.com when BaseUrl is left unset.
         _client = string.IsNullOrWhiteSpace(opts.BaseUrl)
             ? new AnthropicClient { ApiKey = opts.ApiKey }
             : new AnthropicClient { ApiKey = opts.ApiKey, BaseUrl = opts.BaseUrl };
@@ -59,7 +59,7 @@ public sealed class AnthropicChatClient : IChatClient
         var contextText = new StringBuilder();
         foreach (var passage in context)
         {
-            contextText.AppendLine($"[Chunk {passage.ChunkId}]");
+            contextText.AppendLine($"[Source: {passage.SourceName} · Chunk {passage.ChunkId}]");
             contextText.AppendLine(passage.Text);
             contextText.AppendLine();
         }

@@ -1,7 +1,12 @@
 # 0002 — RAG Q&A with Citations (Read Path)
 
 **Status:** Accepted · _Amended 2026-06-07 — `IChatClient` takes a `QaPassage` port DTO (not storage
-`Chunk`) + the slice-default chat adapter is Anthropic-direct (see ADR-0010)._
+`Chunk`) + the slice-default chat adapter is Anthropic-direct (see ADR-0010)._ · _Amended 2026-06-08 —
+live slice chat provider is now **Azure OpenAI GPT** via `AzureOpenAIChatClient` (ADR-0012, supersedes
+ADR-0007/0010); Anthropic-direct is the config-swap fallback._ · _Amended 2026-06-08 — `QaPassage` carries
+`SourceName` (the source document's display name) so the grounding prompt labels each passage by
+document, enabling document-qualified questions over the corpus-wide result set (ADR-0014, refines
+ADR-0009)._
 
 ## What to build
 The retrieval-augmented **read path** — the complement to the ingest write path
@@ -35,20 +40,23 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   Retrieval is **global** — top-k across ALL ingested documents in the store; each citation carries
   `documentId` so the UI can resolve which document a claim came from. This **supersedes** the
   `POST /documents/{id}/ask` shape sketched in `API.md`/`DATA-FLOW.md` (reconcile both on merge).
-- **Ports:** `IEmbeddingClient` embeds the query (must be the **same** adapter/model that embedded the
-  chunks — `LocalEmbeddingClient` deterministic hashing for the slice — so vectors share a dimension,
-  the cosine invariant in DATA-MODEL). `IChatClient` composes the answer via the config-selected
-  adapter (`ModelClient:ChatProvider`). **Slice default: Anthropic-direct** (`AnthropicChatClient`,
-  official Anthropic .NET SDK; model id from `ModelClient:Model`, default `claude-opus-4-8`; API key
-  from `ModelClient:ApiKey` via `dotnet user-secrets`) — standing up the Foundry gateway is off the
-  slice's critical path. **Foundry remains the production primary per ADR-0007** — this is a
-  slice-scoped default, the swap is config-only, and ADR-0007 is **not** superseded (see ADR-0010).
+- **Ports:** `IEmbeddingClient` is config-selected via `ModelClient:EmbeddingProvider`; the live slice
+  default = Azure OpenAI `text-embedding-3-small` (`AzureOpenAIEmbeddingClient`), with
+  `LocalEmbeddingClient` hashing as the offline/test embedder (ADR-0013, supersedes ADR-0008) — the query
+  and the chunks use the **same** adapter so vectors share a dimension (the cosine invariant in
+  DATA-MODEL). `IChatClient` composes the answer via the config-selected
+  adapter (`ModelClient:ChatProvider`). **Live slice default: Azure OpenAI GPT** (`AzureOpenAIChatClient`,
+  OpenAI Chat Completions, `gpt-5.4-mini`; credentials from the per-provider `AzureOpenAI:*` config
+  section) — directly-sold and PAYG-eligible, where Claude-in-Foundry is not (see ADR-0012).
+  **Anthropic-direct** (`AnthropicChatClient`, official Anthropic .NET SDK, default `claude-opus-4-8`) is
+  the **config-swap fallback**. The swap is config-only; ADR-0012 **supersedes ADR-0007 and ADR-0010**.
   The acceptance test injects a **fake `IChatClient`** so the test is deterministic and offline.
 - **Port hygiene (`IChatClient` — amended):** `AnswerAsync` takes a QA-context DTO —
-  `QaPassage(Guid ChunkId, Guid DocumentId, string Text)` in the `Model` namespace — **not** the
-  storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports, ADR-0002 /
-  ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat call and
-  → `Citation` for the response. `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
+  `QaPassage(Guid ChunkId, Guid DocumentId, string Text, string SourceName)` in the `Model` namespace —
+  **not** the storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports,
+  ADR-0002 / ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat
+  call and → `Citation` for the response. The Qa handler sets `SourceName` from the chunk's persisted
+  source (the ingested file name). `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
   in `IChatClient`'s own doc-comment that changing the interface requires a spec.
 - **Retrieval:** top-k by cosine similarity via linear scan over the in-memory store (ADR-0005),
   through the narrow store seam that ADR-0005 calls for *(assumption: a small `IVectorStore`-style
@@ -57,7 +65,9 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   yields a fixed ordering.)*
 - **Grounding + citations:** the `Qa` prompt instructs the model to answer **only** from the supplied
   chunks and to ground every claim; the returned `citations[]` are the retrieved chunks (chunkId,
-  documentId, cosine score, and the chunk `text` resolved from the store).
+  documentId, cosine score, and the chunk `text` resolved from the store). Each passage is labeled in
+  the prompt with its source document so cross-document answers can disambiguate which document a claim
+  is about.
 - **No-grounding behavior (strict cite-or-error):** an **empty store** (no documents ingested) →
   `409 ProblemDetails`. When the store is non-empty, the response **always** carries ≥1 citation (the
   top-k retrieved chunks); if the answer isn't supported by them, the model replies "not found in the
@@ -65,9 +75,10 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   citation** — upholds the core invariant (DATA-MODEL / ARCHITECTURE).
 - **Errors:** `ProblemDetails` (RFC 7807) — `400` for a missing/empty/whitespace `question`; `409`
   for an empty store.
-- **Out of scope for this spec:** the Foundry→Anthropic availability **failover / runtime provider
-  switching** (ADR-0007 — its own later spec; this spec wires **one** real adapter — the slice-default
-  Anthropic-direct — plus the Foundry stub) · prompt-caching optimization *(noted in DATA-FLOW; not
+- **Out of scope for this spec:** chat-provider availability **failover / runtime provider
+  switching** (its own later spec; this spec wires **one** real adapter — the live slice default, now
+  Azure OpenAI GPT per ADR-0012, with Anthropic-direct as the config-swap fallback) · prompt-caching
+  optimization *(noted in DATA-FLOW; not
   required for acceptance)* · Azure AI Search · reranking/ANN indexing · multi-turn conversation
   history · streaming responses · auth/RBAC · observability.
 
@@ -112,13 +123,17 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
 - **Depends on:** [[knowledge/docs/specs/0001-document-ingestion-write-path]] (populates the shared
   in-memory store this path reads).
 - **ADRs:** [[knowledge/docs/decisions/0009-corpus-wide-ask-retrieval-scope]] (global `/ask` scope —
-  records this spec's decision) · [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
+  records this spec's decision; **refined by ADR-0014**) ·
+  [[knowledge/docs/decisions/0014-surface-source-document-identity-in-ask-grounding-context]]
+  (passages labeled by source document for document-qualified Q&A — the 2026-06-08 amendment) · [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
   (in-memory top-k cosine + store seam) ·
   [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]] (both ports) ·
-  [[knowledge/docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback]] (failover —
-  **deferred**; Foundry stays production-primary, complemented by ADR-0010) ·
-  [[knowledge/docs/decisions/0010-anthropic-direct-slice-default-chat-adapter]] (slice-default chat
-  adapter — Anthropic-direct; does **not** supersede 0007) ·
+  [[knowledge/docs/decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config]] (live slice
+  chat = Azure OpenAI GPT; per-provider config; **supersedes ADR-0007 and ADR-0010**) ·
+  [[knowledge/docs/decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback]] (**superseded by
+  ADR-0012**) ·
+  [[knowledge/docs/decisions/0010-anthropic-direct-slice-default-chat-adapter]] (**superseded by
+  ADR-0012**) ·
   [[knowledge/docs/decisions/0004-modular-monolith-over-microservices]] ·
   [[knowledge/docs/decisions/0003-dotnet-10-lts]].
 - **Docs to reconcile on merge:** `API.md` (replace `POST /documents/{id}/ask` with global
