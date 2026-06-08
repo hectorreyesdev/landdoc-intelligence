@@ -95,6 +95,14 @@
           "Azure.Core": "1.53.0"
         }
       },
+      "Azure.Search.Documents": {
+        "type": "Transitive",
+        "resolved": "11.6.0",
+        "contentHash": "M7WLx3ANLPHymfqb4Nwk4EwcWWRiHqdvnxJ7RH857baAbkEZ3FYVCRJmHgxH+ROpYOTVSx30uJzsa573/cdD8A==",
+        "dependencies": {
+          "Azure.Core": "1.41.0"
+        }
+      },
       "Azure.Security.KeyVault.Secrets": {
         "type": "Transitive",
         "resolved": "4.10.0",
@@ -547,6 +555,7 @@
           "Azure.AI.OpenAI": "[2.1.0, )",
           "Azure.Extensions.AspNetCore.Configuration.Secrets": "[1.5.1, )",
           "Azure.Identity": "[1.21.0, )",
+          "Azure.Search.Documents": "[11.6.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.8, )",
           "PdfPig": "[0.1.14, )"
         }

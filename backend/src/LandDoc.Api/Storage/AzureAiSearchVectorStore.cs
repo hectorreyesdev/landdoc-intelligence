@@ -22,7 +22,7 @@ public sealed class AzureAiSearchVectorStore : IVectorStore
     private readonly SearchClient _searchClient;
 
     public AzureAiSearchVectorStore(
-        IOptions<SearchOptions> searchOptions,
+        IOptions<Model.SearchOptions> searchOptions,
         IOptions<EmbeddingOptions> embeddingOptions)
     {
         var opts = searchOptions.Value;
