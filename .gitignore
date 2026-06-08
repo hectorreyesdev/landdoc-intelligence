@@ -25,3 +25,6 @@ secrets.json
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+# --- Claude Code (transient harness state; commands/settings/skills stay tracked) ---
+.claude/scheduled_tasks.lock
