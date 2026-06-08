@@ -45,6 +45,10 @@ a later retrieval/Q&A spec will read.
   acceptance test injects a **fake `IChatClient`** returning canned fields, so the test is
   deterministic and offline. The Foundry→Anthropic **availability fallback (ADR-0007) is OUT of scope
   for this spec** — only the config-selected adapter is wired here.
+- **Extraction is best-effort (amendment, 2026-06-07):** field extraction is best-effort — ingest
+  stores the chunks and returns `201` with an empty `fields` array if the provider can't extract,
+  never `500`. Extraction is decoupled from the chunk→embed→store path so a missing key or unreachable
+  gateway can't fail the write path (degradation, distinct from the out-of-scope ADR-0007 fallback).
 - **Embedding port:** `IEmbeddingClient` = `LocalEmbeddingClient`, a **deterministic hashing /
   bag-of-words** embedder producing a fixed-dimension `float[]` *(assumption: dimension is a small
   constant, e.g. 256, set in config; same text → same vector)*. No model download, no cloud
@@ -85,6 +89,9 @@ a later retrieval/Q&A spec will read.
   (unit test over `LocalEmbeddingClient`).
 - **Extraction wiring:** with the fake `IChatClient` returning canned fields, those exact fields
   appear in the response — proving the `Extraction` module calls the port and maps its result.
+- **Best-effort extraction (amendment):** with an `IChatClient` whose `ExtractFieldsAsync` throws,
+  `POST /documents` still returns `201` with `status` `"ready"`, an **empty `fields`** array, and
+  `chunkCount` = N (N > 1); the store holds those N chunks for the returned id (no 500).
 - **Bad input:** `POST /documents` with no `file` part, an empty file, or a non-PDF returns `400`
   with a `ProblemDetails` body; nothing is added to the store.
 - **Suite green (tdd):** `dotnet build` and `dotnet test` pass; the behaviors above are covered by
