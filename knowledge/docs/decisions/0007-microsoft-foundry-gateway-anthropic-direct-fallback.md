@@ -1,6 +1,6 @@
 # 0007. Microsoft Foundry gateway (primary) + Anthropic-direct fallback for chat
 
-- Status: Accepted
+- Status: Superseded by [ADR-0012](0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md)
 - Date: 2026-06-06
 
 ## Context
