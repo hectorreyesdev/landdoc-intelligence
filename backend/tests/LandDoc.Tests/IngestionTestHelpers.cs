@@ -11,15 +11,21 @@ internal static class IngestionTestHelpers
     /// <summary>Posts the synthetic lease fixture to <c>/documents</c> as multipart/form-data.</summary>
     public static async Task<HttpResponseMessage> PostFixtureAsync(HttpClient client)
     {
+        using var form = await BuildPdfFormAsync();
+        return await client.PostAsync("/documents", form);
+    }
+
+    /// <summary>Builds a multipart form with the PDF fixture file.</summary>
+    public static async Task<MultipartFormDataContent> BuildPdfFormAsync()
+    {
         var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "synthetic-lease-01.pdf");
         var bytes = await File.ReadAllBytesAsync(path);
 
-        using var form = new MultipartFormDataContent();
+        var form = new MultipartFormDataContent();
         var file = new ByteArrayContent(bytes);
         file.Headers.ContentType = new MediaTypeHeaderValue("application/pdf");
         form.Add(file, "file", "synthetic-lease-01.pdf");
-
-        return await client.PostAsync("/documents", form);
+        return form;
     }
 
     /// <summary>

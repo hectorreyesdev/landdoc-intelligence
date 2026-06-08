@@ -25,6 +25,8 @@
 
   <ItemGroup>
     <Content Include="Fixtures/synthetic-lease-01.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures/synthetic-lease-01.md" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Fixtures/synthetic-lease-01.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
