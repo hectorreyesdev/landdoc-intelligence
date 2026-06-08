@@ -44,7 +44,7 @@ flowchart TD
   - `Retrieval` — question → embed → top-k chunks from the vector store.
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).
 - **Ports** — `IChatClient` (chat/completions) · `IEmbeddingClient` (embeddings only).
-- **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`; *impl pending*) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
+- **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
   `LocalEmbeddingClient` (slice — deterministic hashing, see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)) / `FoundryEmbeddingClient` (prod).
 - **Vector store** — in-memory cosine similarity over `float[]` behind a narrow `IVectorStore` seam
   (add chunks at ingest; `TopK(queryVector, k)` at ask) so the prod swap is an adapter change (slice);

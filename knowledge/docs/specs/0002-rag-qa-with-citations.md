@@ -3,7 +3,7 @@
 **Status:** Accepted · _Amended 2026-06-07 — `IChatClient` takes a `QaPassage` port DTO (not storage
 `Chunk`) + the slice-default chat adapter is Anthropic-direct (see ADR-0010)._ · _Amended 2026-06-08 —
 live slice chat provider is now **Azure OpenAI GPT** via `AzureOpenAIChatClient` (ADR-0012, supersedes
-ADR-0007/0010); Anthropic-direct is the config-swap fallback. Decided; adapter impl pending._
+ADR-0007/0010); Anthropic-direct is the config-swap fallback._
 
 ## What to build
 The retrieval-augmented **read path** — the complement to the ingest write path
@@ -45,7 +45,6 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   section) — directly-sold and PAYG-eligible, where Claude-in-Foundry is not (see ADR-0012).
   **Anthropic-direct** (`AnthropicChatClient`, official Anthropic .NET SDK, default `claude-opus-4-8`) is
   the **config-swap fallback**. The swap is config-only; ADR-0012 **supersedes ADR-0007 and ADR-0010**.
-  *Decided; adapter impl pending — code still defaults to `anthropic`.*
   The acceptance test injects a **fake `IChatClient`** so the test is deterministic and offline.
 - **Port hygiene (`IChatClient` — amended):** `AnswerAsync` takes a QA-context DTO —
   `QaPassage(Guid ChunkId, Guid DocumentId, string Text)` in the `Model` namespace — **not** the

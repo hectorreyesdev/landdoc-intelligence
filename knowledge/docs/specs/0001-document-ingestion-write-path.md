@@ -42,7 +42,7 @@ a later retrieval/Q&A spec will read.
   field to a chunk)*.
 - **Extraction port:** `IChatClient`, config-selected (`ModelClient:ChatProvider`); the live provider is
   **Azure OpenAI GPT** ([ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md),
-  supersedes ADR-0007/0010 — *decided; impl pending*), Anthropic-direct as the config-swap fallback.
+  supersedes ADR-0007/0010), Anthropic-direct as the config-swap fallback.
   Model id from config, never hardcoded (extraction may use a cheaper model per `CLAUDE.md`). The
   acceptance test injects a **fake `IChatClient`** returning canned fields, so the test is
   deterministic and offline. The chat-provider **availability auto-failover is OUT of scope for this

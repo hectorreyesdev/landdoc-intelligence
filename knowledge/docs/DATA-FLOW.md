@@ -72,5 +72,4 @@ the cited chunk IDs are returned so the UI can resolve each claim to its source 
   Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md),
   supersedes ADR-0007/0010); **Anthropic-direct** (official Anthropic .NET SDK) is the config-swap
   fallback. Provider + model are config-selected and the swap is config-only; an availability
-  **auto-failover wrapper is deferred** to its own spec. *Decided; adapter impl pending — code still
-  defaults to `anthropic`.*
+  **auto-failover wrapper is deferred** to its own spec.
