@@ -1,3 +1,4 @@
+using System.Text;
 using LandDoc.Api.Extraction;
 using LandDoc.Api.Model;
 using LandDoc.Api.Storage;
@@ -21,14 +22,19 @@ public sealed class DocumentIngestionService(
     IVectorStore vectorStore,
     ILogger<DocumentIngestionService> logger)
 {
-    public async Task<IngestDocumentResponse> IngestAsync(string fileName, byte[] content, CancellationToken cancellationToken = default)
+    public async Task<IngestDocumentResponse> IngestAsync(string fileName, byte[] content, DocumentFormat format, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(content);
 
         var documentId = Guid.NewGuid();
 
-        var text = pdfTextExtractor.Extract(content);
+        var text = format switch
+        {
+            DocumentFormat.Pdf => pdfTextExtractor.Extract(content),
+            DocumentFormat.PlainText => Encoding.UTF8.GetString(content),
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unrecognised document format."),
+        };
 
         // Field extraction is best-effort (spec 0001 amendment): the chat provider may be unavailable
         // (missing key, unreachable gateway, parse error) but ingest must still store the chunks. On

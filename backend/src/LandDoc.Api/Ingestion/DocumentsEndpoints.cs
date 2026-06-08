@@ -1,10 +1,12 @@
 namespace LandDoc.Api.Ingestion;
 
 /// <summary>
-/// Maps the document ingestion write path (spec 0001): <c>POST /documents</c> accepts one PDF as
-/// multipart/form-data, runs the ingest pipeline, and returns 201 with the document, its fields, and the
-/// chunk count. A missing, empty, or non-PDF upload returns 400 as RFC 7807 ProblemDetails and stores
-/// nothing.
+/// Maps the document ingestion write path (spec 0001, extended by spec 0005):
+/// <c>POST /documents</c> accepts one file as multipart/form-data, dispatches on filename extension to
+/// either the PDF-parse path (.pdf) or the UTF-8-decode path (.txt / .md / .markdown), runs the ingest
+/// pipeline, and returns 201 with the document, its fields, and the chunk count. A missing or empty file,
+/// an unsupported extension, or a .pdf whose bytes fail the magic-byte guard returns 400 ProblemDetails
+/// and stores nothing.
 /// </summary>
 public static class DocumentsEndpoints
 {
@@ -15,8 +17,8 @@ public static class DocumentsEndpoints
             if (file is null || file.Length == 0)
             {
                 return Results.Problem(
-                    title: "A non-empty PDF file is required.",
-                    detail: "Send one PDF as the 'file' part of a multipart/form-data request.",
+                    title: "A non-empty file is required.",
+                    detail: "Send one file as the 'file' part of a multipart/form-data request.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
@@ -24,15 +26,33 @@ public static class DocumentsEndpoints
             await file.CopyToAsync(stream, cancellationToken);
             var content = stream.ToArray();
 
-            if (!LooksLikePdf(content))
+            var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+            DocumentFormat format;
+            if (extension == ".pdf")
+            {
+                if (!LooksLikePdf(content))
+                {
+                    return Results.Problem(
+                        title: "The uploaded file is not a PDF.",
+                        detail: "Only text-based PDF documents are accepted.",
+                        statusCode: StatusCodes.Status400BadRequest);
+                }
+                format = DocumentFormat.Pdf;
+            }
+            else if (extension is ".txt" or ".md" or ".markdown")
+            {
+                format = DocumentFormat.PlainText;
+            }
+            else
             {
                 return Results.Problem(
-                    title: "The uploaded file is not a PDF.",
-                    detail: "Only text-based PDF documents are accepted.",
+                    title: "Unsupported file type.",
+                    detail: "Accepted extensions are .pdf, .txt, .md, and .markdown.",
                     statusCode: StatusCodes.Status400BadRequest);
             }
 
-            var response = await ingestion.IngestAsync(file.FileName, content, cancellationToken);
+            var response = await ingestion.IngestAsync(file.FileName, content, format, cancellationToken);
             return Results.Created($"/documents/{response.Id}", response);
         })
         .DisableAntiforgery();
