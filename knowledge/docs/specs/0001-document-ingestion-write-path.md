@@ -13,7 +13,7 @@ extracted fields, and the number of chunks that were embedded and stored — pro
 `ingest → extract → chunk → embed → store` loop end to end without any read/retrieval surface yet.
 
 Two collaborators do the intelligence work behind ports: field extraction goes through the
-**`IChatClient`** port (Foundry primary per config — the `Extraction` module's documented LLM call),
+**`IChatClient`** port (config-selected; Azure OpenAI GPT live per ADR-0012 — the `Extraction` module's documented LLM call),
 and chunk embedding goes through the **`IEmbeddingClient`** port, which for this slice is
 `LocalEmbeddingClient` — a deterministic, dependency-free local embedder. This slice stands up the
 backend solution, the `Ingestion` and `Extraction` modules, both ports, and the in-memory store that
@@ -40,11 +40,17 @@ a later retrieval/Q&A spec will read.
   surface as one or more named fields, e.g. `EffectiveDate` / `Term`, rather than a fixed sub-schema —
   the extractor returns named `ExtractedField`s; `sourceChunkId` may be null if the LLM doesn't pin a
   field to a chunk)*.
-- **Extraction port:** `IChatClient`, Foundry primary selected by config (`ModelClient:ChatProvider`);
-  model id from config, never hardcoded (extraction may use a cheaper model per `CLAUDE.md`). The
+- **Extraction port:** `IChatClient`, config-selected (`ModelClient:ChatProvider`); the live provider is
+  **Azure OpenAI GPT** ([ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md),
+  supersedes ADR-0007/0010 — *decided; impl pending*), Anthropic-direct as the config-swap fallback.
+  Model id from config, never hardcoded (extraction may use a cheaper model per `CLAUDE.md`). The
   acceptance test injects a **fake `IChatClient`** returning canned fields, so the test is
-  deterministic and offline. The Foundry→Anthropic **availability fallback (ADR-0007) is OUT of scope
-  for this spec** — only the config-selected adapter is wired here.
+  deterministic and offline. The chat-provider **availability auto-failover is OUT of scope for this
+  spec** — only the config-selected adapter is wired here.
+- **Extraction is best-effort (amendment, 2026-06-07):** field extraction is best-effort — ingest
+  stores the chunks and returns `201` with an empty `fields` array if the provider can't extract,
+  never `500`. Extraction is decoupled from the chunk→embed→store path so a missing key or unreachable
+  gateway can't fail the write path (degradation, distinct from the out-of-scope provider failover).
 - **Embedding port:** `IEmbeddingClient` = `LocalEmbeddingClient`, a **deterministic hashing /
   bag-of-words** embedder producing a fixed-dimension `float[]` *(assumption: dimension is a small
   constant, e.g. 256, set in config; same text → same vector)*. No model download, no cloud
@@ -85,6 +91,9 @@ a later retrieval/Q&A spec will read.
   (unit test over `LocalEmbeddingClient`).
 - **Extraction wiring:** with the fake `IChatClient` returning canned fields, those exact fields
   appear in the response — proving the `Extraction` module calls the port and maps its result.
+- **Best-effort extraction (amendment):** with an `IChatClient` whose `ExtractFieldsAsync` throws,
+  `POST /documents` still returns `201` with `status` `"ready"`, an **empty `fields`** array, and
+  `chunkCount` = N (N > 1); the store holds those N chunks for the returned id (no 500).
 - **Bad input:** `POST /documents` with no `file` part, an empty file, or a non-PDF returns `400`
   with a `ProblemDetails` body; nothing is added to the store.
 - **Suite green (tdd):** `dotnet build` and `dotnet test` pass; the behaviors above are covered by

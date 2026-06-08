@@ -1,6 +1,7 @@
 using LandDoc.Api.Extraction;
 using LandDoc.Api.Model;
 using LandDoc.Api.Storage;
+using Microsoft.Extensions.Logging;
 
 namespace LandDoc.Api.Ingestion;
 
@@ -9,13 +10,16 @@ namespace LandDoc.Api.Ingestion;
 /// module) → chunk with overlap → embed each chunk (<see cref="IEmbeddingClient"/>) → store the chunks in
 /// the shared <see cref="IVectorStore"/>. Returns the new document id, its extracted fields, and the
 /// number of chunks stored. Every value is produced by the pipeline — nothing is keyed to a document.
+/// Field extraction is **best-effort** (spec 0001 amendment): a failing <see cref="IChatClient"/> provider
+/// degrades to empty fields, it never fails the write path.
 /// </summary>
 public sealed class DocumentIngestionService(
     PdfTextExtractor pdfTextExtractor,
     FieldExtractor fieldExtractor,
     TextChunker textChunker,
     IEmbeddingClient embeddingClient,
-    IVectorStore vectorStore)
+    IVectorStore vectorStore,
+    ILogger<DocumentIngestionService> logger)
 {
     public async Task<IngestDocumentResponse> IngestAsync(string fileName, byte[] content, CancellationToken cancellationToken = default)
     {
@@ -25,7 +29,21 @@ public sealed class DocumentIngestionService(
         var documentId = Guid.NewGuid();
 
         var text = pdfTextExtractor.Extract(content);
-        var fields = await fieldExtractor.ExtractAsync(text, cancellationToken);
+
+        // Field extraction is best-effort (spec 0001 amendment): the chat provider may be unavailable
+        // (missing key, unreachable gateway, parse error) but ingest must still store the chunks. On
+        // failure we log and return empty fields rather than 500-ing the write path. Cancellation is
+        // a real failure of the request, not a provider hiccup — let it propagate.
+        IReadOnlyList<ExtractedField> fields;
+        try
+        {
+            fields = await fieldExtractor.ExtractAsync(text, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "Field extraction failed for {FileName}; storing chunks with empty fields.", fileName);
+            fields = [];
+        }
 
         var chunkTexts = textChunker.Chunk(text);
         foreach (var chunkText in chunkTexts)

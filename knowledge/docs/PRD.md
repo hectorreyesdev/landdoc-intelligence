@@ -9,7 +9,7 @@ means manually reading dozens of pages, and any answer must be traceable back to
 - Ingest a land/title PDF and extract its key structured fields automatically.
 - Answer free-text questions about an uploaded document with **citations** to the source chunk.
 - Prove the full ingest → extract → embed → retrieve → answer loop end to end (vertical slice).
-- Keep model access provider-swappable (Foundry primary, Anthropic fallback) by **config only**.
+- Keep model access provider-swappable (Azure OpenAI GPT live, Anthropic-direct fallback — ADR-0012) by **config only**.
 
 ## Non-goals
 "Production hardening" — explicitly out of scope (see `CLAUDE.md` → Out of scope):

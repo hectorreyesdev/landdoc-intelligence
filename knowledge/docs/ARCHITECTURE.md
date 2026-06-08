@@ -28,8 +28,8 @@ flowchart TD
     ingestion -->|"IEmbeddingClient"| emb["Embedding port"]
     retrieval -->|"IEmbeddingClient"| emb
 
-    chat -->|"slice default"| anthropicC["AnthropicChatClient → Anthropic API"]
-    chat -.->|"prod primary"| foundryC["FoundryChatClient → Microsoft Foundry"]
+    chat -->|"live (slice default)"| azureC["AzureOpenAIChatClient → Azure OpenAI GPT"]
+    chat -.->|"config-swap fallback"| anthropicC["AnthropicChatClient → Anthropic API"]
     emb -->|"slice default"| localE["LocalEmbeddingClient"]
     emb -.->|"prod path"| foundryE["FoundryEmbeddingClient → Azure OpenAI"]
 ```
@@ -44,7 +44,7 @@ flowchart TD
   - `Retrieval` — question → embed → top-k chunks from the vector store.
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).
 - **Ports** — `IChatClient` (chat/completions) · `IEmbeddingClient` (embeddings only).
-- **Adapters** — `AnthropicChatClient` (slice default + prod fallback — [ADR-0010](decisions/0010-anthropic-direct-slice-default-chat-adapter.md)/[0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md), official Anthropic .NET SDK) / `FoundryChatClient` (prod primary, stubbed in the slice) ·
+- **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`; *impl pending*) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
   `LocalEmbeddingClient` (slice — deterministic hashing, see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)) / `FoundryEmbeddingClient` (prod).
 - **Vector store** — in-memory cosine similarity over `float[]` behind a narrow `IVectorStore` seam
   (add chunks at ingest; `TopK(queryVector, k)` at ask) so the prod swap is an adapter change (slice);
@@ -52,17 +52,20 @@ flowchart TD
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.
-- Which adapter is wired is decided by **config** (`ModelClient:ChatProvider`,
+- Which adapter is wired is decided by **config** (`ModelClient:ChatProvider` — default `azureopenai`,
   `ModelClient:EmbeddingProvider`) at composition time — switching providers is never a code change.
+  Per-provider credential sections (`AzureOpenAI:*`, `Anthropic:*`) let both chat adapters resolve at
+  once — see [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md).
 - The two ports are split deliberately (chat vs. embeddings fail over differently; Anthropic has no
   embeddings endpoint) — see [ADR-0002](decisions/0002-split-model-access-into-chat-and-embedding-clients.md).
 
 ## Cross-cutting concerns
 - **Configuration** — provider selection + model IDs live in config; never hardcode model IDs.
 - **Secrets** — dev: `dotnet user-secrets` / env vars; prod: Azure Key Vault. Never committed.
-- **Errors** — validate and throw early; chat falls back Foundry → Anthropic on **availability**
-  failures (connection / timeout / 5xx / 429-after-backoff), not on request-level 4xx — see
-  [ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md).
+- **Errors** — validate and throw early; the chat provider is config-selected (Azure OpenAI GPT live,
+  Anthropic-direct as the config-swap fallback — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md));
+  an availability auto-failover wrapper remains deferred. Field extraction at ingest is **best-effort** —
+  a chat-provider failure yields empty fields and a stored document, not a 500 (spec 0001 amendment).
 - **Citations** — every Q&A answer carries citations resolvable to a source chunk (core invariant).
 - **Conventions** — C#: nullable enabled · async/await throughout · constructor DI · file-scoped
   namespaces · `record` DTOs. TypeScript: `strict` · function components · one typed API client.
