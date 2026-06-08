@@ -2,8 +2,8 @@ namespace LandDoc.Api.Model;
 
 /// <summary>
 /// Chat/completions port (ADR-0002). Adapters select by config (<c>ModelClient:ChatProvider</c>):
-/// <c>FoundryChatClient</c> (primary) and <c>AnthropicChatClient</c> (slice default, ADR-0010).
-/// Changing this interface requires a spec in <c>knowledge/docs/specs/</c>.
+/// <c>AzureOpenAIChatClient</c> (live slice default, ADR-0012) and <c>AnthropicChatClient</c>
+/// (config-swap fallback). Changing this interface requires a spec in <c>knowledge/docs/specs/</c>.
 /// </summary>
 public interface IChatClient
 {
