@@ -28,6 +28,8 @@ export function UploadPanel({ onFiles, progress }: UploadPanelProps): ReactEleme
   const dragDepth = useRef(0)
 
   const busy = progress !== null
+  const busyRef = useRef(busy)
+  busyRef.current = busy
 
   function handleSelect(event: ChangeEvent<HTMLInputElement>): void {
     const selected = Array.from(event.target.files ?? [])
@@ -63,6 +65,10 @@ export function UploadPanel({ onFiles, progress }: UploadPanelProps): ReactEleme
       event.preventDefault()
       dragDepth.current = 0
       setDragging(false)
+      if (busyRef.current) {
+        setDropError('Wait for the current upload to finish.')
+        return
+      }
       const dropped = Array.from(event.dataTransfer?.files ?? [])
       if (dropped.length === 0) {
         return

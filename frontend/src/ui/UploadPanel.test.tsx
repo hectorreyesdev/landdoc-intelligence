@@ -52,6 +52,16 @@ it('ignores a drop with no supported files and explains why', async () => {
   expect(onFiles).not.toHaveBeenCalled()
 })
 
+it('ignores a drop while a batch is in flight and shows a wait message', async () => {
+  const onFiles = vi.fn()
+  render(<UploadPanel onFiles={onFiles} progress={{ done: 1, total: 4 }} />)
+
+  fireEvent.drop(document.body, { dataTransfer: { files: [pdf('dropped.pdf')] } })
+
+  expect(await screen.findByText(/wait for the current upload to finish/i)).toBeInTheDocument()
+  expect(onFiles).not.toHaveBeenCalled()
+})
+
 it('shows a progress bar and disables the input while a batch is in flight', () => {
   render(<UploadPanel onFiles={() => {}} progress={{ done: 1, total: 4 }} />)
 

@@ -61,6 +61,36 @@ it('shows a pending tile up front, then solidifies it to ready in place', async 
   expect(result.current.progress).toBeNull()
 })
 
+it('ignores a second ingest while the first batch is in flight', async () => {
+  const first = deferred<ApiResult<DocumentResponse>>()
+  vi.mocked(client.uploadDocument).mockReturnValueOnce(first.promise)
+  const { result } = renderHook(() => useDocuments())
+
+  act(() => {
+    void result.current.ingest([pdf('a.pdf')])
+  })
+
+  await waitFor(() => expect(result.current.progress).toEqual({ done: 0, total: 1 }))
+
+  // Second ingest while first is in flight — should be a no-op.
+  act(() => {
+    void result.current.ingest([pdf('b.pdf')])
+  })
+
+  // Only the first batch's tile was created; uploadDocument called once only.
+  expect(result.current.items).toHaveLength(1)
+  expect(client.uploadDocument).toHaveBeenCalledTimes(1)
+
+  // Resolve the first batch; progress clears correctly.
+  await act(async () => {
+    first.resolve({ ok: true, value: doc({ fileName: 'a.pdf' }) })
+  })
+
+  await waitFor(() => expect(result.current.progress).toBeNull())
+  expect(result.current.items).toHaveLength(1)
+  expect(result.current.items[0].status).toBe('ready')
+})
+
 it('marks a failed file as an error tile but still ingests the rest', async () => {
   vi.mocked(client.uploadDocument)
     .mockResolvedValueOnce({ ok: true, value: doc({ fileName: 'a.pdf' }) })

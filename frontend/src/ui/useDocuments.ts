@@ -34,11 +34,13 @@ export function useDocuments(): UseDocuments {
   const [items, setItems] = useState<DocItem[]>([])
   const [progress, setProgress] = useState<UploadProgress | null>(null)
   const nextKey = useRef(0)
+  const inFlight = useRef(false)
 
   const ingest = useCallback(async (batch: File[]): Promise<void> => {
-    if (batch.length === 0) {
+    if (batch.length === 0 || inFlight.current) {
       return
     }
+    inFlight.current = true
 
     // Reserve a stable key per file and show every file as a pending tile up front.
     const keys = batch.map(() => `doc-${nextKey.current++}`)
@@ -48,25 +50,28 @@ export function useDocuments(): UseDocuments {
     ])
     setProgress({ done: 0, total: batch.length })
 
-    // Sequential, not parallel: tiles solidify in order and the best-effort field extraction
-    // (a chat call per file) doesn't fan out a burst of provider requests.
-    for (const [index, file] of batch.entries()) {
-      const result = await uploadDocument(file)
-      const key = keys[index]
-      setItems((prev) =>
-        prev.map((item) => {
-          if (item.key !== key) {
-            return item
-          }
-          return result.ok
-            ? { key, status: 'ready', fileName: file.name, doc: result.value }
-            : { key, status: 'error', fileName: file.name, message: describeError(result.error, 'upload') }
-        }),
-      )
-      setProgress({ done: index + 1, total: batch.length })
+    try {
+      // Sequential, not parallel: tiles solidify in order and the best-effort field extraction
+      // (a chat call per file) doesn't fan out a burst of provider requests.
+      for (const [index, file] of batch.entries()) {
+        const result = await uploadDocument(file)
+        const key = keys[index]
+        setItems((prev) =>
+          prev.map((item) => {
+            if (item.key !== key) {
+              return item
+            }
+            return result.ok
+              ? { key, status: 'ready', fileName: file.name, doc: result.value }
+              : { key, status: 'error', fileName: file.name, message: describeError(result.error, 'upload') }
+          }),
+        )
+        setProgress({ done: index + 1, total: batch.length })
+      }
+    } finally {
+      setProgress(null)
+      inFlight.current = false
     }
-
-    setProgress(null)
   }, [])
 
   const hasReady = items.some((item) => item.status === 'ready')
