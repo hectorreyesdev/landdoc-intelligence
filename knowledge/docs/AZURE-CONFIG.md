@@ -102,7 +102,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
 | CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
-| Custom domain (optional) | ACA **custom domain** binding + managed cert | `landdoc.hectorreyes.dev` (Namecheap CNAME, *Advanced DNS*; don't touch M365 records) | not bound |
+| Custom domain | ACA **custom domain** binding + free managed cert | **`landdoc.hectorreyes.dev`** — cert `mc-cae-landdoc-landdoc-hectorre-8517` (Namecheap CNAME + `asuid` TXT) | **bound** (SniEnabled, auto-renew) — https://landdoc.hectorreyes.dev/ |
 | App Insights | — | ‹optional› | not built |
 
 ## 8. Cost guardrails & teardown
@@ -117,7 +117,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
   az ad app delete --id bfce2d5a-ca40-4c2f-8a9b-1308927b2951 # the CI/CD Entra app — lives in Entra, not the RG
   ```
   (Custom-domain CNAME at Namecheap is harmless to leave or remove.) For **targeted** teardown that keeps the
-  Key Vault + AI resource, see [DEPLOYMENT.md §3](DEPLOYMENT.md).
+  Key Vault + AI resource, see [DEPLOYMENT.md §4](DEPLOYMENT.md).
 
 ## 9. Open confirmations before adapters go live
 

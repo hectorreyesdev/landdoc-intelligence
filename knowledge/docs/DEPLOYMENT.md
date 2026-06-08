@@ -153,13 +153,62 @@ az containerapp revision list -n "$APP" -g "$RG" \
 
 ---
 
-## 3. Teardown
+## 3. Custom domain (`landdoc.hectorreyes.dev`)
+
+Binds a custom domain to the Container App with a **free, auto-renewing managed TLS certificate**. DNS
+for `hectorreyes.dev` is at **Namecheap**; Azure issues the cert once it can verify domain ownership.
+Requires external ingress (already on) plus the app's FQDN and a per-app verification id.
+
+### 3a. Get the Azure-side values
+
+```bash
+az containerapp show -n "$APP" -g "$RG" \
+  --query "{fqdn:properties.configuration.ingress.fqdn, verificationId:properties.customDomainVerificationId}" -o json
+```
+
+### 3b. Add two DNS records at Namecheap (Advanced DNS)
+
+Host is the **subdomain part only** — Namecheap appends the zone.
+
+| Type | Host | Value |
+|---|---|---|
+| CNAME | `landdoc` | the app FQDN from 3a (`landdoc.<env-suffix>.eastus2.azurecontainerapps.io`) |
+| TXT | `asuid.landdoc` | the `verificationId` from 3a |
+
+> ⚠️ Add **only** these two — leave existing M365 / email records (MX, SPF TXT) untouched, and make sure
+> no URL-redirect / parking record sits on the `landdoc` host (it conflicts with the CNAME). The `asuid`
+> TXT proves ownership so Azure will issue the managed cert. These records affect only the `landdoc`
+> host — `www` and the apex are unaffected.
+
+### 3c. Verify propagation, then add + bind in Azure
+
+```bash
+dig +short CNAME landdoc.hectorreyes.dev          # → the app FQDN
+dig +short TXT  asuid.landdoc.hectorreyes.dev     # → the verification id
+
+az containerapp hostname add  --hostname landdoc.hectorreyes.dev -n "$APP" -g "$RG"
+az containerapp hostname bind --hostname landdoc.hectorreyes.dev -n "$APP" -g "$RG" \
+  --environment "$ENV" --validation-method CNAME   # creates + binds the managed cert (up to ~20 min)
+```
+
+`bind` returns `bindingType: SniEnabled` when TLS is active. Confirm end-to-end:
+
+```bash
+curl -s -o /dev/null -w "%{http_code} ssl=%{ssl_verify_result}\n" https://landdoc.hectorreyes.dev/   # → 200 ssl=0
+```
+
+> **Live binding:** managed cert `mc-cae-landdoc-landdoc-hectorre-8517` (GeoTrust/DigiCert), bound
+> `SniEnabled` on 2026-06-08, valid through 2026-12-08, **auto-renewing** — nothing to maintain.
+
+---
+
+## 4. Teardown
 
 The Key Vault (`kv-landdoc-hr01`) and the Azure AI resource (`landdoc-rag-resource…`) also live in
 `rg-landdoc-deomo`, so **do not delete the whole resource group** unless you intend to destroy those
 too. Delete only what this deployment created.
 
-### 3a. Remove just the app and its build/runtime infra
+### 4a. Remove just the app and its build/runtime infra
 
 ```bash
 az account set --subscription "$SUBSCRIPTION"
@@ -176,7 +225,11 @@ az monitor log-analytics workspace delete \
   -g "$RG" -n workspace-rglanddocdeomoWNBf --yes        # the Log Analytics workspace
 ```
 
-### 3b. Nuke everything in the RG (⚠️ also deletes Key Vault + AI resource)
+> The custom hostname binding and its managed certificate live on the environment, so they're removed
+> when the app / env above are deleted — no separate step. The Namecheap `landdoc` CNAME + `asuid.landdoc`
+> TXT are harmless to leave, or delete them in Advanced DNS.
+
+### 4b. Nuke everything in the RG (⚠️ also deletes Key Vault + AI resource)
 
 Only if you really want the whole environment gone:
 

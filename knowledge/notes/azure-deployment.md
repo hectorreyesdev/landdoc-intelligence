@@ -10,7 +10,9 @@ One Docker image (multi-stage: build the Vite SPA, publish the .NET API, copy th
 `wwwroot`) serves **SPA + API on one origin, port 8080** — same single-origin/no-CORS contract as the
 dev Vite proxy, just realized differently. Runs on **Azure Container Apps**. This is the prod
 realization of [[knowledge/docs/decisions/0011-single-origin-spa-api-topology]] (which named SWA + a
-linked backend; ADR-0016 replaced that mechanism, kept the principle).
+linked backend; ADR-0016 replaced that mechanism, kept the principle). Public on the custom domain
+**https://landdoc.hectorreyes.dev/** (ACA custom-domain binding + free auto-renewing managed cert, DNS
+at Namecheap) alongside the default `*.azurecontainerapps.io` FQDN.
 
 ## Secrets: one credential, two worlds
 `builder.Configuration.AddAzureKeyVault(uri, new DefaultAzureCredential())`, added **only when
@@ -45,5 +47,6 @@ build+deploy but **can't read secrets**.
 
 ## Teardown
 The Key Vault + AI resource share the RG (`rg-landdoc-deomo`), so `az group delete` nukes them too —
-use the targeted deletes in [[knowledge/docs/DEPLOYMENT]] §3 to keep them, and remember the CI Entra
-app (`gh-landdoc-deploy`) lives in Entra, not the RG.
+use the targeted deletes in [[knowledge/docs/DEPLOYMENT]] §4 to keep them, and remember the CI Entra
+app (`gh-landdoc-deploy`) lives in Entra, not the RG. The custom hostname + managed cert live on the
+ACA environment, so they go when it's deleted; the Namecheap records are harmless to leave.
