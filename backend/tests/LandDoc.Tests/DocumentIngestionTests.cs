@@ -59,6 +59,7 @@ public sealed class DocumentIngestionTests
         {
             builder.UseSetting("Chunking:MaxChars", "80");
             builder.UseSetting("Chunking:Overlap", "20");
+            builder.UseSetting("ModelClient:EmbeddingProvider", "local");
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IChatClient>();
