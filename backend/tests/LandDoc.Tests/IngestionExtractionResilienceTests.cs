@@ -68,7 +68,6 @@ public sealed class IngestionExtractionResilienceTests
             // Pin small chunk size so the fixture produces > 1 chunk regardless of the production default.
             builder.UseSetting("Chunking:MaxChars", "80");
             builder.UseSetting("Chunking:Overlap", "20");
-            builder.UseSetting("ModelClient:EmbeddingProvider", "local");
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IChatClient>();
