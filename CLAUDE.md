@@ -26,7 +26,8 @@ every session (see **Project docs** below).
   → answer-with-citations.
 - **RAG pipeline** — ingest PDF → extract structured fields → chunk → embed (`IEmbeddingClient`)
   → **in-memory cosine similarity over `float[]`** → retrieve top-k → answer **with citations**.
-  Vector store is in-memory for the slice; **Azure AI Search** is the production path.
+  Vector store is config-selected: **Azure AI Search Free tier** is the live store (ADR-0017);
+  in-memory cosine similarity is the offline/test provider.
 
 ### Models & cost
 Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable
@@ -34,8 +35,10 @@ per call-type for cost — e.g. the extraction step. Lean on **prompt caching** 
 document context. All model IDs live in config, never hardcoded.
 
 ### Out of scope — "production hardening", do NOT build
-VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search · auth/RBAC ·
-observability stack. If a task seems to need one, stub it and note why in `knowledge/lessons.md`.
+VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search beyond the Free-tier
+vector store (semantic ranker / reranking, Basic+ scale — ADR-0017 brought the Free tier in as the
+live store) · auth/RBAC · observability stack. If a task seems to need one, stub it and note why in
+`knowledge/lessons.md`.
 
 ## Coding conventions
 **C#** — nullable reference types **enabled**; `async`/`await` end-to-end (never `.Result` /
