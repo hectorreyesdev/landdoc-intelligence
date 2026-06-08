@@ -31,9 +31,20 @@ builder.Services.Configure<RetrievalOptions>(builder.Configuration.GetSection("R
 builder.Services.Configure<ModelClientOptions>(builder.Configuration.GetSection("ModelClient"));
 builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection("AzureOpenAI"));
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
+builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection("Search"));
 
-// Storage seam — a singleton so the ingest (write) and retrieval (read) paths share one in-memory store.
-builder.Services.AddSingleton<IVectorStore, InMemoryVectorStore>();
+// Vector store — config-selected adapter (VectorStore:Provider). Live default: azuresearch (ADR-0017);
+// inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton so ingest (write)
+// and retrieval (read) share one instance.
+var vectorStoreProvider = builder.Configuration["VectorStore:Provider"] ?? "azuresearch";
+builder.Services.AddSingleton<IVectorStore>(sp => vectorStoreProvider.ToLowerInvariant() switch
+{
+    "inmemory" => new InMemoryVectorStore(),
+    "azuresearch" => new AzureAiSearchVectorStore(
+        sp.GetRequiredService<IOptions<SearchOptions>>(),
+        sp.GetRequiredService<IOptions<EmbeddingOptions>>()),
+    _ => throw new InvalidOperationException($"Unknown VectorStore:Provider '{vectorStoreProvider}'."),
+});
 
 // Embeddings — config-selected adapter (ModelClient:EmbeddingProvider). Live slice default: azureopenai
 // (ADR-0013); local is the deterministic offline fallback. Tests pin local via LandDocApiFactory.
