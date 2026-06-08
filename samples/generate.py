@@ -856,6 +856,8 @@ def t_assignment_absc(d):
               f"leases described on Exhibit A (the \"Leases\"), together with the lands covered, the "
               f"wells, equipment, and the associated contracts and records (collectively, the "
               f"\"Assets\")."),
+        ("p", f"The Assets are situated in {d['county']} {d.get('county_label', 'County')}, "
+              f"{d['state']}; the primary tract is described as {d['legal']}."),
         ("h2", "Reserved Override"),
         ("p", f"Assignor RESERVES an overriding royalty interest of {d['orri']} of 8/8ths in all "
               f"production from the Leases, proportionately reduced to Assignor's net interest "
@@ -1531,6 +1533,415 @@ def render_all() -> None:
     print(f"{plss_n} PLSS tracts geolocated from their legal descriptions; "
           f"{len(DOCS) - plss_n} town-approximate.")
     print(f"Wrote answer key: {OUT_DIR / 'manifest.json'}")
+
+
+# ---------------------------------------------------------------------------
+# Procedural variants: ~4 more documents per template. Data-driven from curated
+# real counties + name/amount pools, so the corpus scales without hand-writing
+# every dict. PLSS tracts use an inverse solver (plss_from_anchor) so the
+# township/range land on the real county seat; non-PLSS use the seat directly.
+# ---------------------------------------------------------------------------
+
+def plss_from_anchor(mer: str, lat_t: float, lon_t: float, sec: int, aliquot: str | None) -> dict:
+    """Inverse of plss_centroid: pick township/range so the section centroid sits
+    on (lat_t, lon_t). Direction (N/S, E/W) follows the sign of the offset."""
+    lat0, lon0, _ = MERIDIANS[mer]
+    north_total = (lat_t - lat0) * MI_PER_DEG_LAT
+    east_total = (lon_t - lon0) * (69.172 * math.cos(math.radians(lat_t)))
+    twp_dir = "N" if north_total >= 0 else "S"
+    rng_dir = "E" if east_total >= 0 else "W"
+    row, col = sec_rowcol(sec)
+    ax, ay = parse_aliquot(aliquot)
+    needed_north_edge = north_total + (row + 0.5) - (ay - 0.5)
+    twp = max(1, round(needed_north_edge / 6)) if twp_dir == "N" \
+        else max(1, round(-needed_north_edge / 6) + 1)
+    needed_west_edge = east_total - (col + 0.5) - (ax - 0.5)
+    rng = max(1, round(needed_west_edge / 6) + 1) if rng_dir == "E" \
+        else max(1, round(-needed_west_edge / 6))
+    return {"mer": mer, "twp": twp, "twp_dir": twp_dir, "rng": rng, "rng_dir": rng_dir,
+            "sec": sec, "aliquot": aliquot}
+
+
+def pick(pool, i):
+    return pool[i % len(pool)]
+
+
+def short(name: str) -> str:
+    return name.split(",")[0]
+
+
+# Curated real counties: (state, county, label, town, lat, lon, geo). geo selects
+# the legal-description system. Coordinates are approximate county-seat points.
+def _c(state, county, town, lat, lon, geo, label="County"):
+    return {"state": state, "county": county, "label": label, "town": town,
+            "lat": lat, "lon": lon, "geo": geo}
+
+PLSS_COUNTIES = [
+    _c("New Mexico", "Lea", "Lovington", 32.9445, -103.3486, {"plss": "NMPM"}),
+    _c("New Mexico", "Eddy", "Carlsbad", 32.4207, -104.2288, {"plss": "NMPM"}),
+    _c("New Mexico", "Chaves", "Roswell", 33.3943, -104.5230, {"plss": "NMPM"}),
+    _c("North Dakota", "McKenzie", "Watford City", 47.8022, -103.2832, {"plss": "5th"}),
+    _c("North Dakota", "Williams", "Williston", 48.1470, -103.6180, {"plss": "5th"}),
+    _c("North Dakota", "Mountrail", "Stanley", 48.3175, -102.3899, {"plss": "5th"}),
+    _c("North Dakota", "Dunn", "Killdeer", 47.3722, -102.7521, {"plss": "5th"}),
+    _c("Colorado", "Weld", "Greeley", 40.4233, -104.7091, {"plss": "6th"}),
+    _c("Colorado", "Garfield", "Glenwood Springs", 39.5505, -107.3248, {"plss": "6th"}),
+    _c("Oklahoma", "Kingfisher", "Kingfisher", 35.8620, -97.9320, {"plss": "IM"}),
+    _c("Oklahoma", "Canadian", "El Reno", 35.5323, -97.9550, {"plss": "IM"}),
+    _c("Oklahoma", "Grady", "Chickasha", 35.0526, -97.9364, {"plss": "IM"}),
+    _c("Oklahoma", "Stephens", "Duncan", 34.5023, -97.9578, {"plss": "IM"}),
+    _c("Wyoming", "Campbell", "Gillette", 44.2911, -105.5022, {"plss": "6th"}),
+    _c("Wyoming", "Converse", "Douglas", 42.7597, -105.3819, {"plss": "6th"}),
+    _c("California", "Kern", "Bakersfield", 35.3733, -119.0187, {"plss": "MDM"}),
+    _c("Montana", "Carbon", "Red Lodge", 45.1863, -109.2466, {"plss": "MPM"}),
+    _c("Montana", "Richland", "Sidney", 47.7169, -104.1564, {"plss": "MPM"}),
+    _c("Louisiana", "Caddo", "Shreveport", 32.5252, -93.7502, {"plss": "LA"}, label="Parish"),
+]
+
+TX_COUNTIES = [
+    _c("Texas", "Midland", "Midland", 31.9973, -102.0779, {"tx": True}),
+    _c("Texas", "Reeves", "Pecos", 31.4229, -103.4932, {"tx": True}),
+    _c("Texas", "Loving", "Mentone", 31.7060, -103.5977, {"tx": True}),
+    _c("Texas", "Reagan", "Big Lake", 31.1932, -101.4663, {"tx": True}),
+    _c("Texas", "Karnes", "Karnes City", 28.8853, -97.9003, {"tx": True}),
+    _c("Texas", "DeWitt", "Cuero", 29.0938, -97.2886, {"tx": True}),
+    _c("Texas", "Howard", "Big Spring", 32.2504, -101.4787, {"tx": True}),
+    _c("Texas", "Martin", "Stanton", 32.1290, -101.7888, {"tx": True}),
+    _c("Texas", "Ward", "Monahans", 31.5938, -102.8927, {"tx": True}),
+    _c("Texas", "Glasscock", "Garden City", 31.8643, -101.4818, {"tx": True}),
+    _c("Texas", "La Salle", "Cotulla", 28.4369, -99.2353, {"tx": True}),
+    _c("Texas", "Dimmit", "Carrizo Springs", 28.5222, -99.8612, {"tx": True}),
+]
+
+METES_COUNTIES = [
+    _c("Pennsylvania", "Washington", "Washington", 40.1742, -80.2462, {"metes": True}),
+    _c("Pennsylvania", "Greene", "Waynesburg", 39.8962, -80.1811, {"metes": True}),
+    _c("Pennsylvania", "Fayette", "Uniontown", 39.8993, -79.7164, {"metes": True}),
+    _c("Pennsylvania", "Bradford", "Towanda", 41.7670, -76.4438, {"metes": True}),
+    _c("Pennsylvania", "Susquehanna", "Montrose", 41.8362, -75.8788, {"metes": True}),
+    _c("West Virginia", "Doddridge", "West Union", 39.2940, -80.7762, {"metes": True}),
+    _c("West Virginia", "Harrison", "Clarksburg", 39.2806, -80.3445, {"metes": True}),
+    _c("West Virginia", "Wetzel", "New Martinsville", 39.6453, -80.8576, {"metes": True}),
+    _c("West Virginia", "Ritchie", "Harrisville", 39.2087, -81.0518, {"metes": True}),
+    _c("Ohio", "Belmont", "St. Clairsville", 40.0801, -80.9009, {"metes": True}),
+    _c("Ohio", "Monroe", "Woodsfield", 39.7617, -81.1170, {"metes": True}),
+    _c("Ohio", "Harrison", "Cadiz", 40.2723, -81.0120, {"metes": True}),
+    _c("Ohio", "Guernsey", "Cambridge", 40.0312, -81.5885, {"metes": True}),
+]
+
+GRANT_COUNTIES = [
+    _c("New Mexico", "Rio Arriba", "Tierra Amarilla", 36.7045, -106.5464, {"grant": True}),
+]
+
+MIXED_COUNTIES = PLSS_COUNTIES + TX_COUNTIES + METES_COUNTIES
+
+LESSORS = [
+    "Margaret A. Caldwell, a single woman", "The Holloway Family Trust dated June 3, 1998",
+    "James R. and Linda S. Whitaker, husband and wife", "Circle Bar Ranch, LLC",
+    "Estate of Harlan W. Dietrich, by Susan Dietrich, Personal Representative",
+    "Clayton and Beatrice Monroe, husband and wife", "The Reaves Living Trust",
+    "Samuel O. Pruett, a married man dealing in his sole and separate property",
+    "Nadine F. Holloway, a widow", "Sage Creek Minerals, LLC",
+    "Bigelow Family Partnership, LP", "Doris and Walter Kestrel, as joint tenants",
+]
+GRANTORS = [
+    "Dorothy M. Albright, a widow", "Roaring Fork Holdings, LLC", "Ramon C. Trujillo",
+    "University Lands Heritage Trust", "Esperanza Ranch Partners, Ltd.",
+    "Cuero Creek Ranch, Ltd.", "Beaulieu Land & Timber, L.L.C.", "Pecos Valley Land Company",
+]
+GRANTEES = [
+    "Chisholm Trail Royalties, LLC", "Santa Rita Royalty Company", "The Trujillo Family, LLC",
+    "Permian Acquisition Partners, LP", "Gulf Coast Minerals, LLC", "Caleb and Marie Donnelly, as joint tenants",
+]
+OPERATORS = [
+    "Llano Estacado Operating, LLC", "Delaware Basin Resources, LP", "Mesa Verde Resources, LP",
+    "Bakken Ridge Energy, Inc.", "Front Range Petroleum, LLC", "Red River Minerals, LLC",
+    "Keystone Shale Partners, LP", "Allegheny Gas Company", "Buckeye Utica Operating, LLC",
+    "Caddo Pine Energy, LLC", "Powder River Resources, LLC", "San Joaquin Oil Company",
+    "Permian Basin Production Co.", "Cimarron Operating, LLC", "Lone Mesa Exploration, Inc.",
+]
+ROYALTIES = ["one-eighth (1/8)", "three-sixteenths (3/16)", "one-fifth (1/5)", "one-fourth (1/4)",
+             "18.75% (3/16)", "20% (1/5)", "22.5% (9/40)", "one-sixth (1/6)"]
+BONUSES = ["$500.00 per net mineral acre", "$1,000.00 per net mineral acre",
+           "$1,500.00 per net mineral acre", "$2,000.00 per net acre",
+           "$2,750.00 per net acre", "$350.00 per net mineral acre", "$3,000.00 per net acre"]
+TERMS = ["three (3) years", "five (5) years", "two (2) years",
+         "three (3) years with a two-year option"]
+DATES = ["January 12, 2024", "March 4, 2024", "June 21, 2024", "August 30, 2024",
+         "October 17, 2024", "December 5, 2024", "February 14, 2025", "April 9, 2025",
+         "May 27, 2025", "July 3, 2025", "September 15, 2025"]
+SHUT_IN = ["$25.00", "$50.00", "$100.00"]
+CONSIDERATIONS = ["$10.00 and other good and valuable consideration", "$48,000.00",
+                  "$120,000.00", "$385,000.00", "Ten Dollars and other valuable consideration"]
+FORMS = ["88-PB", "TX-88", "OK-88", "NM-PB", "CA-88", "PR-88"]
+FORMATIONS = ["Wolfcamp A", "Bone Spring", "Spraberry", "Bakken and Three Forks", "Niobrara",
+              "Mississippian", "Marcellus", "Utica", "Eagle Ford", "Wolfcamp B"]
+DEPTHS = ["8,500", "10,500", "11,200", "12,000", "9,800", "10,600 TVD / 21,000 MD"]
+SPUDS = ["March 2024", "July 2024", "Q4 2024", "January 2025", "Spring 2025"]
+SECTIONS = [4, 9, 14, 16, 21, 22, 27, 33]
+ALIQUOTS = ["SE/4", "N/2", "NW/4", "SW/4", "NE/4", "S/2", "W/2", "all"]
+ALIQUOT_ACRES = {"SE/4": "160.00", "NE/4": "160.00", "NW/4": "160.00", "SW/4": "160.00",
+                 "N/2": "320.00", "S/2": "320.00", "E/2": "320.00", "W/2": "320.00",
+                 "all": "640.00"}
+NPACRES = ["40.00", "80.00", "160.00", "120.50", "210.50", "320.00", "640.00"]
+SURVEYS = ["T&P RR Co.", "H&GN RR Co.", "H&TC RR Co.", "GC&SF Ry Co.", "I&GN RR Co.", "PSL", "BS&F"]
+TXSEC = [7, 14, 22, 30, 3, 18, 40]
+TXBLK = ["34", "13", "2", "C-24", "X", "41", "39"]
+ABST = [89, 612, 1187, 2204, 456, 36, 1450]
+NEIGHBORS = ["Reynolds", "Maple Run", "Hartzell", "Coen", "Yoder", "Buchanan"]
+DEEDBOOKS = ["Deed Book 1123, Page 456", "Instrument No. 2016-004412", "Deed Book 244, Page 19",
+             "Deed Book 512, Page 88"]
+GRANTS = ["Tierra Amarilla", "Sangre de Cristo", "Mora"]
+PA_DISTRICTS = ["Amwell Township", "Morris Township", "Center Township", "Franklin Township"]
+WV_DISTRICTS = ["McClellan District", "Grant District", "Union District", "Clay District"]
+OH_DISTRICTS = ["Mead Township", "Smith Township", "Washington Township", "Wayne Township"]
+EXAMINERS = ["T. Lindqvist, Attorney at Law, Lindqvist & Reyes PLLC",
+             "M. Castellano, Castellano Title Law PC", "R. Whitfield, Whitfield & Boyd LLP",
+             "S. Nakamura, Nakamura Energy Law"]
+ABSTRACTORS = ["Trans-Pecos Abstract Co.", "Permian Abstract & Title", "High Plains Land Services",
+               "Frontier Abstract Company"]
+WELL_SURNAMES = ["Caldwell", "Holloway", "Whitaker", "Bergstrom", "Monroe", "Reaves", "Pruett",
+                 "Kestrel", "Bigelow", "Stanton", "Carpenter", "Dietrich"]
+INTERESTS = ["one-half (1/2)", "one-fourth (1/4)", "an undivided 1/8", "a 1/32 of 8/8"]
+COMMISSIONS = {"Oklahoma": "Oklahoma Corporation Commission",
+               "North Dakota": "North Dakota Industrial Commission",
+               "Wyoming": "Wyoming Oil and Gas Conservation Commission",
+               "New Mexico": "New Mexico Oil Conservation Division",
+               "Colorado": "Colorado Energy and Carbon Management Commission",
+               "Montana": "Montana Board of Oil and Gas Conservation",
+               "Louisiana": "Louisiana Office of Conservation",
+               "California": "California Geologic Energy Management Division"}
+STATE_ABBR = {"New Mexico": "nm", "North Dakota": "nd", "Colorado": "co", "Oklahoma": "ok",
+              "Wyoming": "wy", "California": "ca", "Montana": "mt", "Louisiana": "la",
+              "Texas": "tx", "Pennsylvania": "pa", "West Virginia": "wv", "Ohio": "oh"}
+
+
+def well_name(n):
+    return f"{pick(WELL_SURNAMES, n)} {pick(SECTIONS, n)}-{10 + n % 40} #{1 + n % 3}H"
+
+
+def _rec(n):
+    yr = pick(["2022", "2023", "2024", "2025"], n)
+    return {"instrument_no": f"{yr}-{(1000 + n * 53) % 9999999:07d}",
+            "book": str(700 + n * 7), "page": str(15 + n * 11)}
+
+
+def tx_legal(n):
+    return f"Section {pick(TXSEC, n)}, Block {pick(TXBLK, n)}, {pick(SURVEYS, n)} Survey, Abstract No. {pick(ABST, n)}"
+
+
+def metes_legal(n):
+    return (f"BEGINNING at an iron pin at a corner of lands now or formerly of {pick(NEIGHBORS, n)}; "
+            f"thence S {70 + n % 15} deg E {900 + n * 37} feet to a post; thence S {3 + n % 9} deg W "
+            f"{2600 + n * 23} feet to a stone; thence N {72 + n % 14} deg W {950 + n * 31} feet to a "
+            f"marked oak; thence N {2 + n % 8} deg E {2580 + n * 19} feet to the place of beginning")
+
+
+def grant_legal(n):
+    return (f"A portion of the {pick(GRANTS, n)} Land Grant, Tract {pick(['7-B', '3-A', '12', '5-C'], n)}, "
+            f"as shown on the amended grant plat of record")
+
+
+def apply_location(doc, county, sec, aliquot, n):
+    doc["state"], doc["county"], doc["town"] = county["state"], county["county"], county["town"]
+    if county.get("label", "County") != "County":
+        doc["county_label"] = county["label"]
+    geo = county["geo"]
+    if "plss" in geo:
+        doc["town_lat"], doc["town_lon"] = county["lat"], county["lon"]
+        doc["plss"] = plss_from_anchor(geo["plss"], county["lat"], county["lon"], sec, aliquot)
+        doc["acres"] = ALIQUOT_ACRES.get(aliquot, "160.00")
+    else:
+        doc["lat"], doc["lon"] = county["lat"], county["lon"]
+        doc["acres"] = pick(NPACRES, n)
+        if "tx" in geo:
+            doc["system"], doc["legal"] = "Texas abstract/block-section", tx_legal(n)
+        elif "metes" in geo:
+            doc["system"] = "metes and bounds"
+            dpool = {"Pennsylvania": PA_DISTRICTS, "West Virginia": WV_DISTRICTS,
+                     "Ohio": OH_DISTRICTS}[county["state"]]
+            doc["township"] = pick(dpool, n)
+            doc["legal"] = metes_legal(n)
+        elif "grant" in geo:
+            doc["system"], doc["legal"] = "Spanish/Mexican land grant (tract)", grant_legal(n)
+            doc["acres"] = pick(["35.75", "52.40", "18.90"], n)
+
+
+def _afe_costs(n):
+    f = pick([0.8, 1.0, 1.25], n)
+    rows = [("Location, roads, pad", 250000, 0), ("Drilling rig & tools", 3200000, 0),
+            ("Drilling fluids & chemicals", 680000, 0), ("Cementing", 420000, 150000),
+            ("Logging, testing, supervision", 510000, 240000), ("Surface & intermediate casing", 640000, 0),
+            ("Production casing & tubing", 0, 1250000), ("Wellhead & tree", 0, 180000),
+            ("Hydraulic fracturing", 0, 4800000), ("Facilities & tank battery", 0, 520000)]
+    dry = sum(int(r[1] * f) for r in rows)
+    comp = sum(int(r[2] * f) for r in rows)
+    out = [["Cost Item", "Dry Hole ($)", "Completion ($)"]]
+    out += [[name, f"{int(d * f):,}", f"{int(c * f):,}"] for name, d, c in rows]
+    out.append(["Contingency (10%)", f"{int(dry * 0.1):,}", f"{int(comp * 0.1):,}"])
+    out.append(["TOTAL ESTIMATE", f"{int(dry * 1.1):,}", f"{int(comp * 1.1):,}"])
+    return out
+
+
+# Per-template field factories (location applied separately). Keyed by template name.
+EXTRA = {
+    "oil_gas_lease": lambda n: {"form_no": pick(FORMS, n), "lessor": pick(LESSORS, n),
+        "lessee": pick(OPERATORS, n + 3), "effective_date": pick(DATES, n), "term": pick(TERMS, n),
+        "royalty": pick(ROYALTIES, n), "bonus": pick(BONUSES, n), "shut_in": pick(SHUT_IN, n)},
+    "paidup_modern": lambda n: {"lessor": pick(LESSORS, n + 1), "lessee": pick(OPERATORS, n),
+        "effective_date": pick(DATES, n + 2), "term": pick(TERMS, n + 1), "royalty": pick(ROYALTIES, n + 1),
+        "bonus": pick(BONUSES, n + 1)},
+    "metes_bounds_lease": lambda n: {"lessor": pick(LESSORS, n + 2), "lessee": pick(OPERATORS, n + 1),
+        "effective_date": pick(DATES, n + 3), "term": pick(TERMS, n), "royalty": pick(ROYALTIES, n),
+        "oil_royalty": "one-eighth (1/8)", "bonus": pick(BONUSES, n), "source_deed": pick(DEEDBOOKS, n)},
+    "memorandum": lambda n: {"lessor": pick(LESSORS, n), "lessee": pick(OPERATORS, n),
+        "effective_date": pick(DATES, n), "term": pick(TERMS, n), "royalty": pick(ROYALTIES, n),
+        "recording": _rec(n)},
+    "mineral_deed": lambda n: {"grantor": pick(GRANTORS, n), "grantee": pick(GRANTEES, n),
+        "consideration": pick(CONSIDERATIONS, n), "interest": pick(INTERESTS, n),
+        "warranty": pick(["general", "special"], n), "effective_date": pick(DATES, n)},
+    "royalty_deed": lambda n: {"grantor": pick(GRANTORS, n + 1), "grantee": pick(GRANTEES, n + 1),
+        "consideration": pick(CONSIDERATIONS, n + 1), "interest": pick(INTERESTS, n + 2),
+        "effective_date": pick(DATES, n + 1)},
+    "warranty_deed": lambda n: {"grantor": pick(GRANTORS, n + 2), "grantee": pick(GRANTEES, n + 2),
+        "consideration": pick(CONSIDERATIONS, n + 2), "reservation": pick(["one-half (1/2)", "one-fourth (1/4)"], n),
+        "effective_date": pick(DATES, n + 2)},
+    "quitclaim": lambda n: {"grantor": pick(GRANTORS, n + 3), "grantee": pick(GRANTEES, n + 3),
+        "consideration": pick(CONSIDERATIONS, n + 3), "effective_date": pick(DATES, n + 3)},
+    "surface_use": lambda n: {"lessor": pick(LESSORS, n), "lessee": pick(OPERATORS, n),
+        "effective_date": pick(DATES, n), "surface_payment": pick(["$20,000.00", "$25,000.00", "$30,000.00"], n),
+        "road_payment": pick(["$25.00", "$30.00", "$40.00"], n)},
+    "easement": lambda n: {"grantor": pick(GRANTORS, n), "grantee": pick(["Guadalupe Midstream Partners, LP",
+        "Permian Gathering Co.", "Llano Pipeline LLC"], n), "consideration": pick(["$45,000.00", "$60,300.00",
+        "$72,000.00"], n), "perm_width": "30", "temp_width": "50", "rods": str(300 + n * 17),
+        "effective_date": pick(DATES, n), "acres": pick(["3.50", "4.20", "5.75"], n)},
+    "title_opinion": lambda n: {"lessee": pick(OPERATORS, n), "examiner": pick(EXAMINERS, n),
+        "abstractor": pick(ABSTRACTORS, n), "abstract_entries": str(40 + n * 3),
+        "cert_date": pick(DATES, n), "mineral_owner": short(pick(LESSORS, n)),
+        "npri": "1/8 of 8/8", "npri_owner": "the Henderson Family", "lease_royalty": "25% (1/4)",
+        "nri": "0.65625", "effective_date": pick(DATES, n + 1)},
+    "grazing_lease": lambda n: {"lessor": pick(LESSORS, n), "lessee": pick(["Rock Creek Cattle Company",
+        "Beartooth Land & Livestock", "Sweetwater Grazing Co."], n), "effective_date": pick(DATES, n),
+        "term": pick(TERMS, n), "rent": pick(["$12.00 per acre", "$18.00 per acre", "$22.00 per acre"], n),
+        "rent_schedule": "annually in advance", "aum": str(150 + n * 30)},
+    "amendment": lambda n: {"lessor": pick(LESSORS, n), "lessee": pick(OPERATORS, n),
+        "orig_date": pick(DATES, n), "effective_date": pick(DATES, n + 4), "term": pick(TERMS, n),
+        "royalty": pick(ROYALTIES, n + 1), "bonus": pick(BONUSES, n), "recording": _rec(n)},
+    "doto": lambda n: {"operator": pick(OPERATORS, n), "examiner": pick(EXAMINERS, n),
+        "well": well_name(n), "drilling_opinion_date": pick(DATES, n), "effective_date": pick(DATES, n + 5),
+        "division": [["Owner", "Interest Type", "Decimal"], [short(pick(LESSORS, n)), "Royalty (RI)", "0.18750000"],
+                     ["Big Bend Royalty Partners", "ORRI", "0.03125000"],
+                     [pick(OPERATORS, n), "Working Interest (NRI)", "0.78125000"]]},
+    "division_order": lambda n: {"operator": pick(OPERATORS, n), "property_no": f"DO-{1000 + n}",
+        "well": well_name(n), "effective_date": pick(DATES, n),
+        "owners": [["Owner No.", "Owner Name", "Type", "Decimal Interest"],
+                   ["0001", short(pick(LESSORS, n)), "RI", "0.18750000"],
+                   ["0100", pick(OPERATORS, n), "WI", "0.81250000"]]},
+    "affidavit_heirship": lambda n: {"affiant": f"{pick(NEIGHBORS, n)} {pick(['K. Hayes', 'L. Boyd', 'R. Tao'], n)}, a disinterested party",
+        "decedent": f"{pick(['Andrew J.', 'Walter P.', 'Esther M.', 'Roy D.'], n)} {pick(WELL_SURNAMES, n)}",
+        "date_of_death": pick(DATES, n), "place_of_death": pick(["Pecos, Texas", "Roswell, New Mexico",
+        "Gillette, Wyoming"], n), "testacy": pick(["leaving a written will", "intestate (without a will)"], n),
+        "spouse": f"Helen {pick(WELL_SURNAMES, n)}", "spouse_status": "predeceased the Decedent",
+        "effective_date": pick(DATES, n + 1),
+        "heirs": [["Name", "Relationship", "Share of Decedent's Interest"],
+                  [f"Carl {pick(WELL_SURNAMES, n)}", "Son", "1/2"],
+                  [f"Diane {pick(WELL_SURNAMES, n)}", "Daughter", "1/2"]]},
+    "probate_order": lambda n: {"court": pick(["COUNTY COURT", "DISTRICT COURT", "PROBATE COURT"], n),
+        "decedent": f"{pick(['Andrew J.', 'Walter P.', 'Esther M.', 'Roy D.'], n)} {pick(WELL_SURNAMES, n)}",
+        "cause_no": f"P-{1000 + n}", "date_of_death": pick(DATES, n), "will_date": pick(DATES, n + 2),
+        "executor": f"Carl {pick(WELL_SURNAMES, n)}", "effective_date": pick(DATES, n + 3)},
+    "assignment_absc": lambda n: {"assignor": pick(OPERATORS, n), "assignee": pick(["Permian Acquisition Partners, LP",
+        "Basin A&D Holdings, LLC", "Frontier Upstream, LP"], n), "consideration": pick(CONSIDERATIONS, n),
+        "orri": pick(["2.0%", "2.5%", "3.0%"], n), "effective_date": pick(DATES, n),
+        "leases": [["Lease (Lessor)", "County", "Legal Description", "Recording"],
+                   [short(pick(LESSORS, n)), "see caption", "primary tract (this instrument)", f"Vol {700 + n}/Pg {20 + n}"],
+                   [short(pick(LESSORS, n + 1)), "adjoining", "secondary tract per Exhibit A", f"Vol {705 + n}/Pg {41 + n}"]]},
+    "joa": lambda n: {"operator": pick(OPERATORS, n), "effective_date": pick(DATES, n),
+        "formation": pick(FORMATIONS, n), "nonconsent": pick(["300%", "400%"], n),
+        "afe_threshold": pick(["$50,000.00", "$100,000.00"], n),
+        "interests": [["Party", "Working Interest"], [f"{pick(OPERATORS, n)} (Operator)", "65.00%"],
+                      [pick(OPERATORS, n + 1), "20.00%"], [pick(OPERATORS, n + 2), "15.00%"]]},
+    "farmout": lambda n: {"farmor": pick(GRANTORS, n), "farmee": pick(OPERATORS, n),
+        "commence_by": pick(DATES, n + 4), "formation": pick(FORMATIONS, n), "depth": pick(DEPTHS, n),
+        "earned_depths": f"from the surface to the base of the {pick(FORMATIONS, n)}",
+        "orri": pick(["3.0%", "3.5%", "4.0%"], n), "backin": "25%", "effective_date": pick(DATES, n)},
+    "ami": lambda n: {"party_a": pick(OPERATORS, n), "party_b": pick(OPERATORS, n + 4),
+        "proportions": pick(["50% / 50%", "60% / 40%", "75% / 25%"], n),
+        "ami_area": "the captioned lands and all surveys/sections adjoining them",
+        "term": pick(["two (2) years", "three (3) years", "five (5) years"], n),
+        "effective_date": pick(DATES, n)},
+    "pooling_order": lambda n: {"applicant": pick(OPERATORS, n), "operator": pick(OPERATORS, n),
+        "formation": pick(FORMATIONS, n), "cause_no": f"CD 2024-{100000 + n}", "order_no": str(700000 + n),
+        "effective_date": pick(DATES, n),
+        "options": [["Election Option", "Cash Bonus / Net Acre", "Royalty"],
+                    ["(a) Participate (share of est. well cost $3,400,000)", "n/a", "n/a"],
+                    ["(b) Cash bonus plus royalty", pick(["$500", "$1,000", "$1,500"], n), "3/16"],
+                    ["(c) Higher royalty, lower bonus", "$200", "1/5"]]},
+    "release_lease": lambda n: {"releasor": pick(OPERATORS, n), "orig_lessor": short(pick(LESSORS, n)),
+        "orig_date": pick(DATES, n), "effective_date": pick(DATES, n + 5), "orig_recording": _rec(n)},
+    "ratification": lambda n: {"owner": f"{short(pick(LESSORS, n))} Mineral Trust",
+        "orig_date": pick(DATES, n), "royalty": pick(ROYALTIES, n), "effective_date": pick(DATES, n + 2),
+        "orig_recording": _rec(n)},
+    "afe": lambda n: {"operator": pick(OPERATORS, n), "afe_no": f"AFE-2024-{500 + n}",
+        "well": well_name(n), "depth": pick(DEPTHS, n), "formation": pick(FORMATIONS, n),
+        "spud": pick(SPUDS, n), "effective_date": pick(DATES, n), "costs": _afe_costs(n)},
+}
+
+DOC_TYPE = {
+    "oil_gas_lease": "Oil and Gas Lease", "paidup_modern": "Oil and Gas Lease",
+    "metes_bounds_lease": "Oil and Gas Lease", "memorandum": "Memorandum of Oil and Gas Lease",
+    "mineral_deed": "Mineral Deed", "royalty_deed": "Royalty Deed",
+    "warranty_deed": "General Warranty Deed", "quitclaim": "Quitclaim Deed",
+    "surface_use": "Surface Use and Damage Agreement", "easement": "Right-of-Way and Pipeline Easement",
+    "title_opinion": "Drilling Title Opinion", "grazing_lease": "Grazing and Ranch Lease",
+    "amendment": "Lease Amendment and Extension", "doto": "Division Order Title Opinion",
+    "division_order": "Division Order", "affidavit_heirship": "Affidavit of Heirship",
+    "probate_order": "Order Admitting Will to Probate",
+    "assignment_absc": "Assignment, Bill of Sale and Conveyance", "joa": "Joint Operating Agreement",
+    "farmout": "Farmout Agreement", "ami": "Area of Mutual Interest Agreement",
+    "pooling_order": "Pooling Order", "release_lease": "Release of Oil and Gas Lease",
+    "ratification": "Ratification of Oil and Gas Lease", "afe": "Authority for Expenditure (AFE)",
+}
+SLUG = {
+    "oil_gas_lease": "ogl", "paidup_modern": "ogl-pu", "metes_bounds_lease": "ogl-mb",
+    "memorandum": "memo", "mineral_deed": "mineral-deed", "royalty_deed": "royalty-deed",
+    "warranty_deed": "warranty-deed", "quitclaim": "quitclaim", "surface_use": "surface-use",
+    "easement": "easement", "title_opinion": "title-opinion", "grazing_lease": "grazing",
+    "amendment": "amendment", "doto": "doto", "division_order": "division-order",
+    "affidavit_heirship": "affidavit", "probate_order": "probate", "assignment_absc": "absc",
+    "joa": "joa", "farmout": "farmout", "ami": "ami", "pooling_order": "pooling",
+    "release_lease": "release", "ratification": "ratification", "afe": "afe",
+}
+# Which county pool each template draws from (legal-description system must fit).
+POOLS = {
+    "metes_bounds_lease": METES_COUNTIES,
+    "pooling_order": PLSS_COUNTIES, "doto": PLSS_COUNTIES, "division_order": PLSS_COUNTIES,
+    "joa": PLSS_COUNTIES, "afe": PLSS_COUNTIES, "farmout": PLSS_COUNTIES, "ratification": PLSS_COUNTIES,
+    "quitclaim": GRANT_COUNTIES + TX_COUNTIES,
+}
+EXTRA_PER_TEMPLATE = 4
+
+
+def build_extra_docs():
+    docs = []
+    n = 37
+    for template in EXTRA:
+        pool = POOLS.get(template, MIXED_COUNTIES)
+        for _ in range(EXTRA_PER_TEMPLATE):
+            county = pool[n % len(pool)]
+            sec, aliquot = pick(SECTIONS, n), pick(ALIQUOTS, n)
+            doc = {"id": f"{n:03d}-{SLUG[template]}-{county['county'].lower().replace(' ', '')}-{STATE_ABBR[county['state']]}",
+                   "template": template, "doc_type": DOC_TYPE[template]}
+            apply_location(doc, county, sec, aliquot, n)
+            doc.update(EXTRA[template](n))
+            if template == "pooling_order":
+                doc["commission"] = COMMISSIONS.get(county["state"], "State Oil and Gas Commission")
+            docs.append(doc)
+            n += 1
+    return docs
+
+
+DOCS += build_extra_docs()
 
 
 if __name__ == "__main__":

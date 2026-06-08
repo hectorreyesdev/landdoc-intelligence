@@ -1,9 +1,16 @@
 # Sample land/title documents
 
 A synthetic corpus for exercising the LandDoc ingest → extract → retrieve → ask
-pipeline end to end. **36 documents** across **23 instrument types**, each emitted
-as both readable Markdown (`leases/<id>.md`) and an ingestible text-based PDF
-(`leases/<id>.pdf`).
+pipeline end to end. **136 documents** — roughly **5 of each of 23 instrument
+types** across **12 states** — each emitted as both readable Markdown
+(`leases/<id>.md`) and an ingestible text-based PDF (`leases/<id>.pdf`).
+
+The first 36 documents are hand-curated (including the cross-linked tract/estate
+sets below); the rest are produced by a **data-driven generator** in
+`generate.py` (`build_extra_docs`) that draws from curated real counties and
+name/amount pools, with an **inverse-PLSS solver** (`plss_from_anchor`) that picks
+the township/range so each PLSS tract lands on its real county seat (new PLSS
+tracts are <3 mi from the seat).
 
 Everything here is **synthetic** — party names, dates, dollar amounts, and
 recording data are invented. But the document **structures** are patterned on real
@@ -16,7 +23,7 @@ matches the legal description — see *Geocoding* below.
 
 ## Geocoding — coordinates that match the description
 
-- **19 PLSS tracts** (section-township-range states) are geolocated by `generate.py`'s
+- **73 PLSS tracts** (section-township-range states) are geolocated by `generate.py`'s
   built-in `plss_centroid`: PLSS is a regular 6-mile grid anchored at each principal
   meridian's documented initial point, with sections numbered in the standard
   boustrophedon pattern, so a Township/Range/Section/aliquot description converts to
@@ -24,7 +31,7 @@ matches the legal description — see *Geocoding* below.
   lines). Each computed centroid lands **3–29 miles from its county seat**, i.e.
   inside the (large, western) county — `distance_to_county_seat_mi` in the manifest
   records this sanity check. `coordinate_basis` is `"PLSS tract centroid (computed…)"`.
-- **17 non-PLSS docs** (Texas abstract/block-section, Appalachian metes-and-bounds,
+- **63 non-PLSS docs** (Texas abstract/block-section, Appalachian metes-and-bounds,
   a Spanish land grant) have **no computable grid**, so their coordinate is a real
   in-county/town point, marked `coordinate_basis: "county/town approximate"`.
 
