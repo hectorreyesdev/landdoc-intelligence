@@ -6,4 +6,4 @@ namespace LandDoc.Api.Storage;
 /// can build citations), and its embedding <see cref="Vector"/>. Dropping <see cref="Text"/> or using
 /// unstable ids would silently break spec 0002's citations.
 /// </summary>
-public sealed record Chunk(Guid Id, Guid DocumentId, string Text, float[] Vector);
+public sealed record Chunk(Guid Id, Guid DocumentId, string Text, float[] Vector, string Source);
