@@ -2,6 +2,12 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text;
 using LandDoc.Api.Ingestion;
+using LandDoc.Api.Model;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LandDoc.Tests;
 
@@ -143,7 +149,9 @@ public sealed class TextIngestionTests(LandDocApiFactory factory) : IClassFixtur
     [Fact]
     public async Task PostDocuments_PdfFile_StillReturns201_WithChunks()
     {
-        var client = factory.CreateClient();
+        // Use an isolated factory that pins small chunk size so the fixture yields > 1 chunk.
+        using var smallFactory = new SmallChunkFactory();
+        var client = smallFactory.CreateClient();
         using var form = await IngestionTestHelpers.BuildPdfFormAsync();
 
         var response = await client.PostAsync("/documents", form);
@@ -155,6 +163,21 @@ public sealed class TextIngestionTests(LandDocApiFactory factory) : IClassFixtur
     }
 
     // --- helpers ---
+
+    /// <summary>Pins small chunk size so fixtures yield > 1 chunk regardless of the production default.</summary>
+    private sealed class SmallChunkFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseSetting("Chunking:MaxChars", "80");
+            builder.UseSetting("Chunking:Overlap", "20");
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IChatClient>();
+                services.AddSingleton<IChatClient, FakeChatClient>();
+            });
+        }
+    }
 
     private static async Task<MultipartFormDataContent> BuildFormFromFixtureAsync(string fileName)
     {

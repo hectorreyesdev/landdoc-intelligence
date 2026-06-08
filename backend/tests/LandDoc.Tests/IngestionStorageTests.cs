@@ -1,6 +1,12 @@
 using System.Net;
 using System.Net.Http.Json;
 using LandDoc.Api.Ingestion;
+using LandDoc.Api.Model;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace LandDoc.Tests;
 
@@ -15,7 +21,7 @@ public sealed class IngestionStorageTests
     [Fact]
     public async Task Ingest_StoresExactlyChunkCountChunks_AllSameLengthNonEmptyVectors()
     {
-        using var factory = new LandDocApiFactory();
+        using var factory = new SmallChunkFactory();
         var response = await IngestionTestHelpers.PostFixtureAsync(factory.CreateClient());
 
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
@@ -55,5 +61,20 @@ public sealed class IngestionStorageTests
             Assert.False(string.IsNullOrWhiteSpace(chunk.Text));
         });
         Assert.Equal(stored.Count, stored.Select(chunk => chunk.Id).Distinct().Count());
+    }
+
+    /// <summary>Pins small chunk size so the fixture yields > 1 chunk regardless of the production default.</summary>
+    private sealed class SmallChunkFactory : WebApplicationFactory<Program>
+    {
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            builder.UseSetting("Chunking:MaxChars", "80");
+            builder.UseSetting("Chunking:Overlap", "20");
+            builder.ConfigureTestServices(services =>
+            {
+                services.RemoveAll<IChatClient>();
+                services.AddSingleton<IChatClient, FakeChatClient>();
+            });
+        }
     }
 }
