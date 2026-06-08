@@ -105,6 +105,8 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | App (SPA + API, one container) | Azure **Container App** | `landdoc` (env `cae-landdoc`, eastus2) | **deployed** — https://landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io/ |
 | Image registry | Azure Container Registry (Basic) | `ca6a00db456cacr` | deployed |
 | Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
+| Vector store (chunks) | Azure AI Search Free tier (index `landdoc-chunks`) | `landdoc-rag-resource…` (eastus) | wired (ADR-0017) |
+| Document store (files + metadata) | Azure Blob via app's MI (`Storage Blob Data Contributor`), container `documents` | `stlanddochr01` | wired (spec 0006 / ADR-0018) |
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
 | CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
 | Custom domain | ACA **custom domain** binding + free managed cert | **`landdoc.hectorreyes.dev`** — cert `mc-cae-landdoc-landdoc-hectorre-8517` (Namecheap CNAME + `asuid` TXT) | **bound** (SniEnabled, auto-renew) — https://landdoc.hectorreyes.dev/ |

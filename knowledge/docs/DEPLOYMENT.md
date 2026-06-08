@@ -94,37 +94,68 @@ az role assignment create \
 az containerapp update \
   -n "$APP" -g "$RG" \
   --set-env-vars KeyVault__Uri="$VAULT_URI" \
-                 Blob__ServiceUri="https://stlanddochr01.blob.core.windows.net" \
-                 DocumentStore__Provider="azureblob" \
   --min-replicas 1 --max-replicas 1
 ```
-
-> **Blob document store (spec 0006 / ADR-0018).** The original-file viewer + documents table read/write
-> the `documents` container on `stlanddochr01` via the app's managed identity. Grant it once:
-> ```bash
-> STORAGE_ID=$(az storage account show -n stlanddochr01 -g "$RG" --query id -o tsv)
-> az role assignment create \
->   --role "Storage Blob Data Contributor" \
->   --assignee-object-id "$PRINCIPAL_ID" --assignee-principal-type ServicePrincipal \
->   --scope "$STORAGE_ID"
-> ```
-> (Passwordless via `Blob__ServiceUri`. Alternatively, omit the grant and set `Blob__ConnectionString`
-> from the `Blob--ConnectionString` Key Vault secret.)
 
 > RBAC can take a minute to propagate. If the new revision boots before the role lands, restart it:
 > `az containerapp revision restart -n "$APP" -g "$RG" --revision <latest>`.
 
-### 1e. Verify
+### 1e. Configure the Blob document store (spec 0006 / ADR-0018)
+
+The documents table + original-file viewer persist each upload (bytes + metadata) to the `documents`
+container on the **`stlanddochr01`** storage account. The container already exists (see
+[AZURE-CONFIG.md §2](AZURE-CONFIG.md)); wire the app to it in three steps.
+
+**Step 1 — grant the app's managed identity blob access** (passwordless path; the app reads/writes blobs
+as its identity, no key in config):
+
+```bash
+STORAGE_ID=$(az storage account show -n stlanddochr01 -g "$RG" --query id -o tsv)
+az role assignment create \
+  --role "Storage Blob Data Contributor" \
+  --assignee-object-id "$PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --scope "$STORAGE_ID"
+```
+
+**Step 2 — point the app at the blob endpoint and select the provider** (`Blob__ServiceUri` triggers the
+managed-identity path; `DocumentStore__Provider=azureblob` selects the live adapter over `inmemory`):
+
+```bash
+az containerapp update \
+  -n "$APP" -g "$RG" \
+  --set-env-vars Blob__ServiceUri="https://stlanddochr01.blob.core.windows.net" \
+                 DocumentStore__Provider="azureblob"
+```
+
+**Step 3 — let RBAC propagate, then restart the revision so it picks up the grant** (the adapter creates
+the `documents` container on startup if it's missing — idempotent):
+
+```bash
+az containerapp revision restart -n "$APP" -g "$RG" \
+  --revision "$(az containerapp revision list -n "$APP" -g "$RG" --query '[-1].name' -o tsv)"
+```
+
+> **Connection-string alternative (no role grant):** instead of Steps 1–2, set
+> `DocumentStore__Provider=azureblob` and supply `Blob__ConnectionString` from the `Blob--ConnectionString`
+> Key Vault secret. Managed identity (above) is preferred (ADR-0016 — no secret in play). For **local dev**
+> with no Azure, set `DocumentStore__Provider=inmemory` (or run Azurite and use `Blob__ConnectionString`).
+
+### 1f. Verify
 
 ```bash
 FQDN=$(az containerapp show -n "$APP" -g "$RG" --query "properties.configuration.ingress.fqdn" -o tsv)
-curl -s -o /dev/null -w "GET /     -> %{http_code} %{content_type}\n" "https://$FQDN/"
-curl -s -o /dev/null -w "POST /ask -> %{http_code} %{content_type}\n" \
+curl -s -o /dev/null -w "GET /          -> %{http_code} %{content_type}\n" "https://$FQDN/"
+curl -s -o /dev/null -w "GET /documents -> %{http_code} %{content_type}\n" "https://$FQDN/documents"
+curl -s -o /dev/null -w "POST /ask      -> %{http_code} %{content_type}\n" \
   -X POST "https://$FQDN/ask" -H "Content-Type: application/json" -d '{"question":"ping"}'
 ```
 
-`GET /` → `200 text/html` (SPA). `POST /ask` → `409` (empty store) **or** `200` — either proves the
-vault-supplied key reached the model. A `500` means the identity/role isn't wired (see 1c–1d).
+`GET /` → `200 text/html` (SPA). `GET /documents` → `200 application/json` (`[]` until something is
+ingested) — proves the blob document store is reachable. `POST /ask` → `409` (empty store) **or** `200` —
+either proves the vault-supplied key reached the model. A `500` on `/ask` means the Key Vault
+identity/role isn't wired (see 1c–1d); a `500` on `/documents` means the blob identity/role isn't wired
+(see 1e).
 
 ---
 
@@ -219,7 +250,8 @@ curl -s -o /dev/null -w "%{http_code} ssl=%{ssl_verify_result}\n" https://landdo
 
 ## 4. Teardown
 
-The Key Vault (`kv-landdoc-hr01`) and the Azure AI resource (`landdoc-rag-resource…`) also live in
+The Key Vault (`kv-landdoc-hr01`), the Azure AI resource (`landdoc-rag-resource…`), the Azure AI Search
+service, and the storage account (`stlanddochr01`, which holds the ingested documents) also live in
 `rg-landdoc-deomo`, so **do not delete the whole resource group** unless you intend to destroy those
 too. Delete only what this deployment created.
 
@@ -228,10 +260,12 @@ too. Delete only what this deployment created.
 ```bash
 az account set --subscription "$SUBSCRIPTION"
 
-# the Key Vault role assignment for the app's identity (capture id before deleting the app)
+# the role assignments for the app's identity (capture id before deleting the app)
 PRINCIPAL_ID=$(az containerapp show -n "$APP" -g "$RG" --query "identity.principalId" -o tsv)
 VAULT_ID=$(az keyvault show --name "$VAULT" --query id -o tsv)
+STORAGE_ID=$(az storage account show -n stlanddochr01 -g "$RG" --query id -o tsv)
 az role assignment delete --assignee "$PRINCIPAL_ID" --role "Key Vault Secrets User" --scope "$VAULT_ID"
+az role assignment delete --assignee "$PRINCIPAL_ID" --role "Storage Blob Data Contributor" --scope "$STORAGE_ID"
 
 az containerapp delete  -n "$APP" -g "$RG" --yes        # the app (all revisions)
 az containerapp env delete -n "$ENV" -g "$RG" --yes     # the environment
