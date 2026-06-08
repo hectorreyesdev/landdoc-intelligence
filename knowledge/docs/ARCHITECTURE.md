@@ -77,8 +77,11 @@ flowchart TD
 
 ## Key boundaries
 - SPA ↔ API: HTTP/JSON only (typed API client on the frontend), **single-origin** — the typed client
-  calls relative paths; dev fronts the API via the Vite dev-proxy and prod via an Azure Static Web Apps
-  linked backend, so there is no CORS. See [ADR-0011](decisions/0011-single-origin-spa-api-topology.md).
+  calls relative paths; dev fronts the API via the Vite dev-proxy and prod serves the SPA + API from one
+  container on a single origin (Azure Container Apps), so there is no CORS. See
+  [ADR-0011](decisions/0011-single-origin-spa-api-topology.md) (single-origin principle) and
+  [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md) (container/ACA realization).
 - Modules ↔ providers: only through `IChatClient` / `IEmbeddingClient`.
-- Slice ↔ production: in-memory store + local embeddings are slice-only; Azure AI Search, Azure
-  OpenAI embeddings, and Key Vault are the named (unbuilt) production path.
+- Slice ↔ production: the in-memory vector store is slice-only (Azure AI Search is the named, unbuilt
+  production path); cloud model access (Azure OpenAI) and Key Vault secret sourcing are now **built** —
+  see [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md).

@@ -5,7 +5,8 @@ import react from '@vitejs/plugin-react'
 // Single-origin transport (ADR-0011): in dev, the Vite server proxies the API routes to the
 // backend so the browser only ever talks to one origin — no CORS. This proxy target is the
 // ONLY place the absolute backend URL appears; the typed client always uses relative paths.
-// In prod the same single-origin shape is realized by an Azure Static Web Apps linked backend.
+// In prod the same single-origin shape is realized by a single container that serves the SPA
+// and the API on one origin (same-origin, no CORS).
 const API_TARGET = 'http://localhost:5084'
 
 export default defineConfig({

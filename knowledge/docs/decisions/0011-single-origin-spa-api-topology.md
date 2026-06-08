@@ -1,6 +1,9 @@
 # 0011. Single-origin SPA ↔ API topology (Vite dev-proxy now, SWA linked-backend in prod — no CORS)
 
-- Status: Accepted
+- Status: Superseded by [ADR-0016](0016-single-container-azure-container-apps-keyvault-secrets.md)
+  — the single-origin / no-CORS principle and the relative-paths client contract **carry forward**; only
+  the prod *realization* named here (Azure Static Web Apps + linked backend) is replaced by the single
+  container on Azure Container Apps.
 - Date: 2026-06-07
 
 ## Context

@@ -21,4 +21,7 @@ Seeded from `CLAUDE.md`. Backend and frontend rows are pinned from their manifes
 | Test (backend) | xUnit · `Microsoft.NET.Test.Sdk` · `Microsoft.AspNetCore.Mvc.Testing` | 2.9.3 · 17.14.1 · 10.0.8 | `dotnet test`; `WebApplicationFactory` integration tests |
 | Test (frontend) | Vitest (+ React Testing Library · jsdom) | `^4.1` · `^16.3` · `^29.1` | `npm test`; component + typed-client tests |
 | Secrets (dev) | `dotnet user-secrets` / env vars | n/a | Never commit secrets |
-| Secrets (prod) | Azure Key Vault | n/a (out of scope) | Production path only |
+| Secrets (prod) | Azure Key Vault via `DefaultAzureCredential` (managed identity in ACA) | `Azure.Identity` 1.21.0 · `Azure.Extensions.AspNetCore.Configuration.Secrets` 1.5.1 | **Built** — opt-in config source (`KeyVault:Uri`); vault secrets overlay config keys, no adapter change — see [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md) |
+| Container image | Docker — multi-stage (`node:22-alpine` build SPA + `dotnet/sdk:10.0` publish API → `dotnet/aspnet:10.0`) | n/a | One image serves the SPA (`wwwroot`) and API on one origin, port 8080 — see [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md) |
+| Hosting (prod) | Azure Container Apps | n/a | Single container, public HTTPS ingress; secrets via managed identity + Key Vault — see [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md) · [DEPLOYMENT.md](DEPLOYMENT.md) |
+| CI/CD | GitHub Actions → `az acr build` → ACA revision (passwordless OIDC) | n/a | Auto-deploy on merge to `main` — see [CICD.md](CICD.md) |

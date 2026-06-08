@@ -3,8 +3,8 @@
 // methods; they never touch fetch directly.
 //
 // Transport is single-origin (ADR-0011): every request uses a RELATIVE path. In dev the Vite
-// proxy forwards /documents and /ask to the backend; in prod an Azure Static Web Apps linked
-// backend does the same. There is no base URL here — by design.
+// proxy forwards /documents and /ask to the backend; in prod a single container serves the SPA
+// and the API on one origin (same-origin, no CORS). There is no base URL here — by design.
 
 import type { AskResponse, DocumentResponse } from './types'
 

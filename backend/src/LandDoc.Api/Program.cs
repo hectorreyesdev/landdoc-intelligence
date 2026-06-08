@@ -1,3 +1,4 @@
+using Azure.Identity;
 using LandDoc.Api.Extraction;
 using LandDoc.Api.Ingestion;
 using LandDoc.Api.Model;
@@ -7,6 +8,17 @@ using LandDoc.Api.Storage;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Secrets from Azure Key Vault (prod secret store, ADR-0016). Opt-in: the vault source is added only
+// when KeyVault:Uri is set, so tests and offline runs need no cloud credential. Vault secret names use
+// the `--` convention (e.g. AzureOpenAI--ApiKey → AzureOpenAI:ApiKey), so they overlay the existing
+// config keys with no adapter change. DefaultAzureCredential resolves to your `az login` locally and to
+// the container's managed identity in Azure Container Apps — same code, no secrets baked into the image.
+var keyVaultUri = builder.Configuration["KeyVault:Uri"];
+if (!string.IsNullOrWhiteSpace(keyVaultUri))
+{
+    builder.Configuration.AddAzureKeyVault(new Uri(keyVaultUri), new DefaultAzureCredential());
+}
 
 // Error model: RFC 7807 ProblemDetails.
 builder.Services.AddProblemDetails();
@@ -64,8 +76,18 @@ if (app.Environment.IsDevelopment())
     app.MapOpenApi();
 }
 
+// Serve the built React SPA from wwwroot (single image, single origin — same-origin, no CORS).
+// Registered before the API maps so the static-file/default-document middleware can short-circuit
+// asset requests; the API routes below still match first for their exact paths.
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 app.MapDocumentsEndpoints();
 app.MapAskEndpoints();
+
+// Any non-API path falls back to the SPA shell so client-side routing works on deep links/refresh.
+// /documents and /ask are matched by the endpoint maps above, so this never shadows the API.
+app.MapFallbackToFile("index.html");
 
 app.Run();
 

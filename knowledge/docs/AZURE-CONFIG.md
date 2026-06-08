@@ -88,24 +88,36 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).
 
-## 7. Phase D — hosted deploy targets (in progress)
+## 7. Phase D — hosted deploy (done)
 
-| Component | Target | Name | Custom domain | Status |
-|---|---|---|---|---|
-| Frontend (React SPA) | Azure **Static Web App** (Standard) | `swa-landdoc-hr01` ‹being created› | **`landdoc.hectorreyes.dev`** | pending step 3 |
-| API (ASP.NET Core) | App Service **or** Container App ‹decide step 4› | ‹tbd› | via SWA **linked backend** → same-origin `/api/*` (no CORS) | pending step 4 |
-| DNS | **Namecheap BasicDNS** (`*.registrar-servers.com`) | — | add `landdoc` CNAME in *Advanced DNS*; don't touch M365 records | — |
-| Observability | App Insights | ‹tbd, optional› | — | step 6 |
+Deployed as a **single container** (SPA + API on one origin, port 8080) on **Azure Container Apps**,
+with secrets pulled from Key Vault via the app's managed identity — superseding the earlier Static Web
+App + linked-backend plan ([ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md)).
+Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
+
+| Component | Target | Name | Status |
+|---|---|---|---|
+| App (SPA + API, one container) | Azure **Container App** | `landdoc` (env `cae-landdoc`, eastus2) | **deployed** — https://landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io/ |
+| Image registry | Azure Container Registry (Basic) | `ca6a00db456cacr` | deployed |
+| Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
+| Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
+| CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
+| Custom domain (optional) | ACA **custom domain** binding + managed cert | `landdoc.hectorreyes.dev` (Namecheap CNAME, *Advanced DNS*; don't touch M365 records) | not bound |
+| App Insights | — | ‹optional› | not built |
 
 ## 8. Cost guardrails & teardown
 
-- All resources are **consumption / no idle cost** (Default settings not PTU · LRS not GRS). Budget `landdoc-budget`
-  $25 @ 50/80/100%. Phase D adds ~$9/mo SWA Standard + a small API host — still inside $25 for a few days.
+- Model/storage resources are **consumption / no idle cost** (Default settings not PTU · LRS not GRS). Budget
+  `landdoc-budget` $25 @ 50/80/100%. Phase D adds the Container App (always-on 1 replica) + ACR Basic ≈ a few
+  $/mo — still inside $25 for a few days. To cut ACA idle cost without tearing down, scale to zero:
+  `az containerapp update -n landdoc -g rg-landdoc-deomo --min-replicas 0` (adds a cold start after idle).
 - **Teardown after the interview (mandatory):**
   ```bash
-  az group delete -n rg-landdoc-deomo --yes --no-wait
+  az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
+  az ad app delete --id bfce2d5a-ca40-4c2f-8a9b-1308927b2951 # the CI/CD Entra app — lives in Entra, not the RG
   ```
-  One RG, one command — drops every resource above. (Custom-domain CNAME at Namecheap is harmless to leave or remove.)
+  (Custom-domain CNAME at Namecheap is harmless to leave or remove.) For **targeted** teardown that keeps the
+  Key Vault + AI resource, see [DEPLOYMENT.md §3](DEPLOYMENT.md).
 
 ## 9. Open confirmations before adapters go live
 
