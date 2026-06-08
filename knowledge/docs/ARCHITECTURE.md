@@ -55,6 +55,13 @@ flowchart TD
   cosine) — persistence at $0; `InMemoryVectorStore` (cosine over `float[]`) is the offline/test
   provider. See [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md) (realizes
   [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
+- **Document store** — a *separate* port `IDocumentStore` (`SaveAsync` / `ListAsync` / `GetAsync` /
+  `GetFileAsync`) for original files + document metadata, config-selected via `DocumentStore:Provider`.
+  Live default is **Azure Blob Storage** (`AzureBlobDocumentStore`, container `documents`, two blobs per
+  doc: bytes + metadata JSON; managed-identity-preferred auth); `InMemoryDocumentStore` is the offline/test
+  provider. Object storage, not a similarity index — kept distinct from the vector store so PDF bytes never
+  enter the search index. Backs `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec
+  0006). See [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.

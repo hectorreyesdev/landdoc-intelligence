@@ -17,6 +17,10 @@ erDiagram
       Guid Id
       string FileName
       string Status
+      string ContentType
+      int ChunkCount
+      datetime IngestedAt
+      bytes Original "original uploaded file"
     }
     CHUNK {
       Guid Id
@@ -40,6 +44,7 @@ erDiagram
       Guid DocumentId
       double Score
       string Text "resolved from store"
+      string Source "source-doc file name"
     }
     SCORED_CHUNK {
       double Score "cosine; wraps a Chunk"
@@ -53,10 +58,13 @@ erDiagram
 ```
 
 ## Entities
-- **Document** — an uploaded document (PDF, text, or Markdown) and its ingest status (`Status` is `"ready"` once ingested). There is
-  no stored `Document` record in the slice: a document is identified by a generated `documentId` and
-  surfaced through the `POST /documents` response (`id`, `fileName`, `status`, the extracted `fields`,
-  and a **derived** `chunkCount` — the count of the document's stored chunks, not a stored field).
+- **Document** — an uploaded document (PDF, text, or Markdown) and its ingest status (`Status` is
+  `"ready"` once ingested). Since spec 0006 / ADR-0018 the document **is** persisted: the original
+  uploaded bytes plus metadata (`Id`, `FileName`, `Status`, `ContentType`, `ChunkCount`, the extracted
+  `Fields`, `IngestedAt`) are stored via the `IDocumentStore` port, so the corpus survives restart and the
+  original file can be viewed (`GET /documents/{id}/file`). `DocumentMetadata` is the read shape returned
+  by `GET /documents` (list) and `GET /documents/{id}` (detail); `DocumentFile` carries the bytes +
+  content type for the file endpoint.
 - **Chunk** — a contiguous slice of a document's text, its embedding vector, and `Source` — the
   sanitized source-document name (newlines/brackets neutralized) used to label the chunk in the grounding
   prompt (ADR-0014).
@@ -67,7 +75,8 @@ erDiagram
   slice stores no `Answer` record (the `/ask` response is `answer` + `citations[]`).
 - **Citation** — a pointer from an answer (or extracted field) to the chunk that supports it (carries
   `ChunkId` + `DocumentId` + `Score`). The `POST /ask` response DTO additionally inlines the chunk
-  `text` (resolved from the store) so the UI can show the source without a second call.
+  `Text` (resolved from the store) and the `Source` file name (spec 0006 / ADR-0014 follow-on) so the UI
+  can label the citation and link to the source document without a second call.
 - **ScoredChunk** — a retrieved `Chunk` paired with its cosine `Score`; the `IVectorStore.TopKAsync`
   result. Transient — not stored.
 - **QaPassage** — the chat-context projection of a retrieved chunk (`ChunkId`, `DocumentId`, `Text`,
@@ -92,3 +101,14 @@ erDiagram
 - **Offline/test** — `InMemoryVectorStore`, a cosine-scanned in-process collection (no persistence),
   selected via `VectorStore:Provider=inmemory` (see
   [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
+
+### Document store (original files + metadata) — ADR-0018
+A **separate** store from the chunk index (object storage, not a similarity index), via the
+`IDocumentStore` port, config-selected by `DocumentStore:Provider`:
+- **Live default — Azure Blob Storage** (`azureblob`): container `documents` on `stlanddochr01`, two blobs
+  per document — `"{id}"` (original bytes, with `Content-Type`) and `"{id}.json"` (the `DocumentMetadata`).
+  `ListAsync` enumerates the `*.json` blobs. Managed-identity-preferred auth (`Blob:ServiceUri` +
+  `DefaultAzureCredential`), connection-string fallback (`Blob:ConnectionString`). Persists across
+  restarts/redeploys; the container is created on startup (idempotent).
+- **Offline/test** — `InMemoryDocumentStore` (no persistence), selected via `DocumentStore:Provider=inmemory`
+  (pinned in tests by `TestModuleInitializer`).

@@ -94,8 +94,22 @@ az role assignment create \
 az containerapp update \
   -n "$APP" -g "$RG" \
   --set-env-vars KeyVault__Uri="$VAULT_URI" \
+                 Blob__ServiceUri="https://stlanddochr01.blob.core.windows.net" \
+                 DocumentStore__Provider="azureblob" \
   --min-replicas 1 --max-replicas 1
 ```
+
+> **Blob document store (spec 0006 / ADR-0018).** The original-file viewer + documents table read/write
+> the `documents` container on `stlanddochr01` via the app's managed identity. Grant it once:
+> ```bash
+> STORAGE_ID=$(az storage account show -n stlanddochr01 -g "$RG" --query id -o tsv)
+> az role assignment create \
+>   --role "Storage Blob Data Contributor" \
+>   --assignee-object-id "$PRINCIPAL_ID" --assignee-principal-type ServicePrincipal \
+>   --scope "$STORAGE_ID"
+> ```
+> (Passwordless via `Blob__ServiceUri`. Alternatively, omit the grant and set `Blob__ConnectionString`
+> from the `Blob--ConnectionString` Key Vault secret.)
 
 > RBAC can take a minute to propagate. If the new revision boots before the role lands, restart it:
 > `az containerapp revision restart -n "$APP" -g "$RG" --revision <latest>`.
@@ -146,8 +160,9 @@ az containerapp revision list -n "$APP" -g "$RG" \
   --query "[-1].{name:name, active:properties.active, running:properties.runningState, health:properties.healthState}" -o table
 ```
 
-> The vector store is **in-memory**, so every new revision starts with an empty corpus — re-upload
-> documents after a redeploy. To change a non-secret setting without rebuilding, use
+> With the live providers (Azure AI Search chunks — ADR-0017; Azure Blob documents — ADR-0018) the corpus
+> **persists across revisions/redeploys** — no re-upload needed. (Only the offline `inmemory` providers
+> start empty.) To change a non-secret setting without rebuilding, use
 > `az containerapp update --set-env-vars KEY=VALUE`. To change a *secret*, update it in Key Vault and
 > restart the revision — no rebuild.
 

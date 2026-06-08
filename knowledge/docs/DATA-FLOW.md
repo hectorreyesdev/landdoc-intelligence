@@ -12,6 +12,7 @@ sequenceDiagram
     participant API as Web API (Ingestion)
     participant E as IEmbeddingClient
     participant V as Vector store
+    participant D as Document store
     participant C as IChatClient
 
     A->>SPA: Upload document (PDF or text/markdown)
@@ -24,12 +25,15 @@ sequenceDiagram
     API->>E: Embed chunks (IEmbeddingClient)
     E-->>API: Vectors
     API->>V: Store chunks + vectors
+    API->>D: Save original file + metadata (IDocumentStore — required)
     API-->>SPA: documentId + fields + chunkCount
     SPA-->>A: Show extracted fields
 ```
 
-**State change:** ingest is the only write — chunks + vectors are added to the in-memory store, and
-the document's extracted fields are produced.
+**State change:** ingest is the only write on the ask path's data — chunks + vectors are added to the
+vector store, the original file + metadata + fields are persisted to the document store (spec 0006 /
+ADR-0018; required — a save failure fails ingest), and the document's extracted fields are produced.
+The viewer reads back via `GET /documents/{id}` + `GET /documents/{id}/file`.
 
 ## Ask — question with citations
 

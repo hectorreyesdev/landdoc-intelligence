@@ -83,7 +83,12 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    live slice default; `Embedding:Dimension` honored via the embeddings `dimensions` parameter; `LocalEmbeddingClient`
    demoted to offline/test (re-embed/re-upload on swap).
 3. **Document Intelligence extractor** — replaces PdfPig field extraction.
-4. **Blob document store** — replaces local-disk uploads; container `documents`.
+4. ✅ **Done (spec 0006 / ADR-0018).** **`AzureBlobDocumentStore : IDocumentStore`** — persists original
+   files + metadata in container `documents` (two blobs per doc: bytes + metadata JSON); managed-identity-
+   preferred auth (`Blob:ServiceUri` + `DefaultAzureCredential`, connection-string fallback);
+   `DocumentStore:Provider` switch (`azureblob` live / `inmemory` offline). Backs the document table +
+   source-file viewer. **New role grant required:** the Container App's MI needs *Storage Blob Data
+   Contributor* on `stlanddochr01` (for the passwordless `ServiceUri` path).
 
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).
@@ -125,3 +130,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 - [x] **Deployment names** for chat + embeddings — `gpt-5.4-mini` / `text-embedding-3-small` (in `appsettings.json`) (§3).
 - [ ] **Secret count/names** in `kv-landdoc-hr01` — confirm the Anthropic fallback secret (§5).
 - [ ] API host's **managed identity** granted *Key Vault Secrets User* on the vault (§5).
+- [ ] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4)
+  and Container App env set: `Blob__ServiceUri=https://stlanddochr01.blob.core.windows.net`,
+  `DocumentStore__Provider=azureblob`. (Local dev: `DocumentStore__Provider=inmemory`, or Azurite via
+  `Blob__ConnectionString`.)
