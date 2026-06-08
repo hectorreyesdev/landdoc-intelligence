@@ -71,8 +71,9 @@ a later retrieval/Q&A spec will read.
 - **Store:** in-memory, process-lifetime only, registered as a shared singleton so a later retrieval
   spec reads the same instance (ADR-0005). No durable persistence (PRD non-goal).
 - **Stored chunk contract (the 0001→0002 seam):** each stored `Chunk` is `{ Id, DocumentId, Text,
-  Vector }` — a stable `Id`, the owning `DocumentId`, the **source `Text`** it was chunked from, and
-  its embedding `Vector`. The read path ([[knowledge/docs/specs/0002-rag-qa-with-citations]]) resolves
+  Vector, Source }` — a stable `Id`, the owning `DocumentId`, the **source `Text`** it was chunked from,
+  its embedding `Vector`, and `Source` (the sanitized source-document name for grounding labels — added by
+  ADR-0014). The read path ([[knowledge/docs/specs/0002-rag-qa-with-citations]]) resolves
   `chunkId → { documentId, text }` from the store to build citations, so dropping `Text` or using
   unstable ids silently breaks 0002's citations. This shape is part of the **write-side** contract,
   not an 0002 concern.
@@ -99,8 +100,9 @@ a later retrieval/Q&A spec will read.
   same length** (cosine invariant).
 - **Stored chunk shape (the 0001→0002 seam):** each stored chunk **retains its source `Text`**
   (non-empty) and is **resolvable by a stable `Id`** carrying the correct `DocumentId` — i.e. the full
-  `{ Id, DocumentId, Text, Vector }` shape, asserted explicitly so a "vector-only" store that drops
-  `Text` can't pass while silently breaking 0002's citations.
+  `{ Id, DocumentId, Text, Vector, Source }` shape (`Source` = the sanitized source-document name, added by
+  ADR-0014), asserted explicitly so a "vector-only" store that drops `Text` can't pass while silently
+  breaking 0002's citations.
 - **Deterministic embeddings:** tests pin `EmbeddingProvider=local`, so embedding the same chunk text
   twice yields identical vectors (unit test over `LocalEmbeddingClient`, the offline/test embedder per
   ADR-0013).

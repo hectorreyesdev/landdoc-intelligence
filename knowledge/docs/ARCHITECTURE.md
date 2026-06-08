@@ -11,7 +11,7 @@ React/TypeScript SPA. All model access is hidden behind two ports (`IChatClient`
 
 ```mermaid
 flowchart TD
-    user(["Analyst"]) -->|"upload PDF / ask"| spa["React + TS SPA"]
+    user(["Analyst"]) -->|"upload docs / ask"| spa["React + TS SPA"]
     spa -->|"HTTP + JSON"| api["ASP.NET Core Web API"]
 
     subgraph monolith[".NET 10 modular monolith"]
@@ -35,11 +35,14 @@ flowchart TD
 ```
 
 ## Containers & components
-- **SPA** (React/TS) — upload control, extracted-fields view, question box, answer-with-citations.
+- **SPA** (React/TS) — a multi-file **drag-and-drop** upload control (ingest-on-select, no submit
+  button; PDF/text/Markdown), a **document-tile grid** (each upload a placeholder that solidifies into
+  its extracted-fields card, or an error tile), a question box, and the answer-with-citations view;
+  light/dark **theme toggle**, two-column layout. One typed API client is the only `fetch`.
   React over Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
 - **Web API** (ASP.NET Core) — thin HTTP surface; delegates to modules.
 - **Modules** (namespaces in one process):
-  - `Ingestion` — PDF → text → chunks → embeddings → vector store.
+  - `Ingestion` — PDF **or** text/Markdown (dispatched by file extension) → text → chunks → embeddings → vector store.
   - `Extraction` — document → structured fields (via `IChatClient`).
   - `Retrieval` — question → embed → top-k chunks from the vector store.
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).

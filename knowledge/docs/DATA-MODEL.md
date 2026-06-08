@@ -23,6 +23,7 @@ erDiagram
       Guid DocumentId
       string Text
       vector Vector "float[] cosine vector"
+      string Source "sanitized source-doc name"
     }
     EXTRACTED_FIELD {
       string Name
@@ -47,15 +48,18 @@ erDiagram
       Guid ChunkId
       Guid DocumentId
       string Text
+      string SourceName
     }
 ```
 
 ## Entities
-- **Document** — an uploaded PDF and its ingest status (`Status` is `"ready"` once ingested). There is
+- **Document** — an uploaded document (PDF, text, or Markdown) and its ingest status (`Status` is `"ready"` once ingested). There is
   no stored `Document` record in the slice: a document is identified by a generated `documentId` and
   surfaced through the `POST /documents` response (`id`, `fileName`, `status`, the extracted `fields`,
   and a **derived** `chunkCount` — the count of the document's stored chunks, not a stored field).
-- **Chunk** — a contiguous slice of a document's text plus its embedding vector.
+- **Chunk** — a contiguous slice of a document's text, its embedding vector, and `Source` — the
+  sanitized source-document name (newlines/brackets neutralized) used to label the chunk in the grounding
+  prompt (ADR-0014).
 - **ExtractedField** — a structured field pulled from the document (e.g. royalty, lessor), with the
   chunk it came from (`SourceChunkId` may be null when a field isn't pinned to a chunk).
 - **Answer** — a generated response to a question over the **whole corpus** (global `/ask`, ADR-0009),
@@ -66,9 +70,10 @@ erDiagram
   `text` (resolved from the store) so the UI can show the source without a second call.
 - **ScoredChunk** — a retrieved `Chunk` paired with its cosine `Score`; the `IVectorStore.TopK` result.
   Transient — not stored.
-- **QaPassage** — the chat-context projection of a retrieved chunk (`ChunkId`, `DocumentId`, `Text`)
-  passed to `IChatClient.AnswerAsync`; keeps the chat port free of `Storage` types (ADR-0002 / ADR-0004).
-  Transient — not stored.
+- **QaPassage** — the chat-context projection of a retrieved chunk (`ChunkId`, `DocumentId`, `Text`,
+  `SourceName`) passed to `IChatClient.AnswerAsync`; `SourceName` labels each passage by source document
+  so cross-document answers can disambiguate (ADR-0014). Keeps the chat port free of `Storage` types
+  (ADR-0002 / ADR-0004). Transient — not stored.
 
 ## Invariants
 - Every `Chunk` belongs to exactly one `Document`.
