@@ -142,7 +142,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
     [Fact]
     public void ParseFields_MalformedJson_Throws()
     {
-        Assert.Throws<JsonException>(() => AzureOpenAIChatClient.ParseFields("not valid json"));
+        Assert.ThrowsAny<JsonException>(() => AzureOpenAIChatClient.ParseFields("not valid json"));
     }
 
     [Fact]
