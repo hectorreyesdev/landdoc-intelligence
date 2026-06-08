@@ -6,7 +6,7 @@
 // proxy forwards /documents and /ask to the backend; in prod a single container serves the SPA
 // and the API on one origin (same-origin, no CORS). There is no base URL here — by design.
 
-import type { AskResponse, DocumentResponse } from './types'
+import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
 
 /** Why a request didn't succeed, keyed off HTTP status (the UI renders a state per kind). */
 export type ApiErrorKind =
@@ -105,4 +105,43 @@ export async function ask(question: string): Promise<ApiResult<AskResponse>> {
     return { ok: true, value: (await response.json()) as AskResponse }
   }
   return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}
+
+/** List every ingested document's metadata + fields (spec 0006). Empty corpus → an empty array. */
+export async function listDocuments(): Promise<ApiResult<DocumentSummary[]>> {
+  let response: Response
+  try {
+    response = await fetch('/documents')
+  } catch {
+    return { ok: false, error: NETWORK_ERROR }
+  }
+
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DocumentSummary[] }
+  }
+  return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}
+
+/** Fetch one document's metadata + fields (spec 0006). A 404 maps to a `server` error kind. */
+export async function getDocument(id: string): Promise<ApiResult<DocumentSummary>> {
+  let response: Response
+  try {
+    response = await fetch(`/documents/${encodeURIComponent(id)}`)
+  } catch {
+    return { ok: false, error: NETWORK_ERROR }
+  }
+
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as DocumentSummary }
+  }
+  return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}
+
+/**
+ * Same-origin URL for a document's original file (spec 0006). Returned as a string so callers embed it
+ * directly in an `<iframe>`/`<object>` — the bytes never pass through fetch/ApiResult, which keeps the
+ * single-typed-client invariant (only this module calls fetch) intact.
+ */
+export function documentFileUrl(id: string): string {
+  return `/documents/${encodeURIComponent(id)}/file`
 }

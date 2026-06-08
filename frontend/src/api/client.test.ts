@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ask, uploadDocument } from './client'
-import type { AskResponse, DocumentResponse } from './types'
+import { ask, documentFileUrl, getDocument, listDocuments, uploadDocument } from './client'
+import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
 
 interface FakeOpts {
   reject?: boolean
@@ -35,7 +35,19 @@ const docBody: DocumentResponse = {
 
 const askBody: AskResponse = {
   answer: 'The lessee is Acme Minerals LLC.',
-  citations: [{ chunkId: 'c1', documentId: 'doc-1', score: 0.82, text: '…as Lessee…' }],
+  citations: [
+    { chunkId: 'c1', documentId: 'doc-1', score: 0.82, text: '…as Lessee…', source: 'synthetic-lease-01.pdf' },
+  ],
+}
+
+const summary: DocumentSummary = {
+  id: 'doc-1',
+  fileName: 'synthetic-lease-01.pdf',
+  status: 'ready',
+  contentType: 'application/pdf',
+  chunkCount: 7,
+  fields: [{ name: 'Lessor', value: 'Jane Roe', sourceChunkId: 'c1' }],
+  ingestedAt: '2026-06-08T12:00:00+00:00',
 }
 
 function pdf(): File {
@@ -127,5 +139,58 @@ describe('ask', () => {
       expect(result.error.kind).toBe('validation')
       expect(result.error.detail).toBeNull()
     }
+  })
+})
+
+describe('listDocuments', () => {
+  it('returns the typed array on 200 from the relative path', async () => {
+    const fetchMock = stubFetch(200, [summary])
+
+    const result = await listDocuments()
+
+    expect(result).toEqual({ ok: true, value: [summary] })
+    const [url] = fetchMock.mock.calls[0] as [string]
+    expect(url).toBe('/documents')
+  })
+
+  it('maps any non-OK status → server', async () => {
+    stubFetch(503, { detail: 'down' })
+    const result = await listDocuments()
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error.kind).toBe('server')
+  })
+
+  it('maps a thrown fetch → network error', async () => {
+    stubFetch(0, null, { reject: true })
+    const result = await listDocuments()
+    expect(result).toEqual({ ok: false, error: { kind: 'network', status: null, detail: null } })
+  })
+})
+
+describe('getDocument', () => {
+  it('returns the typed DTO on 200', async () => {
+    const fetchMock = stubFetch(200, summary)
+
+    const result = await getDocument('doc-1')
+
+    expect(result).toEqual({ ok: true, value: summary })
+    const [url] = fetchMock.mock.calls[0] as [string]
+    expect(url).toBe('/documents/doc-1')
+  })
+
+  it('maps 404 → server', async () => {
+    stubFetch(404, { title: 'Document not found.' })
+    const result = await getDocument('missing')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.kind).toBe('server')
+      expect(result.error.status).toBe(404)
+    }
+  })
+})
+
+describe('documentFileUrl', () => {
+  it('builds the same-origin relative file URL', () => {
+    expect(documentFileUrl('doc-1')).toBe('/documents/doc-1/file')
   })
 })

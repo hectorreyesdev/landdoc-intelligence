@@ -7,6 +7,8 @@ import { describeError } from './errorText'
 interface AskPanelProps {
   /** Whether anything has been ingested yet — drives only the hint, not whether asking is allowed. */
   canAsk: boolean
+  /** Open the source-document viewer when a citation is clicked (spec 0006). Defaults to a no-op. */
+  onOpenDocument?: (documentId: string) => void
 }
 
 type AskState =
@@ -16,7 +18,7 @@ type AskState =
   | { status: 'error'; message: string }
 
 /** Spec 0003 states 3–4: the question box and the grounded answer-with-citations. */
-export function AskPanel({ canAsk }: AskPanelProps): ReactElement {
+export function AskPanel({ canAsk, onOpenDocument = () => {} }: AskPanelProps): ReactElement {
   const [question, setQuestion] = useState('')
   const [state, setState] = useState<AskState>({ status: 'idle' })
 
@@ -74,7 +76,7 @@ export function AskPanel({ canAsk }: AskPanelProps): ReactElement {
           {state.message}
         </p>
       )}
-      {state.status === 'answered' && <Answer answer={state.answer} />}
+      {state.status === 'answered' && <Answer answer={state.answer} onOpenDocument={onOpenDocument} />}
     </section>
   )
 }
