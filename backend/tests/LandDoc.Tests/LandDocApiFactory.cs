@@ -8,14 +8,16 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 namespace LandDoc.Tests;
 
 /// <summary>
-/// Hosts the API in-process for integration tests and swaps the real <see cref="IChatClient"/> for a
-/// deterministic <see cref="FakeChatClient"/>. The real <c>LocalEmbeddingClient</c> is left in place —
-/// it's deterministic and offline, so it runs for real.
+/// Hosts the API in-process for integration tests. Pins <c>ModelClient:EmbeddingProvider=local</c> so
+/// the offline <see cref="LocalEmbeddingClient"/> is used regardless of the appsettings default (which is
+/// now <c>azureopenai</c>), keeping the suite deterministic and credential-free. Swaps
+/// <see cref="IChatClient"/> for a deterministic <see cref="FakeChatClient"/>.
 /// </summary>
 public sealed class LandDocApiFactory : WebApplicationFactory<Program>
 {
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
+        builder.UseSetting("ModelClient:EmbeddingProvider", "local");
         builder.ConfigureTestServices(services =>
         {
             services.RemoveAll<IChatClient>();
