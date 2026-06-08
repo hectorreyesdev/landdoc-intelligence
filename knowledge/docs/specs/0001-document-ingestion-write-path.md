@@ -1,6 +1,6 @@
 # 0001 — Document Ingestion (Write Path)
 
-**Status:** Accepted
+**Status:** Accepted · _Amended 2026-06-08 — extraction is doc-type-agnostic (generic role-neutral schema, ADR-0015)._
 
 ## What to build
 The ingest **write path** — the system's single state-mutating flow and the first vertical slice of
@@ -37,10 +37,15 @@ a later retrieval/Q&A spec will read.
   }
   ```
   This **adds `chunkCount`** to the `API.md` sketch — reconcile that doc on merge.
-- **Extracted fields:** lessor, lessee, legal description, royalty, and key dates *(assumption: dates
-  surface as one or more named fields, e.g. `EffectiveDate` / `Term`, rather than a fixed sub-schema —
-  the extractor returns named `ExtractedField`s; `sourceChunkId` may be null if the LLM doesn't pin a
-  field to a chunk)*.
+- **Extracted fields (amended 2026-06-08 — doc-type-agnostic, ADR-0015):** the corpus spans many
+  instrument types (leases, deeds, orders, opinions, agreements, AFE, affidavit…), so extraction uses a
+  **generic role-neutral schema**, not OGL-specific names: a **universal core** (`DocumentType`;
+  `Parties` as role-labeled `{role, name}` — Lessor/Lessee, Grantor/Grantee, Operator, Assignor/Assignee,
+  Affiant, Heirs…; `EffectiveDate`; `LegalDescription`; `County`; `State`), **conditional economics**
+  emitted only when present (`Acres`, `Royalty`, `Bonus`, `PrimaryTerm`), and an open **`OtherNotableTerms`**
+  list for type-specific terms. The extractor returns named `ExtractedField`s (each party flattens to one
+  field whose name is its role); `sourceChunkId` is null (extraction runs on full text before chunking).
+  See ADR-0015.
 - **Extraction port:** `IChatClient`, config-selected (`ModelClient:ChatProvider`); the live provider is
   **Azure OpenAI GPT** ([ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md),
   supersedes ADR-0007/0010), Anthropic-direct as the config-swap fallback.
