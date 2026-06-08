@@ -59,7 +59,7 @@ public sealed class AnthropicChatClient : IChatClient
         var contextText = new StringBuilder();
         foreach (var passage in context)
         {
-            contextText.AppendLine($"[Chunk {passage.ChunkId}]");
+            contextText.AppendLine($"[Source: {passage.SourceName} · Chunk {passage.ChunkId}]");
             contextText.AppendLine(passage.Text);
             contextText.AppendLine();
         }

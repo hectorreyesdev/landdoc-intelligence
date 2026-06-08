@@ -37,7 +37,7 @@ public sealed class ChunkRetrieverTests
         {
             var text = $"Lease clause {i}: the lessee shall pay royalties of one-eighth.";
             var vector = await embedder.EmbedAsync(text);
-            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector));
+            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector, string.Empty));
         }
 
         var retriever = CreateRetriever(embedder, store, topK: 2);
@@ -57,7 +57,7 @@ public sealed class ChunkRetrieverTests
         {
             var text = $"Section {i} grants rights to the lessee for mineral extraction.";
             var vector = await embedder.EmbedAsync(text);
-            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector));
+            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector, string.Empty));
         }
 
         var retriever = CreateRetriever(embedder, store, topK: 3);
@@ -79,7 +79,7 @@ public sealed class ChunkRetrieverTests
         {
             var text = $"Document {i}: the royalty rate is three-sixteenths.";
             var vector = await embedder.EmbedAsync(text);
-            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector));
+            store.Add(new Chunk(Guid.NewGuid(), Guid.NewGuid(), text, vector, string.Empty));
         }
 
         var retriever = CreateRetriever(embedder, store, topK: 5);

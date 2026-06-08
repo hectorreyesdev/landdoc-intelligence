@@ -38,7 +38,7 @@ public static class AskEndpoints
 
             // Map ScoredChunk → QaPassage (chat call) and → Citation (response).
             var passages = topK
-                .Select(sc => new QaPassage(sc.Chunk.Id, sc.Chunk.DocumentId, sc.Chunk.Text))
+                .Select(sc => new QaPassage(sc.Chunk.Id, sc.Chunk.DocumentId, sc.Chunk.Text, sc.Chunk.Source))
                 .ToList();
 
             var answer = await chat.AnswerAsync(request.Question, passages, ct);
