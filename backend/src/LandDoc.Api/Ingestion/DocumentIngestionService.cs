@@ -51,17 +51,7 @@ public sealed class DocumentIngestionService(
             fields = [];
         }
 
-        // Sanitize once before the loop: filenames flow into the LLM grounding prompt and a crafted
-        // name containing newlines or bracket characters can break the [Source: …] label structure
-        // and inject arbitrary instructions. The original fileName is kept for the UI response
-        // (React escapes it); only the value that reaches the prompt needs sanitizing.
-        var safeSource = fileName
-            .ReplaceLineEndings(" ")
-            .Replace("[", "(")
-            .Replace("]", ")")
-            .Trim();
-        if (safeSource.Length > 200)
-            safeSource = safeSource[..200];
+        var safeSource = SanitizeSource(fileName);
 
         var chunkTexts = textChunker.Chunk(text);
         foreach (var chunkText in chunkTexts)
@@ -71,5 +61,17 @@ public sealed class DocumentIngestionService(
         }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);
+    }
+
+    // Sanitize filenames before they flow into the LLM grounding prompt: newlines break the
+    // Content-Disposition header and can inject prompt instructions; brackets break [Source: …] labels.
+    internal static string SanitizeSource(string fileName)
+    {
+        var safe = fileName
+            .ReplaceLineEndings(" ")
+            .Replace("[", "(")
+            .Replace("]", ")")
+            .Trim();
+        return safe.Length > 200 ? safe[..200] : safe;
     }
 }
