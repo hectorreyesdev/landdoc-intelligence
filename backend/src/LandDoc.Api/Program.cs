@@ -23,8 +23,17 @@ builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("A
 // Storage seam — a singleton so the ingest (write) and retrieval (read) paths share one in-memory store.
 builder.Services.AddSingleton<IVectorStore, InMemoryVectorStore>();
 
-// Embeddings — the deterministic local embedder is the slice default (ADR-0008).
-builder.Services.AddSingleton<IEmbeddingClient, LocalEmbeddingClient>();
+// Embeddings — config-selected adapter (ModelClient:EmbeddingProvider). Live slice default: azureopenai
+// (ADR-0013); local is the deterministic offline fallback. Tests pin local via LandDocApiFactory.
+var embeddingProvider = builder.Configuration["ModelClient:EmbeddingProvider"] ?? "azureopenai";
+builder.Services.AddSingleton<IEmbeddingClient>(sp => embeddingProvider.ToLowerInvariant() switch
+{
+    "local" => new LocalEmbeddingClient(sp.GetRequiredService<IOptions<EmbeddingOptions>>()),
+    "azureopenai" => new AzureOpenAIEmbeddingClient(
+        sp.GetRequiredService<IOptions<AzureOpenAIOptions>>(),
+        sp.GetRequiredService<IOptions<EmbeddingOptions>>()),
+    _ => throw new InvalidOperationException($"Unknown ModelClient:EmbeddingProvider '{embeddingProvider}'."),
+});
 
 // Chat — config-selected adapter (ModelClient:ChatProvider). Live slice default: azureopenai (ADR-0012);
 // anthropic is the config-swap fallback. Tests inject a fake IChatClient via ConfigureTestServices.

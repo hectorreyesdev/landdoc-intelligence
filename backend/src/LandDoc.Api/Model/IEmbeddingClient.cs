@@ -1,9 +1,10 @@
 namespace LandDoc.Api.Model;
 
 /// <summary>
-/// Embeddings port (ADR-0002). Slice default <c>LocalEmbeddingClient</c> (deterministic, offline);
-/// <c>FoundryEmbeddingClient</c> (Azure OpenAI) is the production path and out of scope. There is no
-/// Anthropic embeddings adapter. Changing this interface requires a spec.
+/// Embeddings port (ADR-0013 supersedes ADR-0008). Live slice default <c>AzureOpenAIEmbeddingClient</c>
+/// (<c>text-embedding-3-small</c>); <c>LocalEmbeddingClient</c> is the deterministic offline fallback.
+/// Provider is config-selected via <c>ModelClient:EmbeddingProvider</c> (<c>azureopenai</c> or
+/// <c>local</c>). There is no Anthropic embeddings adapter. Changing this interface requires a spec.
 /// </summary>
 public interface IEmbeddingClient
 {

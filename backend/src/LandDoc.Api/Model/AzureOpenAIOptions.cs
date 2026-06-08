@@ -18,6 +18,9 @@ public sealed class AzureOpenAIOptions
     /// <summary>Azure deployment name (the SDK <c>deploymentName</c>), e.g. <c>gpt-5.4-mini</c>.</summary>
     public string? Deployment { get; set; }
 
+    /// <summary>Azure deployment name for the embeddings model, e.g. <c>text-embedding-3-small</c>.</summary>
+    public string? EmbeddingDeployment { get; set; }
+
     /// <summary>Optional API version to pin; when null the SDK default is used.</summary>
     public string? ApiVersion { get; set; }
 }
