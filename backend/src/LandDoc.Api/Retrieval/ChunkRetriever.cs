@@ -30,6 +30,6 @@ public sealed class ChunkRetriever
         ArgumentException.ThrowIfNullOrWhiteSpace(question);
 
         var queryVector = await _embedder.EmbedAsync(question, ct);
-        return _store.TopK(queryVector, _options.TopK);
+        return await _store.TopKAsync(queryVector, _options.TopK, ct);
     }
 }

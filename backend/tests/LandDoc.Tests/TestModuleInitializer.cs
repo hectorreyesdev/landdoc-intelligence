@@ -11,5 +11,8 @@ internal static class TestModuleInitializer
         // LocalEmbeddingClient regardless of the appsettings default (azureopenai).
         // Double-underscore separates config sections in environment variable names.
         Environment.SetEnvironmentVariable("ModelClient__EmbeddingProvider", "local");
+
+        // Pin the in-memory vector store so CI (no Azure AI Search creds) stays green (ADR-0017).
+        Environment.SetEnvironmentVariable("VectorStore__Provider", "inmemory");
     }
 }

@@ -39,6 +39,7 @@ internal static class IngestionTestHelpers
         var store = factory.Services.GetRequiredService<IVectorStore>();
         var embedder = factory.Services.GetRequiredService<IEmbeddingClient>();
         var probe = await embedder.EmbedAsync("probe");
-        return store.TopK(probe, int.MaxValue).Select(scored => scored.Chunk).ToList();
+        var scored = await store.TopKAsync(probe, int.MaxValue);
+        return scored.Select(s => s.Chunk).ToList();
     }
 }

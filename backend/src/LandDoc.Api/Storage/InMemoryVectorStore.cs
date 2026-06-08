@@ -10,21 +10,24 @@ public sealed class InMemoryVectorStore : IVectorStore
     private readonly List<Chunk> _chunks = [];
     private readonly object _gate = new();
 
-    public void Add(Chunk chunk)
+    // In-memory work is synchronous (no I/O); the async port (ADR-0017) is satisfied with completed
+    // tasks so the network-backed adapter can be truly async without blocking a thread.
+    public Task AddAsync(Chunk chunk, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(chunk);
         lock (_gate)
         {
             _chunks.Add(chunk);
         }
+        return Task.CompletedTask;
     }
 
-    public IReadOnlyList<ScoredChunk> TopK(float[] query, int k)
+    public Task<IReadOnlyList<ScoredChunk>> TopKAsync(float[] query, int k, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         if (k <= 0)
         {
-            return [];
+            return Task.FromResult<IReadOnlyList<ScoredChunk>>([]);
         }
 
         Chunk[] snapshot;
@@ -33,12 +36,13 @@ public sealed class InMemoryVectorStore : IVectorStore
             snapshot = [.. _chunks];
         }
 
-        return snapshot
+        IReadOnlyList<ScoredChunk> result = snapshot
             .Select(chunk => new ScoredChunk(chunk, CosineSimilarity(query, chunk.Vector)))
             .OrderByDescending(scored => scored.Score)
             .ThenBy(scored => scored.Chunk.Id)
             .Take(k)
             .ToList();
+        return Task.FromResult(result);
     }
 
     private static double CosineSimilarity(float[] a, float[] b)
