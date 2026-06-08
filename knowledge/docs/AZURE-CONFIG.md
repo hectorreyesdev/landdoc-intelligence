@@ -37,8 +37,8 @@
 
 | Purpose | Model | Deployment name | Protocol | Status |
 |---|---|---|---|---|
-| **Chat** | `gpt-5.4-mini` | ‹confirm — the name you gave the deployment; it's the SDK `deploymentName`› | **OpenAI Chat Completions / Responses** | **LIVE** — Playground reply confirmed 🎯 |
-| **Embeddings** | `text-embedding-3-small` | ‹confirm deployment name› | OpenAI embeddings | Deployed (Global Standard) |
+| **Chat** | `gpt-5.4-mini` | `gpt-5.4-mini` (in `appsettings.json`) | **OpenAI Chat Completions / Responses** | **LIVE** — `AzureOpenAIChatClient` wired (PR #17) |
+| **Embeddings** | `text-embedding-3-small` | `text-embedding-3-small` (in `appsettings.json`) | OpenAI embeddings | **LIVE** — `AzureOpenAIEmbeddingClient`, live slice default (PR #23) |
 
 > **Protocol gotcha:** behind the Foundry gateway, **GPT speaks OpenAI Chat Completions**, Claude speaks the
 > **Anthropic Messages** API. The catalog label tells you which adapter to write. So the live adapter is an
@@ -76,11 +76,12 @@ az keyvault secret show --vault-name kv-landdoc-hr01 -n AzureOpenAI--Endpoint --
 
 Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallback** (config swap, not code change):
 
-1. **`AzureOpenAIChatClient : IChatClient`** — `Azure.AI.OpenAI` / `Microsoft.Extensions.AI`, **Chat Completions**;
-   client built in ctor from endpoint + (managed-identity | key); flip default `ModelClient:ChatProvider` →
-   `azureopenai`. **Floor-critical** — greens the live `/ask`. *(Delete the `FoundryChatClient` Messages stub.)*
-2. **`AzureOpenAIEmbeddingClient : IEmbeddingClient`** — `text-embedding-3-small`; replaces the FNV-1a hashing
-   placeholder (re-embed/re-upload docs after the swap).
+1. ✅ **Done (PR #17 / ADR-0012).** **`AzureOpenAIChatClient : IChatClient`** — `Azure.AI.OpenAI` / `Microsoft.Extensions.AI`,
+   **Chat Completions**; client built in ctor from endpoint + key; default `ModelClient:ChatProvider` = `azureopenai`;
+   `FoundryChatClient` Messages stub deleted.
+2. ✅ **Done (PR #23 / ADR-0013).** **`AzureOpenAIEmbeddingClient : IEmbeddingClient`** — `text-embedding-3-small`,
+   live slice default; `Embedding:Dimension` honored via the embeddings `dimensions` parameter; `LocalEmbeddingClient`
+   demoted to offline/test (re-embed/re-upload on swap).
 3. **Document Intelligence extractor** — replaces PdfPig field extraction.
 4. **Blob document store** — replaces local-disk uploads; container `documents`.
 
@@ -109,6 +110,6 @@ Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-pr
 ## 9. Open confirmations before adapters go live
 
 - [ ] Exact **AOAI endpoint form** (`.openai.azure.com` vs `.services.ai.azure.com`) + `api-version` (§4).
-- [ ] **Deployment names** for chat + embeddings (the SDK `deploymentName`, not the model id) (§3).
+- [x] **Deployment names** for chat + embeddings — `gpt-5.4-mini` / `text-embedding-3-small` (in `appsettings.json`) (§3).
 - [ ] **Secret count/names** in `kv-landdoc-hr01` — confirm the Anthropic fallback secret (§5).
 - [ ] API host's **managed identity** granted *Key Vault Secrets User* on the vault (§5).

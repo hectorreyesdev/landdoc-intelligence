@@ -30,8 +30,8 @@ flowchart TD
 
     chat -->|"live (slice default)"| azureC["AzureOpenAIChatClient → Azure OpenAI GPT"]
     chat -.->|"config-swap fallback"| anthropicC["AnthropicChatClient → Anthropic API"]
-    emb -->|"slice default"| localE["LocalEmbeddingClient"]
-    emb -.->|"prod path"| foundryE["FoundryEmbeddingClient → Azure OpenAI"]
+    emb -->|"live (slice default)"| azureE["AzureOpenAIEmbeddingClient → Azure OpenAI"]
+    emb -.->|"offline/test"| localE["LocalEmbeddingClient"]
 ```
 
 ## Containers & components
@@ -45,7 +45,7 @@ flowchart TD
   - `Qa` — retrieved chunks + question → cited answer (via `IChatClient`).
 - **Ports** — `IChatClient` (chat/completions) · `IEmbeddingClient` (embeddings only).
 - **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
-  `LocalEmbeddingClient` (slice — deterministic hashing, see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)) / `FoundryEmbeddingClient` (prod).
+  `AzureOpenAIEmbeddingClient` (live slice — `text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)) / `LocalEmbeddingClient` (offline/test — deterministic hashing).
 - **Vector store** — in-memory cosine similarity over `float[]` behind a narrow `IVectorStore` seam
   (add chunks at ingest; `TopK(queryVector, k)` at ask) so the prod swap is an adapter change (slice);
   Azure AI Search (prod, not built). See [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md).

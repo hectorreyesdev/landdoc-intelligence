@@ -36,7 +36,7 @@ retrieval · cited Q&A · React UI for upload / fields / ask.
 ## Success metrics
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.
 - Every answer carries at least one citation resolvable to a source chunk.
-- Swapping `ModelClient:ChatProvider` between Foundry and Anthropic requires **no code change**.
+- Swapping `ModelClient:ChatProvider` between Azure OpenAI and Anthropic requires **no code change**.
 > TODO: extracted-field set is fixed (lessor, lessee, legal description, royalty, key dates — spec
 > 0001); still open: an acceptable retrieval-quality bar for the demo.
 

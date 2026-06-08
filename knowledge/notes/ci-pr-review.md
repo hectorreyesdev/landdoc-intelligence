@@ -48,6 +48,12 @@ reviewer, "No buffered inline comments":
 - Public repo: fork PRs don't get secrets under `pull_request`, so a fork PR would run with an
   empty token. The App's `claude-code-review.yml` does not guard forks — add an
   `if: …head.repo.full_name == github.repository` if external PRs start arriving.
+- **The reviewer rejects bot-initiated runs by default** (`allowed_bots: ""` = no bots): when `@claude`
+  pushes a fix to a PR, the `synchronize` review fails with *"Workflow initiated by non-human actor:
+  claude (type: Bot)"* (a harmless `tsconfig.json directory mismatch` line is just action noise).
+  Set **`allowed_bots: 'claude'`** (or `'*'`) on `claude-code-review.yml` so the bot's pushes re-trigger
+  review. `pull_request` runs read the workflow from the **merge-ref vs current `main`**, so the fix
+  reaches open PRs on their **next push** — no rebase needed. (Set 2026-06-08, commit `a16a72d`.)
 
 ## Issues as a tracker (adopted 2026-06-07)
 Reversing the earlier "no issues" stance: spec-derived work is now tracked as **GitHub issues**
@@ -81,4 +87,6 @@ compiles the code and runs the tests** — without it a PR could go green having
   approve PRs" is **off** (`can_approve_pull_request_reviews: false`). So the bot pushes a branch + a
   "Create PR" link and a **human clicks it** (a human-opened PR fires CI + review). To let the bot open
   PRs that still trigger CI, give the action a **GitHub App (or PAT) token** as `github_token` instead of
-  `GITHUB_TOKEN`. Parked.
+  `GITHUB_TOKEN`. Parked. *(2026-06-08: the action FAQ confirms not-auto-opening a PR is **by design** —
+  it pushes a branch + a "create PR" link; to make it submit, allow-list `gh pr` in `claude_args` + set
+  `GH_TOKEN` in the step env. Trialed in `claude.yml`, then **reverted** to keep the branch+link default.)*

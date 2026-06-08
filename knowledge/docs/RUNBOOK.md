@@ -6,7 +6,8 @@
 ## Prerequisites
 - **.NET 10 SDK** (LTS).
 - **Node.js** LTS + npm.
-- A chat provider credential: a Microsoft Foundry endpoint/key **or** an Anthropic API key.
+- A model provider credential: an **Azure OpenAI** endpoint + key (the live default, serving both chat
+  and embeddings) **or** an Anthropic API key for chat (then pin `EmbeddingProvider=local`).
 
 ## Install
 - Backend: `dotnet restore` (in `/backend`).
@@ -31,17 +32,17 @@ Provider/model selection and non-secret tuning live in `appsettings.json`; secre
 `dotnet user-secrets` (dev) or environment variables (prod would use Azure Key Vault).
 
 Settings (non-secret, in `appsettings.json`):
-- `ModelClient:ChatProvider` — `foundry` | `anthropic`
-- `ModelClient:EmbeddingProvider` — `local` | `foundry`
-- `ModelClient:ChatModel` — e.g. `claude-opus-4-8`
-- `Embedding:Dimension` — local embedding vector length (default 256)
-- `Chunking:MaxChars` / `Chunking:Overlap` — chunk window + overlap (default 120 / 30)
-- `Retrieval:TopK` — top-k chunks for `/ask` (default 5; read path not built yet)
+- `ModelClient:ChatProvider` — `azureopenai` (live default) | `anthropic` (config-swap fallback)
+- `ModelClient:EmbeddingProvider` — `azureopenai` (live default) | `local` (offline/test)
+- `AzureOpenAI:Deployment` / `AzureOpenAI:EmbeddingDeployment` — Azure deployment names (e.g. `gpt-5.4-mini` / `text-embedding-3-small`)
+- `Anthropic:Model` — fallback chat model (default `claude-opus-4-8`)
+- `Embedding:Dimension` — embedding vector length, shared by both adapters (Azure honors it via the `dimensions` parameter; default 256)
+- `Chunking:MaxChars` / `Chunking:Overlap` — chunk window + overlap (default 800 / 150)
+- `Retrieval:TopK` — top-k chunks for `/ask` (default 5)
 
 Secrets (never commit values):
-- Foundry: endpoint + key — TODO confirm key names (e.g. `Foundry:Endpoint`, `Foundry:ApiKey`)
-- Anthropic: `ANTHROPIC_API_KEY`
-- Azure OpenAI embeddings (prod, out of scope): endpoint / deployment / key
+- Azure OpenAI: `AzureOpenAI:Endpoint` + `AzureOpenAI:ApiKey` (one resource serves both chat and embeddings)
+- Anthropic: `Anthropic:ApiKey` (fallback chat)
 
 ## Deploy
 - Out of scope for the slice — no cloud infrastructure is provisioned. Runs locally only.

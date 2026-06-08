@@ -60,8 +60,10 @@ the cited chunk IDs are returned so the UI can resolve each claim to its source 
 
 ## Notes
 - The same `IEmbeddingClient` embeds chunks at ingest and the query at ask — they must share a model
-  (and thus dimension) for cosine similarity to be meaningful (`LocalEmbeddingClient`, deterministic
-  hashing, for the slice — see [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+  (and thus dimension) for cosine similarity to be meaningful. Config-selected via
+  `ModelClient:EmbeddingProvider`: live slice default `AzureOpenAIEmbeddingClient`
+  (`text-embedding-3-small`), with `LocalEmbeddingClient` (deterministic hashing) as the offline/test
+  embedder — see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md).
 - Retrieval is **global** — top-k across all ingested documents (see
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)); each citation carries `documentId`.
   An answer is never returned without ≥1 citation; an empty store returns `409`
