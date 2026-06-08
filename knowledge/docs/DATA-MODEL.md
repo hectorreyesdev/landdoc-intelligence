@@ -68,8 +68,8 @@ erDiagram
 - **Citation** — a pointer from an answer (or extracted field) to the chunk that supports it (carries
   `ChunkId` + `DocumentId` + `Score`). The `POST /ask` response DTO additionally inlines the chunk
   `text` (resolved from the store) so the UI can show the source without a second call.
-- **ScoredChunk** — a retrieved `Chunk` paired with its cosine `Score`; the `IVectorStore.TopK` result.
-  Transient — not stored.
+- **ScoredChunk** — a retrieved `Chunk` paired with its cosine `Score`; the `IVectorStore.TopKAsync`
+  result. Transient — not stored.
 - **QaPassage** — the chat-context projection of a retrieved chunk (`ChunkId`, `DocumentId`, `Text`,
   `SourceName`) passed to `IChatClient.AnswerAsync`; `SourceName` labels each passage by source document
   so cross-document answers can disambiguate (ADR-0014). Keeps the chat port free of `Storage` types
@@ -82,7 +82,13 @@ erDiagram
 - `ExtractedField.SourceChunkId` (when set) resolves to a stored `Chunk`.
 
 ## Indexes / migrations
-- None — the store is an in-memory collection scanned by cosine similarity for the slice
-  (see [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
-- **Production path** (out of scope): chunks + vectors move to Azure AI Search, which owns the
-  vector index and its build/refresh; there is no relational schema or migration story here.
+- **Live default — Azure AI Search Free tier** (`landdoc-chunks` index): key = chunk id; fields
+  `documentId`, `text`, `source`; a 256-d vector field (HNSW + cosine) sized to `Embedding:Dimension`.
+  Chunks **persist across restarts/redeploys**; the adapter ensures the index exists on startup
+  (idempotent). No relational schema — the index is the store. See
+  [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md).
+- **Re-ingest, not migrate:** an embedding model/dimension change invalidates the index (the 256-d
+  field is fixed at create) → re-ingest. Keep the same embedder for index and query (cosine invariant).
+- **Offline/test** — `InMemoryVectorStore`, a cosine-scanned in-process collection (no persistence),
+  selected via `VectorStore:Provider=inmemory` (see
+  [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).

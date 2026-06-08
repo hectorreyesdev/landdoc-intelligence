@@ -6,7 +6,7 @@ live slice chat provider is now **Azure OpenAI GPT** via `AzureOpenAIChatClient`
 ADR-0007/0010); Anthropic-direct is the config-swap fallback._ · _Amended 2026-06-08 — `QaPassage` carries
 `SourceName` (the source document's display name) so the grounding prompt labels each passage by
 document, enabling document-qualified questions over the corpus-wide result set (ADR-0014, refines
-ADR-0009)._
+ADR-0009)._ · _Amended 2026-06-08 — retrieval store is config-selected; Azure AI Search now in scope (ADR-0017)._
 
 ## What to build
 The retrieval-augmented **read path** — the complement to the ingest write path
@@ -58,11 +58,10 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   call and → `Citation` for the response. The Qa handler sets `SourceName` from the chunk's persisted
   source (the ingested file name). `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
   in `IChatClient`'s own doc-comment that changing the interface requires a spec.
-- **Retrieval:** top-k by cosine similarity via linear scan over the in-memory store (ADR-0005),
-  through the narrow store seam that ADR-0005 calls for *(assumption: a small `IVectorStore`-style
-  read method `TopK(queryVector, k)`; introduce it here if 0001 didn't)*. *(assumption: `k = 5`,
-  configurable via `Retrieval:TopK`; deterministic stable tie-break by chunk index/id so a fixed query
-  yields a fixed ordering.)*
+- **Retrieval (amended 2026-06-08 — store config-selected, ADR-0017):** top-k via the `IVectorStore`
+  port `TopK(queryVector, k)` — **Azure AI Search vector query** (live) or **in-memory linear cosine
+  scan** (offline/test). The seam and the `/ask` contract are unchanged; only the store implementation
+  differs. *(k configurable via `Retrieval:TopK`; in-memory uses a deterministic id tie-break.)*
 - **Grounding + citations:** the `Qa` prompt instructs the model to answer **only** from the supplied
   chunks and to ground every claim; the returned `citations[]` are the retrieved chunks (chunkId,
   documentId, cosine score, and the chunk `text` resolved from the store). Each passage is labeled in
@@ -79,8 +78,9 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   switching** (its own later spec; this spec wires **one** real adapter — the live slice default, now
   Azure OpenAI GPT per ADR-0012, with Anthropic-direct as the config-swap fallback) · prompt-caching
   optimization *(noted in DATA-FLOW; not
-  required for acceptance)* · Azure AI Search · reranking/ANN indexing · multi-turn conversation
+  required for acceptance)* · reranking/ANN indexing · multi-turn conversation
   history · streaming responses · auth/RBAC · observability.
+  (Azure AI Search is now the live store — ADR-0017; the semantic ranker / reranking stays out of scope, Free tier.)
 
 ## How to verify
 - **Happy path (integration, `WebApplicationFactory`, fake `IChatClient`):** with

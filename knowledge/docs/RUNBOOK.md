@@ -88,9 +88,12 @@ plain env vars (`AzureOpenAI__ApiKey` etc.), or **Azure Key Vault** (set `KeyVau
 Settings (non-secret, in `appsettings.json`):
 - `ModelClient:ChatProvider` — `azureopenai` (live default) | `anthropic` (config-swap fallback)
 - `ModelClient:EmbeddingProvider` — `azureopenai` (live default) | `local` (offline/test)
+- `VectorStore:Provider` — `azuresearch` (live default) | `inmemory` (offline/test; tests pin this via
+  `TestModuleInitializer` so CI without Search creds stays green). See [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md)
+- `AzureSearch:Endpoint` — Azure AI Search service URL (Free tier, eastus); index `landdoc-chunks` (created on startup)
 - `KeyVault:Uri` — when set, Key Vault is added as a config source via `DefaultAzureCredential`; secrets
-  named `AzureOpenAI--ApiKey` / `AzureOpenAI--Endpoint` / `Anthropic--ApiKey` overlay the matching keys
-  (`--` → `:`). Unset → vault is skipped (offline/test). See [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md).
+  named `AzureOpenAI--ApiKey` / `AzureOpenAI--Endpoint` / `Anthropic--ApiKey` / `AzureSearch--ApiKey` overlay
+  the matching keys (`--` → `:`). Unset → vault is skipped (offline/test). See [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md).
 - `AzureOpenAI:Deployment` / `AzureOpenAI:EmbeddingDeployment` — Azure deployment names (e.g. `gpt-5.4-mini` / `text-embedding-3-small`)
 - `Anthropic:Model` — fallback chat model (default `claude-opus-4-8`)
 - `Embedding:Dimension` — embedding vector length, shared by both adapters (Azure honors it via the `dimensions` parameter; default 256)
@@ -100,6 +103,7 @@ Settings (non-secret, in `appsettings.json`):
 Secrets (never commit values):
 - Azure OpenAI: `AzureOpenAI:Endpoint` + `AzureOpenAI:ApiKey` (one resource serves both chat and embeddings)
 - Anthropic: `Anthropic:ApiKey` (fallback chat)
+- Azure AI Search: `AzureSearch:ApiKey` (admin key; Free tier has no managed identity — ADR-0017)
 
 ## Deploy
 - Provisioning cloud infra is out of scope for the slice — it runs locally only. But the app is now

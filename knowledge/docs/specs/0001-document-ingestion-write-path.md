@@ -1,6 +1,6 @@
 # 0001 — Document Ingestion (Write Path)
 
-**Status:** Accepted · _Amended 2026-06-08 — extraction is doc-type-agnostic (generic role-neutral schema, ADR-0015)._
+**Status:** Accepted · _Amended 2026-06-08 — extraction is doc-type-agnostic (generic role-neutral schema, ADR-0015)._ · _Amended 2026-06-08 — durable vector store (Azure AI Search Free tier) now in scope; store is config-selected (ADR-0017)._
 
 ## What to build
 The ingest **write path** — the system's single state-mutating flow and the first vertical slice of
@@ -68,8 +68,12 @@ a later retrieval/Q&A spec will read.
   Document Intelligence OCR tuning stays out of scope.
 - **Chunking:** fixed-size character windows with small overlap *(assumption: ~1,000 chars, ~150
   overlap — tune so `synthetic-lease-01.pdf` yields N > 1 chunks)*.
-- **Store:** in-memory, process-lifetime only, registered as a shared singleton so a later retrieval
-  spec reads the same instance (ADR-0005). No durable persistence (PRD non-goal).
+- **Store (amended 2026-06-08 — durable store now in scope, ADR-0017):** config-selected via
+  `VectorStore:Provider`. Live = **Azure AI Search Free tier** (`AzureAiSearchVectorStore`, durable —
+  survives Container Apps cold starts/revisions; ADR-0017 realizes ADR-0005); **in-memory**
+  (`InMemoryVectorStore`, process-lifetime) is the offline/test provider, pinned assembly-wide in tests.
+  Both sit behind the `IVectorStore` port, registered singleton. Supersedes the original "in-memory only /
+  no durable persistence" — that was a slice non-goal; persistence is now in scope for the live path.
 - **Stored chunk contract (the 0001→0002 seam):** each stored `Chunk` is `{ Id, DocumentId, Text,
   Vector, Source }` — a stable `Id`, the owning `DocumentId`, the **source `Text`** it was chunked from,
   its embedding `Vector`, and `Source` (the sanitized source-document name for grounding labels — added by
@@ -98,6 +102,8 @@ a later retrieval/Q&A spec will read.
 - **Storage assertion:** after that request, the in-memory store holds exactly **N chunks** for the
   returned document id, each carrying a non-empty `float[]` embedding, and **all N vectors share the
   same length** (cosine invariant).
+  (Offline tests assert chunk count via the in-memory provider; live Azure AI Search persistence is the
+  manual restart/cold-start check per ADR-0017.)
 - **Stored chunk shape (the 0001→0002 seam):** each stored chunk **retains its source `Text`**
   (non-empty) and is **resolvable by a stable `Id`** carrying the correct `DocumentId` — i.e. the full
   `{ Id, DocumentId, Text, Vector, Source }` shape (`Source` = the sanitized source-document name, added by

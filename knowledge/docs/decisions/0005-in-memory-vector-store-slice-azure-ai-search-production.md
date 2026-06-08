@@ -3,6 +3,10 @@
 - Status: Accepted
 - Date: 2026-06-06
 
+> Realized/refined by [ADR-0017](0017-azure-ai-search-free-tier-live-vector-store.md): Azure AI Search
+> Free tier is now the config-selected live store; `InMemoryVectorStore` remains the offline/test
+> provider. This ADR's principle (a narrow seam keeps the swap cheap) stands — it is not superseded.
+
 ## Context
 Retrieval needs somewhere to hold chunk embeddings and rank them against a query vector. The RAG
 pipeline is fixed: ingest → chunk → embed (`IEmbeddingClient`) → store → retrieve top-k → answer
