@@ -17,6 +17,11 @@ VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Searc
 observability stack. Also out: multi-tenant/multi-user concerns, durable persistence beyond the
 process lifetime, and high-accuracy OCR of scanned/handwritten documents.
 
+**Now built (no longer hypothetical):** the slice is **deployed** — a single container on Azure Container
+Apps, serving the SPA + API on one origin, with secrets from Key Vault via managed identity and CI/CD on
+merge to `main` ([DEPLOYMENT](DEPLOYMENT.md) · [CICD](CICD.md) · [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md)).
+The hardening items above remain out of scope.
+
 ## Users / personas
 - **Landman / title analyst** — uploads documents, reviews extracted fields, asks questions.
 - **Engineer (this build)** — wires the slice and demonstrates the architecture.

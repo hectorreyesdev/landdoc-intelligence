@@ -1,8 +1,11 @@
 # LandDoc Intelligence
 
 AI document-intelligence + retrieval-augmented Q&A over land/title documents (leases, title
-opinions, county records). **Vertical slice, NOT production** — build the simplest thing that
-proves the end-to-end flow. Read `knowledge/lessons.md` at the start of every session (see **Project docs** below).
+opinions, county records). **Vertical slice, NOT production-hardened** — build the simplest thing that
+proves the end-to-end flow. It *is* deployed (single container on Azure Container Apps, secrets from Key
+Vault via managed identity, CI/CD on merge to `main` — see `knowledge/docs/DEPLOYMENT.md` + ADR-0016), but
+production *hardening* (see **Out of scope** below) stays out. Read `knowledge/lessons.md` at the start of
+every session (see **Project docs** below).
 
 ## Architecture
 - **Backend** — ASP.NET Core Web API on **.NET 10 (LTS)**. Modular monolith: one process,
