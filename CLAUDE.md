@@ -90,6 +90,8 @@ knowledge/docs/
   DATA-FLOW.md     ingest + ask sequence diagrams
   API.md           endpoints · request/response shapes · error model (intended surface)
   RUNBOOK.md       install · run · test · build · env/secret names · teardown
+  DEPLOYMENT.md    first-time deploy · redeploy · teardown for Azure Container Apps
+  CICD.md          OIDC identity setup · role grants · GitHub secrets · CI/CD usage
   GLOSSARY.md      domain + project terms
   decisions/       ADRs (Nygard, NNNN-slug.md), immutable once Accepted — supersede convention below
   specs/           feature specs, one per file (NNNN-<slug>.md); design interface changes here
