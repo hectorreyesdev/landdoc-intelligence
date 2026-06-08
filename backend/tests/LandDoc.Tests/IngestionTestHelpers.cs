@@ -1,6 +1,7 @@
 using System.Net.Http.Headers;
 using LandDoc.Api.Model;
 using LandDoc.Api.Storage;
+using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace LandDoc.Tests;
@@ -33,7 +34,7 @@ internal static class IngestionTestHelpers
     /// huge k returns all chunks). The probe vector just needs the store's dimension, so it's produced
     /// by the real embedder.
     /// </summary>
-    public static async Task<IReadOnlyList<Chunk>> StoredChunksAsync(LandDocApiFactory factory)
+    public static async Task<IReadOnlyList<Chunk>> StoredChunksAsync(WebApplicationFactory<Program> factory)
     {
         var store = factory.Services.GetRequiredService<IVectorStore>();
         var embedder = factory.Services.GetRequiredService<IEmbeddingClient>();

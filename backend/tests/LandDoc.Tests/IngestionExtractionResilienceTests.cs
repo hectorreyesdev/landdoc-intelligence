@@ -65,6 +65,9 @@ public sealed class IngestionExtractionResilienceTests
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
+            // Pin small chunk size so the fixture produces > 1 chunk regardless of the production default.
+            builder.UseSetting("Chunking:MaxChars", "80");
+            builder.UseSetting("Chunking:Overlap", "20");
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IChatClient>();
