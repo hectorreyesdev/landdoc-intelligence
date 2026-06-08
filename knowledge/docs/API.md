@@ -66,7 +66,7 @@ Standard ASP.NET Core **`ProblemDetails`** (RFC 7807):
 - `409` — `POST /ask` against an empty store (nothing ingested to cite).
 - `502` / `503` — a provider failure that **isn't** swallowed: the *embedding* provider failing at
   ingest, or the *chat* provider failing at `/ask`. A *chat*-provider failure during **ingest** is not an
-  error — field extraction is best-effort (`201` with empty `fields`; spec 0001 amendment). (The Foundry →
-  Anthropic chat fallback is
-  [ADR-0007](decisions/0007-microsoft-foundry-gateway-anthropic-direct-fallback.md); deferred — not
-  built in the slice.)
+  error — field extraction is best-effort (`201` with empty `fields`; spec 0001 amendment). (Chat provider
+  is config-selected — Azure OpenAI GPT live, Anthropic-direct fallback —
+  [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md); an availability
+  auto-failover is deferred.)
