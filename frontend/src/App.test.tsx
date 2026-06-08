@@ -19,9 +19,9 @@ const doc: DocumentResponse = {
   chunkCount: 3,
 }
 
-// The acceptance beat: the upload/fields path must never depend on the ask path. Even when
-// /ask degrades (here: 501), ingest still works and the fields stay on screen.
-it('keeps upload + fields working when /ask is unavailable (501)', async () => {
+// The acceptance beat: the upload/documents path must never depend on the ask path. Even when /ask
+// degrades (here: 501), ingest still works and the document tile stays on screen.
+it('keeps upload + the document list working when /ask is unavailable (501)', async () => {
   vi.mocked(client.uploadDocument).mockResolvedValue({ ok: true, value: doc })
   vi.mocked(client.ask).mockResolvedValue({
     ok: false,
@@ -30,19 +30,19 @@ it('keeps upload + fields working when /ask is unavailable (501)', async () => {
   render(<App />)
 
   await userEvent.upload(
-    screen.getByLabelText(/pdf file/i),
+    screen.getByLabelText(/document files/i),
     new File(['%PDF-1.4'], 'lease.pdf', { type: 'application/pdf' }),
   )
-  await userEvent.click(screen.getByRole('button', { name: /upload/i }))
-  expect(await screen.findByText('lease.pdf')).toBeInTheDocument()
-  expect(screen.getByText('Acme Minerals LLC')).toBeInTheDocument()
+  // The tile solidifies to ready with its extracted field shown.
+  expect(await screen.findByText('Acme Minerals LLC')).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'lease.pdf' })).toBeInTheDocument()
 
   await userEvent.type(screen.getByRole('textbox', { name: /question/i }), 'Who is the lessee?')
   await userEvent.click(screen.getByRole('button', { name: /^ask$/i }))
 
   // ask half degraded gracefully…
   expect(await screen.findByText(/not available/i)).toBeInTheDocument()
-  // …and the upload/fields half is untouched.
-  expect(screen.getByText('lease.pdf')).toBeInTheDocument()
+  // …and the document list is untouched.
+  expect(screen.getByRole('heading', { name: 'lease.pdf' })).toBeInTheDocument()
   expect(screen.getByText('Acme Minerals LLC')).toBeInTheDocument()
 })

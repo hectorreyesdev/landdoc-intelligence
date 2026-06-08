@@ -59,6 +59,16 @@ export function AskPanel({ canAsk }: AskPanelProps): ReactElement {
         </button>
       </form>
       {!canAsk && <p className="hint">Ingest a document to enable grounded answers.</p>}
+      {state.status === 'loading' && (
+        <div className="answer-loading" role="status" aria-live="polite">
+          <span className="loading-dots" aria-hidden="true">
+            <span />
+            <span />
+            <span />
+          </span>
+          <span>Searching the corpus…</span>
+        </div>
+      )}
       {state.status === 'error' && (
         <p className="error" role="alert">
           {state.message}

@@ -8,7 +8,7 @@ import type { ApiError } from '../api/client'
 export function describeError(error: ApiError, context: 'upload' | 'ask'): string {
   switch (error.kind) {
     case 'validation':
-      return error.detail ?? (context === 'ask' ? 'Enter a valid question.' : 'Choose a valid PDF file.')
+      return error.detail ?? (context === 'ask' ? 'Enter a valid question.' : 'Choose a valid PDF, text, or Markdown file.')
     case 'empty-store':
       return 'Ingest a document first — there is nothing to search yet.'
     case 'not-implemented':

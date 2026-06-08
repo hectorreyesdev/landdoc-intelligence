@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { act, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { AskPanel } from './AskPanel'
 import * as client from '../api/client'
-import type { ApiErrorKind } from '../api/client'
+import type { ApiErrorKind, ApiResult } from '../api/client'
 import type { AskResponse } from '../api/types'
 
 vi.mock('../api/client')
@@ -11,6 +11,14 @@ vi.mock('../api/client')
 beforeEach(() => {
   vi.resetAllMocks()
 })
+
+function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
+  let resolve!: (value: T) => void
+  const promise = new Promise<T>((r) => {
+    resolve = r
+  })
+  return { promise, resolve }
+}
 
 const answer: AskResponse = {
   answer: 'The lessee is Acme Minerals LLC.',
@@ -32,6 +40,23 @@ it('renders the answer and each citation (text, score, documentId)', async () =>
   expect(screen.getByText(/as Lessee/)).toBeInTheDocument()
   expect(screen.getByText(/doc-1/)).toBeInTheDocument()
   expect(screen.getByText(/0\.82/)).toBeInTheDocument()
+})
+
+it('shows an animated loading indicator while the answer is pending, then the answer', async () => {
+  const pending = deferred<ApiResult<AskResponse>>()
+  vi.mocked(client.ask).mockReturnValue(pending.promise)
+  render(<AskPanel canAsk />)
+
+  await submitQuestion()
+
+  expect(await screen.findByText(/searching the corpus/i)).toBeInTheDocument()
+
+  await act(async () => {
+    pending.resolve({ ok: true, value: answer })
+  })
+
+  expect(await screen.findByText(/acme minerals llc/i)).toBeInTheDocument()
+  expect(screen.queryByText(/searching the corpus/i)).not.toBeInTheDocument()
 })
 
 it('never renders an answer without a citation (cite-or-nothing)', async () => {

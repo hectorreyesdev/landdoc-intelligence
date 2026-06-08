@@ -1,77 +1,62 @@
 import { beforeEach, expect, it, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { UploadPanel } from './UploadPanel'
-import * as client from '../api/client'
-import type { DocumentResponse } from '../api/types'
-
-vi.mock('../api/client')
 
 beforeEach(() => {
-  vi.resetAllMocks()
+  vi.clearAllMocks()
 })
 
-const sampleDoc: DocumentResponse = {
-  id: 'doc-1',
-  fileName: 'synthetic-lease-01.pdf',
-  status: 'ready',
-  fields: [
-    { name: 'Lessor', value: 'Jane Roe', sourceChunkId: 'c1' },
-    { name: 'Royalty', value: '3/16', sourceChunkId: null },
-  ],
-  chunkCount: 7,
+function pdf(name = 'lease.pdf'): File {
+  return new File(['%PDF-1.4'], name, { type: 'application/pdf' })
 }
 
-function pdf(): File {
-  return new File(['%PDF-1.4'], 'synthetic-lease-01.pdf', { type: 'application/pdf' })
-}
+it('feeds chosen files to onFiles immediately, with no submit button', async () => {
+  const onFiles = vi.fn()
+  render(<UploadPanel onFiles={onFiles} progress={null} />)
 
-it('renders extracted fields + chunkCount after a successful upload', async () => {
-  vi.mocked(client.uploadDocument).mockResolvedValue({ ok: true, value: sampleDoc })
-  render(<UploadPanel onIngested={() => {}} />)
+  expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  await userEvent.upload(screen.getByLabelText(/document files/i), pdf('a.pdf'))
 
-  await userEvent.upload(screen.getByLabelText(/pdf file/i), pdf())
-  await userEvent.click(screen.getByRole('button', { name: /upload/i }))
-
-  expect(await screen.findByText('synthetic-lease-01.pdf')).toBeInTheDocument()
-  expect(screen.getByText(/7 chunks/i)).toBeInTheDocument()
-  expect(screen.getByText('Lessor')).toBeInTheDocument()
-  expect(screen.getByText('Jane Roe')).toBeInTheDocument()
-  expect(screen.getByText('Royalty')).toBeInTheDocument()
-  expect(screen.getByText('3/16')).toBeInTheDocument()
+  expect(onFiles).toHaveBeenCalledTimes(1)
+  expect(onFiles.mock.calls[0][0]).toHaveLength(1)
 })
 
-it('notifies the app that a document was ingested', async () => {
-  vi.mocked(client.uploadDocument).mockResolvedValue({ ok: true, value: sampleDoc })
-  const onIngested = vi.fn()
-  render(<UploadPanel onIngested={onIngested} />)
-
-  await userEvent.upload(screen.getByLabelText(/pdf file/i), pdf())
-  await userEvent.click(screen.getByRole('button', { name: /upload/i }))
-
-  expect(await screen.findByText('synthetic-lease-01.pdf')).toBeInTheDocument()
-  expect(onIngested).toHaveBeenCalledWith(sampleDoc)
+it('lets the file input accept PDFs, text, and markdown, and allows multiple', () => {
+  render(<UploadPanel onFiles={() => {}} progress={null} />)
+  const input = screen.getByLabelText(/document files/i)
+  const accept = input.getAttribute('accept') ?? ''
+  expect(accept).toMatch(/\.pdf/)
+  expect(accept).toMatch(/\.txt/)
+  expect(accept).toMatch(/\.md/)
+  expect(input).toHaveAttribute('multiple')
 })
 
-it('shows inline validation when submitting with no file, and never calls the client', async () => {
-  render(<UploadPanel onIngested={() => {}} />)
+it('feeds files dropped onto the page (accepted only) to onFiles', async () => {
+  const onFiles = vi.fn()
+  render(<UploadPanel onFiles={onFiles} progress={null} />)
 
-  await userEvent.click(screen.getByRole('button', { name: /upload/i }))
+  fireEvent.drop(document.body, { dataTransfer: { files: [pdf('dropped.pdf')] } })
 
-  expect(screen.getByRole('alert')).toHaveTextContent(/choose a pdf/i)
-  expect(client.uploadDocument).not.toHaveBeenCalled()
+  await waitFor(() => expect(onFiles).toHaveBeenCalledTimes(1))
 })
 
-it('shows a generic error on a server failure and stays usable', async () => {
-  vi.mocked(client.uploadDocument).mockResolvedValue({
-    ok: false,
-    error: { kind: 'server', status: 500, detail: null },
-  })
-  render(<UploadPanel onIngested={() => {}} />)
+it('ignores a drop with no supported files and explains why', async () => {
+  const onFiles = vi.fn()
+  render(<UploadPanel onFiles={onFiles} progress={null} />)
 
-  await userEvent.upload(screen.getByLabelText(/pdf file/i), pdf())
-  await userEvent.click(screen.getByRole('button', { name: /upload/i }))
+  const png = new File(['x'], 'photo.png', { type: 'image/png' })
+  fireEvent.drop(document.body, { dataTransfer: { files: [png] } })
 
-  expect(await screen.findByRole('alert')).toHaveTextContent(/went wrong/i)
-  expect(screen.getByRole('button', { name: /upload/i })).toBeEnabled()
+  expect(await screen.findByText(/drop pdf, text, or markdown/i)).toBeInTheDocument()
+  expect(onFiles).not.toHaveBeenCalled()
+})
+
+it('shows a progress bar and disables the input while a batch is in flight', () => {
+  render(<UploadPanel onFiles={() => {}} progress={{ done: 1, total: 4 }} />)
+
+  const bar = screen.getByRole('progressbar')
+  expect(bar).toHaveAttribute('aria-valuenow', '1')
+  expect(bar).toHaveAttribute('aria-valuemax', '4')
+  expect(screen.getByLabelText(/document files/i)).toBeDisabled()
 })
