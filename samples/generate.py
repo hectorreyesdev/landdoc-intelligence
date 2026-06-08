@@ -204,10 +204,31 @@ def haversine_mi(a: tuple[float, float], b: tuple[float, float]) -> float:
 
 # ---------------------------------------------------------------------------
 # Block model -> Markdown + wrapped plain text (for the PDF). kind in
-# {"h1", "h2", "p", "blank"}.
+# {"h1", "h2", "p", "blank", "table"}; a "table" block's payload is a list of
+# rows (each a list of cells), the first row being the header. Tables render as
+# pipe tables in Markdown and as padded columns in the PDF -- deliberately
+# "messy" input for testing how fixed-window chunking handles tabular data.
 # ---------------------------------------------------------------------------
 
-def to_markdown(blocks: list[tuple[str, str]]) -> str:
+def _table_md(rows: list[list[str]]) -> str:
+    head = "| " + " | ".join(rows[0]) + " |"
+    sep = "| " + " | ".join("---" for _ in rows[0]) + " |"
+    body = ["| " + " | ".join(str(c) for c in r) + " |" for r in rows[1:]]
+    return "\n".join([head, sep, *body])
+
+
+def _table_lines(rows: list[list[str]]) -> list[str]:
+    cols = len(rows[0])
+    widths = [max(len(str(r[i])) for r in rows) for i in range(cols)]
+    out: list[str] = []
+    for ri, r in enumerate(rows):
+        out.append("  ".join(str(r[i]).ljust(widths[i]) for i in range(cols)))
+        if ri == 0:
+            out.append("  ".join("-" * widths[i] for i in range(cols)))
+    return out
+
+
+def to_markdown(blocks: list[tuple[str, object]]) -> str:
     md: list[str] = []
     for kind, text in blocks:
         if kind == "h1":
@@ -216,12 +237,14 @@ def to_markdown(blocks: list[tuple[str, str]]) -> str:
             md.append(f"## {text}\n")
         elif kind == "blank":
             md.append("")
+        elif kind == "table":
+            md.append(_table_md(text) + "\n")
         else:
             md.append(text + "\n")
     return "\n".join(md).strip() + "\n"
 
 
-def to_lines(blocks: list[tuple[str, str]]) -> list[str]:
+def to_lines(blocks: list[tuple[str, object]]) -> list[str]:
     lines: list[str] = []
     for kind, text in blocks:
         if kind == "blank":
@@ -229,6 +252,8 @@ def to_lines(blocks: list[tuple[str, str]]) -> list[str]:
         elif kind in ("h1", "h2"):
             lines.append(text.upper() if kind == "h1" else text)
             lines.append("")
+        elif kind == "table":
+            lines.extend(_table_lines(text))
         else:
             lines.extend(textwrap.wrap(text, WRAP_COLS) or [""])
     return lines
@@ -708,6 +733,326 @@ def t_amendment(d):
     ] + _notary(d["state"], "County", d["county"], d["lessor"])
 
 
+def t_doto(d):
+    cl = d.get("county_label", "County")
+    return [
+        ("h1", "Division Order Title Opinion"),
+        ("p", f"TO: {d['operator']}"),
+        ("p", f"FROM: {d['examiner']}"),
+        ("p", f"DATE: {d['effective_date']}"),
+        ("p", f"RE: {d['well']} -- {d['legal']}, {d['county']} {cl}, {d['state']} "
+              f"({d['acres']} acres)"),
+        ("blank", ""),
+        ("h2", "A. Materials Examined"),
+        ("p", f"This Division Order Title Opinion supplements the Drilling Title Opinion dated "
+              f"{d['drilling_opinion_date']} and covers title from that certification date through "
+              f"first production. It is rendered to determine the parties entitled to share in "
+              f"production from the captioned well and their decimal interests."),
+        ("h2", "B. Division of Interest"),
+        ("p", "Subject to the requirements below, proceeds of production should be credited as "
+              "follows (decimals total 1.00000000):"),
+        ("table", d["division"]),
+        ("h2", "C. Requirements"),
+        ("p", "Requirement 1: Obtain executed division orders from each owner before releasing "
+              "proceeds. Requirement 2: Suspend the decimal shown for any owner whose curative "
+              "(affidavit of heirship; recorded probate) is not yet of record."),
+        ("blank", ""),
+        ("p", "Respectfully submitted,"),
+        ("p", d["examiner"]),
+    ]
+
+
+def t_division_order(d):
+    return [
+        ("h1", "Division Order"),
+        ("p", "(NADOA Model Form -- for distribution of proceeds; does not amend the lease)"),
+        ("blank", ""),
+        ("p", f"Property No.: {d['property_no']}    Effective Date: {d['effective_date']}"),
+        ("p", f"Property Name: {d['well']}"),
+        ("p", f"Operator / Payor: {d['operator']}"),
+        ("p", f"County/State: {d['county']} County, {d['state']}"),
+        ("p", f"Legal Description: {d['legal']}"),
+        ("h2", "Owners and Decimal Interests"),
+        ("table", d["owners"]),
+        ("h2", "Terms"),
+        ("p", "The undersigned owner certifies ownership of the decimal interest set out above in "
+              "production from the property described. The owner agrees that the payor may withhold "
+              "payment until ownership is established to the payor's satisfaction, will be notified "
+              "before any change of decimal, and will indemnify the payor against adverse claims. "
+              "Payment may be suspended for amounts under the minimum-pay threshold. This Division "
+              "Order does not amend or ratify any lease."),
+        ("blank", ""),
+        ("p", "OWNER: ______________________________   Tax ID: ____________   Date: __________"),
+    ] + _notary(d["state"], "County", d["county"], "the undersigned owner")
+
+
+def t_affidavit_heirship(d):
+    return [
+        ("h1", "Affidavit of Heirship"),
+        ("p", f"STATE OF {d['state'].upper()}"),
+        ("p", f"COUNTY OF {d['county'].upper()}"),
+        ("blank", ""),
+        ("p", f"BEFORE ME, the undersigned authority, personally appeared {d['affiant']} "
+              f"(\"Affiant\"), a disinterested person of lawful age, who, being duly sworn, deposed "
+              f"and stated:"),
+        ("p", f"1. I knew {d['decedent']} (\"Decedent\") for many years and have personal knowledge "
+              f"of the Decedent's family history. Decedent died {d['date_of_death']} at "
+              f"{d['place_of_death']}, {d['testacy']}."),
+        ("p", f"2. Marital history: Decedent was married to {d['spouse']}, who {d['spouse_status']}. "
+              f"There were no other marriages."),
+        ("p", "3. The following are all of the children born to or adopted by Decedent, and there "
+              "are no other children, living or deceased, natural, adopted, or pretermitted:"),
+        ("table", d["heirs"]),
+        ("p", f"4. Decedent owned an interest in the oil, gas, and other minerals described as: "
+              f"{d['legal']}, {d['county']} County, {d['state']}."),
+        ("p", "5. To my knowledge the estate owed no debts that remain unpaid, and no administration "
+              "is pending. The heirs named above are the sole owners of Decedent's said interest in "
+              "the proportions shown."),
+        ("blank", ""),
+        ("p", f"AFFIANT: {d['affiant']}"),
+        ("blank", ""),
+        ("p", f"Subscribed and sworn to before me on {d['effective_date']}."),
+        ("p", "____________________________________"),
+        ("p", "Notary Public   My commission expires: ______________"),
+    ]
+
+
+def t_probate_order(d):
+    return [
+        ("p", f"IN THE {d['court']}"),
+        ("p", f"{d['county'].upper()} COUNTY, {d['state'].upper()}"),
+        ("blank", ""),
+        ("p", f"IN THE MATTER OF THE ESTATE OF {d['decedent'].upper()}, DECEASED."),
+        ("p", f"No. {d['cause_no']}"),
+        ("blank", ""),
+        ("h1", "Order Admitting Will to Probate and Appointing Executor"),
+        ("p", f"On {d['effective_date']} came on to be heard the application for probate of the "
+              f"written will of {d['decedent']}, Deceased, and the Court, having heard the evidence, "
+              f"FINDS:"),
+        ("p", f"1. The Decedent died on {d['date_of_death']}, and this Court has jurisdiction and "
+              f"venue. 2. The Decedent left a valid written will dated {d['will_date']}, not revoked. "
+              f"3. {d['executor']} is named executor in the will and is not disqualified."),
+        ("p", "IT IS THEREFORE ORDERED that the will is admitted to probate; that "
+              f"{d['executor']} is appointed and shall serve as independent executor without bond; "
+              f"and that letters testamentary issue upon qualification according to law."),
+        ("p", f"The Decedent's estate includes, among other property, an interest in the oil, gas, "
+              f"and minerals described as {d['legal']}, {d['county']} County, {d['state']}."),
+        ("blank", ""),
+        ("p", f"SIGNED this {d['effective_date']}."),
+        ("p", "____________________________________"),
+        ("p", "Judge Presiding"),
+    ]
+
+
+def t_assignment_absc(d):
+    return [
+        ("h1", "Assignment, Bill of Sale and Conveyance"),
+        ("p", f"This Assignment, Bill of Sale and Conveyance (\"Assignment\") is made effective "
+              f"{d['effective_date']} (the \"Effective Time\"), from {d['assignor']} (\"Assignor\") "
+              f"to {d['assignee']} (\"Assignee\")."),
+        ("h2", "Granting Clause"),
+        ("p", f"For {d['consideration']}, Assignor GRANTS, BARGAINS, SELLS, ASSIGNS, and CONVEYS to "
+              f"Assignee all of Assignor's right, title, and interest in and to the oil and gas "
+              f"leases described on Exhibit A (the \"Leases\"), together with the lands covered, the "
+              f"wells, equipment, and the associated contracts and records (collectively, the "
+              f"\"Assets\")."),
+        ("h2", "Reserved Override"),
+        ("p", f"Assignor RESERVES an overriding royalty interest of {d['orri']} of 8/8ths in all "
+              f"production from the Leases, proportionately reduced to Assignor's net interest "
+              f"assigned."),
+        ("h2", "Exhibit A -- Leases Conveyed"),
+        ("table", d["leases"]),
+        ("h2", "Warranty and Assumption"),
+        ("p", "Assignor conveys the Assets by special warranty of title, by, through, and under "
+              "Assignor but not otherwise. Assignee assumes all obligations relating to the Assets "
+              "arising from and after the Effective Time."),
+        ("blank", ""),
+        ("p", f"ASSIGNOR: {d['assignor']}"),
+        ("p", f"ASSIGNEE: {d['assignee']}"),
+    ] + _notary(d["state"], "County", d["county"], d["assignor"])
+
+
+def t_joa(d):
+    return [
+        ("h1", "Joint Operating Agreement"),
+        ("p", "(A.A.P.L. Form 610 -- 1989 Model Form Operating Agreement)"),
+        ("blank", ""),
+        ("p", f"This Operating Agreement is dated {d['effective_date']}, by and among the parties "
+              f"who execute it (\"Parties\")."),
+        ("p", f"Operator: {d['operator']}."),
+        ("p", f"Contract Area: {d['legal']}, {d['county']} County, {d['state']}."),
+        ("h2", "Parties and Working Interests"),
+        ("table", d["interests"]),
+        ("h2", "Article V -- Operator"),
+        ("p", f"{d['operator']} is designated Operator and shall conduct operations as a reasonably "
+              f"prudent operator, but shall have no liability except for gross negligence or willful "
+              f"misconduct. Operator may be removed for cause by the affirmative vote of "
+              f"Non-Operators owning a majority of the working interest remaining after excluding "
+              f"Operator."),
+        ("h2", "Article VI -- Drilling and Development"),
+        ("p", f"The Initial Well shall be drilled to a depth sufficient to test the {d['formation']}. "
+              f"Any Party may propose subsequent operations; a Party electing not to participate "
+              f"(\"non-consent\") relinquishes its share of production until the participating "
+              f"Parties recover {d['nonconsent']} of such non-consenting Party's share of costs."),
+        ("h2", "Article VII -- Expenditures and Liability"),
+        ("p", f"Operator shall furnish an AFE for any single operation estimated to cost more than "
+              f"{d['afe_threshold']}. The liability of the Parties is several, not joint or "
+              f"collective; each Party is responsible only for its proportionate share, secured by "
+              f"the lien and security interest granted in Article VII.B."),
+        ("h2", "Article XI / XV -- Force Majeure; Miscellaneous"),
+        ("p", "Obligations (other than to make money payments) are suspended during force majeure. "
+              "Exhibits A through G (including the Accounting Procedure and Insurance) are attached "
+              "and incorporated by reference."),
+        ("blank", ""),
+        ("p", f"OPERATOR: {d['operator']}"),
+    ]
+
+
+def t_farmout(d):
+    return [
+        ("h1", "Farmout Agreement"),
+        ("p", f"This Farmout Agreement is made {d['effective_date']} between {d['farmor']} "
+              f"(\"Farmor\") and {d['farmee']} (\"Farmee\")."),
+        ("h2", "Recitals"),
+        ("p", f"Farmor owns the oil and gas leasehold covering {d['legal']}, {d['county']} County, "
+              f"{d['state']} ({d['acres']} acres), and Farmee desires to earn an assignment by "
+              f"drilling."),
+        ("h2", "Earning Well"),
+        ("p", f"Farmee shall, at its sole cost and risk, commence the Earning Well on or before "
+              f"{d['commence_by']} and drill it with due diligence to a depth sufficient to test the "
+              f"{d['formation']}, or to {d['depth']} feet, whichever is shallower (casing point)."),
+        ("h2", "Earned Acreage and Assignment"),
+        ("p", f"Upon completion of the Earning Well as a well capable of production, Farmor shall "
+              f"assign to Farmee the leasehold as to the spacing unit for the Earning Well, "
+              f"insofar as it covers {d['earned_depths']}."),
+        ("h2", "Reserved Override and Back-In"),
+        ("p", f"Farmor reserves an overriding royalty of {d['orri']}, convertible at Farmor's "
+              f"election after Payout to a {d['backin']} working interest (a back-in), bearing its "
+              f"proportionate share of costs thereafter."),
+        ("h2", "Continuous Drilling"),
+        ("p", "Farmee may earn additional acreage by conducting continuous drilling operations with "
+              "no more than 120 days between the completion of one well and the spudding of the next."),
+        ("blank", ""),
+        ("p", f"FARMOR: {d['farmor']}"),
+        ("p", f"FARMEE: {d['farmee']}"),
+    ]
+
+
+def t_ami(d):
+    return [
+        ("h1", "Area of Mutual Interest Agreement"),
+        ("p", f"This Area of Mutual Interest Agreement (\"AMI Agreement\") is made {d['effective_date']} "
+              f"between {d['party_a']} and {d['party_b']} (each a \"Party\"), who shall participate "
+              f"in the proportions {d['proportions']}."),
+        ("h2", "AMI Area"),
+        ("p", f"The Area of Mutual Interest comprises the lands within {d['ami_area']}, "
+              f"{d['county']} County, {d['state']}."),
+        ("h2", "Term"),
+        ("p", f"This AMI Agreement remains in effect for {d['term']} from the effective date."),
+        ("h2", "Offer of Acquired Interests"),
+        ("p", "If, during the term, any Party (the \"Acquiring Party\") acquires any oil and gas "
+              "lease, mineral, or leasehold interest within the AMI Area, it shall promptly notify "
+              "the other Party and offer it the right to acquire its proportionate share at "
+              "proportionate cost. The other Party shall elect in writing within thirty (30) days; "
+              "failure to elect is deemed an election not to participate as to that acquisition."),
+        ("h2", "Excluded Acquisitions"),
+        ("p", "Renewals or extensions of leases existing before the effective date, and interests "
+              "acquired through corporate merger, are excluded from this AMI."),
+        ("blank", ""),
+        ("p", f"PARTY: {d['party_a']}"),
+        ("p", f"PARTY: {d['party_b']}"),
+    ]
+
+
+def t_pooling_order(d):
+    return [
+        ("p", f"BEFORE THE {d['commission'].upper()}"),
+        ("blank", ""),
+        ("p", f"APPLICANT: {d['applicant']}"),
+        ("p", f"RELIEF SOUGHT: Pooling"),
+        ("p", f"LEGAL DESCRIPTION: {d['legal']}, {d['county']} County, {d['state']}"),
+        ("p", f"CAUSE CD NO. {d['cause_no']}    ORDER NO. {d['order_no']}"),
+        ("p", f"DATE OF ORDER: {d['effective_date']}"),
+        ("blank", ""),
+        ("h1", "Order of the Commission (Pooling)"),
+        ("p", f"The Commission FINDS: Applicant owns an interest in the {d['formation']} common "
+              f"source of supply underlying the above unit; the owners have not agreed to pool "
+              f"voluntarily; and pooling is necessary to avoid the drilling of unnecessary wells, to "
+              f"protect correlative rights, and to prevent waste."),
+        ("p", "IT IS ORDERED that the interests in the unit are pooled. Each owner who has not "
+              "agreed shall, within twenty (20) days of this Order, elect one of the following:"),
+        ("table", d["options"]),
+        ("p", f"Owners who do not timely elect are deemed to have elected the lowest cash bonus "
+              f"option. {d['operator']} is designated Operator of the unit and is authorized to "
+              f"drill and operate the unit well."),
+        ("blank", ""),
+        ("p", "DONE AND PERFORMED by order of the Commission."),
+    ]
+
+
+def t_release_lease(d):
+    r = d["orig_recording"]
+    return [
+        ("h1", "Release of Oil and Gas Lease"),
+        ("p", f"KNOW ALL PERSONS: {d['releasor']} (\"Releasor\"), the present owner of the leasehold "
+              f"created by the oil and gas lease described below, for valuable consideration, hereby "
+              f"RELEASES, SURRENDERS, and QUITCLAIMS unto the present owner of the land all of "
+              f"Releasor's right, title, and interest in and to said lease."),
+        ("h2", "Lease Released"),
+        ("p", f"That certain Oil and Gas Lease dated {d['orig_date']}, from {d['orig_lessor']}, as "
+              f"Lessor, recorded as Instrument No. {r['instrument_no']} in Book {r['book']}, Page "
+              f"{r['page']} of the records of {d['county']} County, {d['state']}, covering: "
+              f"{d['legal']}."),
+        ("p", "Said lease is hereby terminated and held for naught, and the land is released from "
+              "all obligations thereunder, effective as of the date below."),
+        ("blank", ""),
+        ("p", f"EXECUTED {d['effective_date']}."),
+        ("p", f"RELEASOR: {d['releasor']}"),
+    ] + _notary(d["state"], "County", d["county"], d["releasor"])
+
+
+def t_ratification(d):
+    r = d["orig_recording"]
+    return [
+        ("h1", "Ratification of Oil and Gas Lease"),
+        ("p", f"The undersigned, {d['owner']} (\"Owner\"), for valuable consideration, hereby "
+              f"RATIFIES, ADOPTS, and CONFIRMS that certain Oil and Gas Lease dated {d['orig_date']}, "
+              f"recorded as Instrument No. {r['instrument_no']} in Book {r['book']}, Page {r['page']} "
+              f"of the records of {d['county']} County, {d['state']} (the \"Lease\"), covering: "
+              f"{d['legal']}."),
+        ("h2", "Lease and Grant of Interest"),
+        ("p", f"Owner adopts the Lease as fully as if Owner had originally executed it, leases and "
+              f"lets Owner's interest in the described lands to the Lessee under the Lease upon its "
+              f"terms (royalty {d['royalty']}), and joins in and consents to the Lease's pooling and "
+              f"unitization provisions as to Owner's interest."),
+        ("p", "This Ratification is effective as to Owner's interest and does not impair the Lease "
+              "as to any other interest."),
+        ("blank", ""),
+        ("p", f"EXECUTED {d['effective_date']}."),
+        ("p", f"OWNER: {d['owner']}"),
+    ] + _notary(d["state"], "County", d["county"], d["owner"])
+
+
+def t_afe(d):
+    return [
+        ("h1", "Authority for Expenditure (AFE)"),
+        ("p", f"AFE No.: {d['afe_no']}    Date: {d['effective_date']}    Type: Drill and Complete"),
+        ("p", f"Operator: {d['operator']}"),
+        ("p", f"Well: {d['well']}"),
+        ("p", f"Location: {d['legal']}, {d['county']} County, {d['state']}"),
+        ("p", f"Objective Depth: {d['depth']} feet ({d['formation']})    Estimated Spud: "
+              f"{d['spud']}"),
+        ("h2", "Estimated Costs (USD)"),
+        ("table", d["costs"]),
+        ("p", "Intangible drilling costs (IDC) are generally deductible as incurred; tangible "
+              "equipment is capitalized and depreciated. This AFE is an estimate; actual costs may "
+              "vary. Approval authorizes Operator to incur the costs above for the joint account."),
+        ("blank", ""),
+        ("p", "APPROVED -- OPERATOR: ______________________   Working Interest: ____________"),
+        ("p", "APPROVED -- NON-OPERATOR: __________________   Working Interest: ____________"),
+    ]
+
+
 TEMPLATES = {
     "oil_gas_lease": t_oil_gas_lease, "paidup_modern": t_paidup_modern,
     "metes_bounds_lease": t_metes_bounds_lease, "memorandum": t_memorandum,
@@ -716,6 +1061,11 @@ TEMPLATES = {
     "surface_use": t_surface_use, "easement": t_easement,
     "title_opinion": t_title_opinion, "grazing_lease": t_grazing_lease,
     "amendment": t_amendment,
+    "doto": t_doto, "division_order": t_division_order,
+    "affidavit_heirship": t_affidavit_heirship, "probate_order": t_probate_order,
+    "assignment_absc": t_assignment_absc, "joa": t_joa, "farmout": t_farmout,
+    "ami": t_ami, "pooling_order": t_pooling_order, "release_lease": t_release_lease,
+    "ratification": t_ratification, "afe": t_afe,
 }
 
 # ---------------------------------------------------------------------------
@@ -966,7 +1316,162 @@ DOCS = [
      "effective_date": "February 1, 2025", "term": "two (2) years", "royalty": "one-fourth (1/4)",
      "bonus": "$500.00 per net mineral acre",
      "recording": {"instrument_no": "2022-0001998", "book": "880", "page": "145"}},
+
+    # --- Batch 2: title/curative, division-order, contracts, regulatory, AFE ---
+    # Several are deliberately cross-linked to Batch-1 docs (same tract or estate)
+    # to exercise corpus-wide retrieval, and two (division order, AFE) are tabular.
+
+    {"id": "25-doto-reeves-tx", "template": "doto",
+     "doc_type": "Division Order Title Opinion", "state": "Texas", "county": "Reeves",
+     "town": "Pecos", "lat": 31.4229, "lon": -103.4932, "system": "Texas abstract/block-section",
+     "legal": "Section 22, Block 13, H&GN RR Co. Survey, Abstract No. 2204", "acres": "320.00",
+     "operator": "Delaware Basin Resources, LP", "well": "Holloway 13-22 #1H",
+     "examiner": "T. Lindqvist, Attorney at Law, Lindqvist & Reyes PLLC",
+     "drilling_opinion_date": "March 31, 2025", "effective_date": "September 2, 2025",
+     "division": [["Owner", "Interest Type", "Decimal"],
+                  ["The Holloway Family Trust", "Royalty (RI)", "0.22500000"],
+                  ["Big Bend Royalty Partners", "ORRI", "0.02500000"],
+                  ["Delaware Basin Resources, LP", "Working Interest (NRI)", "0.75000000"]]},
+
+    {"id": "26-division-order-weld-co", "template": "division_order",
+     "doc_type": "Division Order", "state": "Colorado", "county": "Weld", "town": "Greeley",
+     "town_lat": 40.4233, "town_lon": -104.7091,
+     "plss": {"mer": "6th", "twp": 6, "twp_dir": "N", "rng": 63, "rng_dir": "W",
+              "sec": 9, "aliquot": "SW/4"},
+     "operator": "Front Range Petroleum, LLC", "property_no": "CO-0096-09",
+     "well": "Cattle Co. 9-6 #2", "effective_date": "June 1, 2025",
+     "owners": [["Owner No.", "Owner Name", "Type", "Decimal Interest"],
+                ["0001", "Front Range Cattle Co., LLC", "RI", "0.16000000"],
+                ["0002", "Greeley Mineral Trust", "RI", "0.04000000"],
+                ["0100", "Front Range Petroleum, LLC", "WI", "0.80000000"]]},
+
+    {"id": "27-affidavit-heirship-loving-tx", "template": "affidavit_heirship",
+     "doc_type": "Affidavit of Heirship", "state": "Texas", "county": "Loving", "town": "Mentone",
+     "lat": 31.7060, "lon": -103.5977, "system": "Texas abstract/block-section",
+     "legal": "Section 30, Block C-24, PSL Survey, Abstract No. 612", "acres": "640.00",
+     "affiant": "Wilbur K. Hayes, a disinterested party",
+     "decedent": "Andrew J. Henderson", "date_of_death": "March 2, 2019",
+     "place_of_death": "Pecos, Texas", "testacy": "leaving a written will",
+     "spouse": "Helen R. Henderson", "spouse_status": "predeceased him on July 9, 2015",
+     "effective_date": "April 10, 2025",
+     "heirs": [["Name", "Relationship", "Share of Decedent's Interest"],
+               ["Carl A. Henderson", "Son", "1/3"],
+               ["Diane Henderson Pruitt", "Daughter", "1/3"],
+               ["Children of Mark Henderson (predeceased)", "Grandchildren, per stirpes", "1/3"]]},
+
+    {"id": "28-probate-order-loving-tx", "template": "probate_order",
+     "doc_type": "Order Admitting Will to Probate", "state": "Texas", "county": "Loving",
+     "town": "Mentone", "lat": 31.7060, "lon": -103.5977,
+     "system": "Texas abstract/block-section",
+     "legal": "Section 30, Block C-24, PSL Survey, Abstract No. 612", "acres": "640.00",
+     "court": "COUNTY COURT", "decedent": "Andrew J. Henderson", "cause_no": "P-1042",
+     "date_of_death": "March 2, 2019", "will_date": "October 18, 2016",
+     "executor": "Carl A. Henderson", "effective_date": "May 6, 2019"},
+
+    {"id": "29-assignment-absc-midland-tx", "template": "assignment_absc",
+     "doc_type": "Assignment, Bill of Sale and Conveyance", "state": "Texas", "county": "Midland",
+     "town": "Midland", "lat": 31.9973, "lon": -102.0779, "system": "Texas abstract/block-section",
+     "legal": ("Section 14, Block 39, T-2-S, T&P RR Co. Survey, Abstract No. 1187 (and additional "
+               "leases per Exhibit A)"), "acres": "960.00",
+     "assignor": "Llano Estacado Operating, LLC", "assignee": "Permian Acquisition Partners, LP",
+     "consideration": "$10.00 and other good and valuable consideration", "orri": "2.0%",
+     "effective_date": "July 1, 2025",
+     "leases": [["Lease (Lessor)", "County", "Legal Description", "Recording"],
+                ["Margaret A. Caldwell", "Midland, TX", "Sec 14, Blk 39, T&P A-1187", "Vol 1180/Pg 22"],
+                ["The Holloway Family Trust", "Reeves, TX", "Sec 22, Blk 13, H&GN A-2204", "Vol 905/Pg 410"]]},
+
+    {"id": "30-joa-mckenzie-nd", "template": "joa", "doc_type": "Joint Operating Agreement",
+     "state": "North Dakota", "county": "McKenzie", "town": "Watford City",
+     "town_lat": 47.8022, "town_lon": -103.2832,
+     "plss": {"mer": "5th", "twp": 150, "twp_dir": "N", "rng": 98, "rng_dir": "W",
+              "sec": 22, "aliquot": "all"},
+     "operator": "Bakken Ridge Energy, Inc.", "effective_date": "April 15, 2024",
+     "formation": "Bakken and Three Forks formations", "nonconsent": "300%",
+     "afe_threshold": "$50,000.00",
+     "interests": [["Party", "Working Interest"],
+                   ["Bakken Ridge Energy, Inc. (Operator)", "60.00%"],
+                   ["Missouri River Oil, LLC", "25.00%"],
+                   ["Dakota Royalty & Working, LP", "15.00%"]]},
+
+    {"id": "31-farmout-eddy-nm", "template": "farmout", "doc_type": "Farmout Agreement",
+     "state": "New Mexico", "county": "Eddy", "town": "Carlsbad",
+     "town_lat": 32.4207, "town_lon": -104.2288,
+     "plss": {"mer": "NMPM", "twp": 22, "twp_dir": "S", "rng": 28, "rng_dir": "E",
+              "sec": 9, "aliquot": "N/2"},
+     "acres": "320.00", "farmor": "Pecos Valley Land Company",
+     "farmee": "Mesa Verde Resources, LP", "commence_by": "December 31, 2025",
+     "formation": "Bone Spring formation", "depth": "11,500",
+     "earned_depths": "from the surface to the base of the Bone Spring formation",
+     "orri": "3.5%", "backin": "25%", "effective_date": "August 1, 2025"},
+
+    {"id": "32-ami-karnes-tx", "template": "ami",
+     "doc_type": "Area of Mutual Interest Agreement", "state": "Texas", "county": "Karnes",
+     "town": "Karnes City", "lat": 28.8853, "lon": -97.9003,
+     "system": "Texas abstract/block-section",
+     "legal": "J. de la Garza Survey, Abstract No. 456, and adjoining surveys", "acres": "n/a",
+     "party_a": "Eagle Ford Operating Company", "party_b": "Gulf Coast Minerals, LLC",
+     "proportions": "50% / 50%",
+     "ami_area": "the J. de la Garza Survey (A-456) and all surveys adjoining it",
+     "term": "three (3) years", "effective_date": "February 1, 2025"},
+
+    {"id": "33-pooling-order-kingfisher-ok", "template": "pooling_order",
+     "doc_type": "Pooling Order", "state": "Oklahoma", "county": "Kingfisher", "town": "Kingfisher",
+     "town_lat": 35.8620, "town_lon": -97.9320,
+     "plss": {"mer": "IM", "twp": 16, "twp_dir": "N", "rng": 7, "rng_dir": "W",
+              "sec": 19, "aliquot": "all"},
+     "commission": "Oklahoma Corporation Commission", "applicant": "Red River Minerals, LLC",
+     "operator": "Red River Minerals, LLC", "formation": "Mississippian",
+     "cause_no": "CD 2024-001234", "order_no": "765432", "effective_date": "September 18, 2024",
+     "options": [["Election Option", "Cash Bonus / Net Acre", "Royalty"],
+                 ["(a) Participate (share of est. well cost $3,400,000)", "n/a", "n/a"],
+                 ["(b) Cash bonus plus royalty", "$1,000", "3/16"],
+                 ["(c) Higher royalty, lower bonus", "$200", "1/5"]]},
+
+    {"id": "34-release-loving-tx", "template": "release_lease",
+     "doc_type": "Release of Oil and Gas Lease", "state": "Texas", "county": "Loving",
+     "town": "Mentone", "lat": 31.7060, "lon": -103.5977,
+     "system": "Texas abstract/block-section",
+     "legal": "Section 30, Block C-24, PSL Survey, Abstract No. 612", "acres": "640.00",
+     "releasor": "Permian Legacy Exploration, Inc.", "orig_lessor": "Mentone Minerals, Ltd.",
+     "orig_date": "June 1, 2012", "effective_date": "May 12, 2025",
+     "orig_recording": {"instrument_no": "2012-0000311", "book": "188", "page": "540"}},
+
+    {"id": "35-ratification-lea-nm", "template": "ratification",
+     "doc_type": "Ratification of Oil and Gas Lease", "state": "New Mexico", "county": "Lea",
+     "town": "Lovington", "town_lat": 32.9445, "town_lon": -103.3486,
+     "plss": {"mer": "NMPM", "twp": 20, "twp_dir": "S", "rng": 37, "rng_dir": "E",
+              "sec": 16, "aliquot": "SE/4"},
+     "owner": "Whitaker Family Mineral Trust", "orig_date": "February 10, 2025",
+     "royalty": "three-sixteenths (3/16)", "effective_date": "March 20, 2025",
+     "orig_recording": {"instrument_no": "2025-0000922", "book": "1011", "page": "77"}},
+
+    {"id": "36-afe-mckenzie-nd", "template": "afe",
+     "doc_type": "Authority for Expenditure (AFE)", "state": "North Dakota", "county": "McKenzie",
+     "town": "Watford City", "town_lat": 47.8022, "town_lon": -103.2832,
+     "plss": {"mer": "5th", "twp": 150, "twp_dir": "N", "rng": 98, "rng_dir": "W",
+              "sec": 22, "aliquot": "all"},
+     "operator": "Bakken Ridge Energy, Inc.", "afe_no": "ND-2024-0590",
+     "well": "Bergstrom 22-150 #1H", "depth": "10,600 TVD / 21,000 MD",
+     "formation": "Middle Bakken", "spud": "June 2024", "effective_date": "April 20, 2024",
+     "costs": [["Cost Item", "Dry Hole ($)", "Completion ($)"],
+               ["Location, roads, pad", "250,000", "0"],
+               ["Drilling rig & tools", "3,200,000", "0"],
+               ["Drilling fluids & chemicals", "680,000", "0"],
+               ["Cementing", "420,000", "150,000"],
+               ["Logging, testing, supervision", "510,000", "240,000"],
+               ["Surface & intermediate casing", "640,000", "0"],
+               ["Production casing & tubing", "0", "1,250,000"],
+               ["Wellhead & tree", "0", "180,000"],
+               ["Hydraulic fracturing", "0", "4,800,000"],
+               ["Facilities & tank battery", "0", "520,000"],
+               ["Contingency (10%)", "570,000", "714,000"],
+               ["TOTAL ESTIMATE", "6,270,000", "7,854,000"]]},
 ]
+
+
+def _first(d: dict, keys):
+    """First non-empty value among keys -- party roles vary by instrument type."""
+    return next((d[k] for k in keys if d.get(k)), None)
 
 
 def preprocess(d: dict) -> dict:
@@ -1010,8 +1515,11 @@ def render_all() -> None:
             "distance_to_county_seat_mi": d["dist_to_town_mi"],
             "legal_description_system": d["system"], "legal_description": d["legal"],
             "acres": d.get("acres"),
-            "lessor_or_grantor": d.get("lessor") or d.get("grantor"),
-            "lessee_or_grantee": d.get("lessee") or d.get("grantee"),
+            "lessor_or_grantor": _first(d, ("lessor", "grantor", "assignor", "farmor",
+                                            "applicant", "releasor", "owner", "affiant",
+                                            "decedent")),
+            "lessee_or_grantee": _first(d, ("lessee", "grantee", "assignee", "farmee",
+                                            "operator", "party_b", "executor")),
             "effective_date": d.get("effective_date"), "royalty": d.get("royalty"),
             "bonus": d.get("bonus"), "primary_term": d.get("term"),
         })

@@ -1,8 +1,9 @@
 # Sample land/title documents
 
 A synthetic corpus for exercising the LandDoc ingest → extract → retrieve → ask
-pipeline end to end. **24 documents**, each emitted as both readable Markdown
-(`leases/<id>.md`) and an ingestible text-based PDF (`leases/<id>.pdf`).
+pipeline end to end. **36 documents** across **23 instrument types**, each emitted
+as both readable Markdown (`leases/<id>.md`) and an ingestible text-based PDF
+(`leases/<id>.pdf`).
 
 Everything here is **synthetic** — party names, dates, dollar amounts, and
 recording data are invented. But the document **structures** are patterned on real
@@ -15,7 +16,7 @@ matches the legal description — see *Geocoding* below.
 
 ## Geocoding — coordinates that match the description
 
-- **13 PLSS tracts** (section-township-range states) are geolocated by `generate.py`'s
+- **19 PLSS tracts** (section-township-range states) are geolocated by `generate.py`'s
   built-in `plss_centroid`: PLSS is a regular 6-mile grid anchored at each principal
   meridian's documented initial point, with sections numbered in the standard
   boustrophedon pattern, so a Township/Range/Section/aliquot description converts to
@@ -23,24 +24,38 @@ matches the legal description — see *Geocoding* below.
   lines). Each computed centroid lands **3–29 miles from its county seat**, i.e.
   inside the (large, western) county — `distance_to_county_seat_mi` in the manifest
   records this sanity check. `coordinate_basis` is `"PLSS tract centroid (computed…)"`.
-- **11 non-PLSS docs** (Texas abstract/block-section, Appalachian metes-and-bounds,
+- **17 non-PLSS docs** (Texas abstract/block-section, Appalachian metes-and-bounds,
   a Spanish land grant) have **no computable grid**, so their coordinate is a real
   in-county/town point, marked `coordinate_basis: "county/town approximate"`.
 
 ## What's covered
 
 - **12 states** — TX, NM, ND, CO, OK, PA, WV, OH, LA, WY, CA, MT.
-- **9 instrument types** — oil & gas lease (the bulk), memorandum of lease,
-  mineral deed, royalty deed, general warranty deed, quitclaim deed, surface use &
-  damage agreement, pipeline right-of-way easement, drilling title opinion, grazing
-  lease, and a lease amendment/extension.
-- **Multiple legal-description systems** — PLSS section-township-range across six
+- **23 instrument types** spanning the real "land file":
+  - *Leasing* — oil & gas lease (Producers-88 & modern paid-up & Appalachian forms),
+    memorandum of lease, lease amendment/extension, **ratification**, **release of lease**.
+  - *Conveyances* — mineral deed, royalty deed, general warranty deed, quitclaim deed,
+    **assignment, bill of sale & conveyance (ABSC)**.
+  - *Title & curative* — drilling title opinion, **division order title opinion (DOTO)**,
+    **affidavit of heirship**, **order admitting will to probate**.
+  - *Revenue* — **division order** (NADOA-style).
+  - *Contracts* — **joint operating agreement (AAPL 610)**, **farmout agreement**,
+    **area of mutual interest (AMI)**, surface use & damage agreement, pipeline ROW easement.
+  - *Regulatory & cost* — **pooling order** (state commission), **authority for
+    expenditure (AFE)**.
+  - *Other* — grazing/ranch lease.
+- **Tabular ("messy") documents** — the division order, AFE, JOA working-interest
+  list, ABSC lease exhibit, and pooling-order election options render as tables, so
+  the fixed-window chunker is tested on tabular as well as prose input.
+- **Cross-document links** for corpus-wide retrieval — several documents describe the
+  **same tract or estate** so an `/ask` query spans them: e.g. the *Henderson estate*
+  (Loving Co., TX) appears in the title opinion, affidavit of heirship, probate order,
+  and lease release; the *Whitaker tract* (Lea Co., NM) in a lease, amendment, and
+  ratification; a *McKenzie Co., ND* section in a lease, JOA, and AFE.
+- **Multiple legal-description systems** — PLSS section-township-range across seven
   meridians (5th, 6th, Indian, New Mexico, Mount Diablo, Montana, Louisiana), the
   **Texas abstract/block-section** survey system, **Appalachian metes-and-bounds**
   (PA/WV/OH), and a **Spanish land-grant** tract (NM).
-- **Different styles** — Producers-88 numbered-clause leases, modern paid-up
-  leases, recital/habendum deeds, a memo-format title opinion with comments &
-  requirements, WHEREAS-style agreements, and short-form recording memoranda.
 
 ## `manifest.json` — the answer key
 
@@ -107,6 +122,17 @@ original/paraphrased — no form text is reproduced.** References consulted:
 - Pipeline ROW easements —
   [OSU Ohioline](https://ohioline.osu.edu/factsheet/anr-33),
   [Penn State EARTH 109](https://www.e-education.psu.edu/earth109/node/683)
+- Division orders (NADOA model fields) —
+  [NADOA model form booklet](https://nadoa.org/wp-content/uploads/2021/11/NADOA_Model_Form_DO_Booklet.pdf)
+- AFE structure (dry-hole vs completion, IDC/tangible) —
+  [Kingdom Exploration](https://www.kingdomexploration.com/?page=faq&slug=afe-oil-investment-authorization-expenditure-costs),
+  [SPE glossary](https://onepetro.org/spe/general-information/1269/Authority-for-expenditures-AFE)
+- JOA (AAPL Form 610 articles) —
+  [Jackson Walker](https://www.jw.com/wp-content/uploads/2017/01/The-AAPL-Form-610-2015-Model-Form-Joint-Operating-Agreement.pdf),
+  [Penn State 1989 JOA](https://www.e-education.psu.edu/ebf301/sites/www.e-education.psu.edu.ebf301/files/1989%20JOA%20(Clean).pdf)
+- Affidavit of heirship (required contents) —
+  [Winblad Law](https://winbladlaw.com/what-is-an-affidavit-of-heirship-using-it-for-oil-and-gas-mineral-rights/),
+  [CourthouseDirect](https://info.courthousedirect.com/blog/bid/295150/what-s-an-affidavit-of-heirship-the-complete-guide)
 
 > Still synthetic: structures are realistic and the geography is real, but the
 > specific parties, descriptions, and dollar figures are invented and the documents
