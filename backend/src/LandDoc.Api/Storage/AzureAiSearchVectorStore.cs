@@ -12,8 +12,8 @@ namespace LandDoc.Api.Storage;
 /// <summary>
 /// Azure AI Search adapter for <see cref="IVectorStore"/> (ADR-0017). Uses the Free-tier index
 /// <c>landdoc-chunks</c> with HNSW + cosine. Ensures the index exists on construction (idempotent —
-/// safe across Container Apps cold starts). Uses the synchronous Azure SDK overloads to satisfy the
-/// existing synchronous <see cref="IVectorStore"/> contract without blocking an async method.
+/// safe across Container Apps cold starts). Uses the asynchronous Azure SDK overloads end-to-end so
+/// network I/O never blocks a thread, satisfying the async <see cref="IVectorStore"/> contract.
 /// Config-selected via <c>VectorStore:Provider=azuresearch</c>; the in-memory store remains the
 /// offline/test default.
 /// </summary>
@@ -43,7 +43,7 @@ public sealed class AzureAiSearchVectorStore : IVectorStore
         EnsureIndex(endpoint, credential, opts.IndexName, dimension);
     }
 
-    public void Add(Chunk chunk)
+    public async Task AddAsync(Chunk chunk, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(chunk);
 
@@ -56,10 +56,11 @@ public sealed class AzureAiSearchVectorStore : IVectorStore
             ["contentVector"] = chunk.Vector,
         };
 
-        _searchClient.IndexDocuments(IndexDocumentsBatch.MergeOrUpload(new[] { doc }));
+        await _searchClient.IndexDocumentsAsync(
+            IndexDocumentsBatch.MergeOrUpload(new[] { doc }), cancellationToken: ct);
     }
 
-    public IReadOnlyList<ScoredChunk> TopK(float[] query, int k)
+    public async Task<IReadOnlyList<ScoredChunk>> TopKAsync(float[] query, int k, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(query);
         if (k <= 0) return [];
@@ -79,7 +80,8 @@ public sealed class AzureAiSearchVectorStore : IVectorStore
         azureOptions.Select.Add("text");
         azureOptions.Select.Add("source");
 
-        var response = _searchClient.Search<SearchDocument>(searchText: null, options: azureOptions);
+        var response = await _searchClient.SearchAsync<SearchDocument>(
+            searchText: null, options: azureOptions, cancellationToken: ct);
 
         return response.Value.GetResults()
             .Select(r =>

@@ -50,7 +50,7 @@ public sealed class IngestionExtractionResilienceTests
         var store = factory.Services.GetRequiredService<IVectorStore>();
         var embedder = factory.Services.GetRequiredService<IEmbeddingClient>();
         var probe = await embedder.EmbedAsync("probe");
-        var storedForDoc = store.TopK(probe, int.MaxValue)
+        var storedForDoc = (await store.TopKAsync(probe, int.MaxValue))
             .Where(scored => scored.Chunk.DocumentId == body.Id)
             .ToList();
         Assert.Equal(body.ChunkCount, storedForDoc.Count);

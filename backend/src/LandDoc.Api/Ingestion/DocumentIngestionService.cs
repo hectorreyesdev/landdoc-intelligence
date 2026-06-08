@@ -57,7 +57,7 @@ public sealed class DocumentIngestionService(
         foreach (var chunkText in chunkTexts)
         {
             var vector = await embeddingClient.EmbedAsync(chunkText, cancellationToken);
-            vectorStore.Add(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, safeSource));
+            await vectorStore.AddAsync(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, safeSource), cancellationToken);
         }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);

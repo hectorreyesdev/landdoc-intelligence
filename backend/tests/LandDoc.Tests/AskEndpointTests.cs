@@ -169,7 +169,7 @@ public sealed class AskEndpointTests
         var store = factory.Services.GetRequiredService<IVectorStore>();
         var embedder = factory.Services.GetRequiredService<IEmbeddingClient>();
         var probe = await embedder.EmbedAsync("probe");
-        var storedIds = store.TopK(probe, int.MaxValue).Select(sc => sc.Chunk.Id).ToHashSet();
+        var storedIds = (await store.TopKAsync(probe, int.MaxValue)).Select(sc => sc.Chunk.Id).ToHashSet();
 
         Assert.All(body.Citations, c => Assert.Contains(c.ChunkId, storedIds));
     }
