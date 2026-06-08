@@ -3,7 +3,10 @@
 **Status:** Accepted · _Amended 2026-06-07 — `IChatClient` takes a `QaPassage` port DTO (not storage
 `Chunk`) + the slice-default chat adapter is Anthropic-direct (see ADR-0010)._ · _Amended 2026-06-08 —
 live slice chat provider is now **Azure OpenAI GPT** via `AzureOpenAIChatClient` (ADR-0012, supersedes
-ADR-0007/0010); Anthropic-direct is the config-swap fallback._
+ADR-0007/0010); Anthropic-direct is the config-swap fallback._ · _Amended 2026-06-08 — `QaPassage` carries
+`SourceName` (the source document's display name) so the grounding prompt labels each passage by
+document, enabling document-qualified questions over the corpus-wide result set (ADR-0014, refines
+ADR-0009)._
 
 ## What to build
 The retrieval-augmented **read path** — the complement to the ingest write path
@@ -49,10 +52,11 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   the **config-swap fallback**. The swap is config-only; ADR-0012 **supersedes ADR-0007 and ADR-0010**.
   The acceptance test injects a **fake `IChatClient`** so the test is deterministic and offline.
 - **Port hygiene (`IChatClient` — amended):** `AnswerAsync` takes a QA-context DTO —
-  `QaPassage(Guid ChunkId, Guid DocumentId, string Text)` in the `Model` namespace — **not** the
-  storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports, ADR-0002 /
-  ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat call and
-  → `Citation` for the response. `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
+  `QaPassage(Guid ChunkId, Guid DocumentId, string SourceName, string Text)` in the `Model` namespace —
+  **not** the storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports,
+  ADR-0002 / ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat
+  call and → `Citation` for the response. The Qa handler sets `SourceName` from the chunk's persisted
+  source (the ingested file name). `ExtractFieldsAsync` is unchanged. This amendment satisfies the rule
   in `IChatClient`'s own doc-comment that changing the interface requires a spec.
 - **Retrieval:** top-k by cosine similarity via linear scan over the in-memory store (ADR-0005),
   through the narrow store seam that ADR-0005 calls for *(assumption: a small `IVectorStore`-style
@@ -61,7 +65,9 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   yields a fixed ordering.)*
 - **Grounding + citations:** the `Qa` prompt instructs the model to answer **only** from the supplied
   chunks and to ground every claim; the returned `citations[]` are the retrieved chunks (chunkId,
-  documentId, cosine score, and the chunk `text` resolved from the store).
+  documentId, cosine score, and the chunk `text` resolved from the store). Each passage is labeled in
+  the prompt with its source document so cross-document answers can disambiguate which document a claim
+  is about.
 - **No-grounding behavior (strict cite-or-error):** an **empty store** (no documents ingested) →
   `409 ProblemDetails`. When the store is non-empty, the response **always** carries ≥1 citation (the
   top-k retrieved chunks); if the answer isn't supported by them, the model replies "not found in the
@@ -117,7 +123,9 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
 - **Depends on:** [[knowledge/docs/specs/0001-document-ingestion-write-path]] (populates the shared
   in-memory store this path reads).
 - **ADRs:** [[knowledge/docs/decisions/0009-corpus-wide-ask-retrieval-scope]] (global `/ask` scope —
-  records this spec's decision) · [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
+  records this spec's decision; **refined by ADR-0014**) ·
+  [[knowledge/docs/decisions/0014-surface-source-document-identity-in-ask-grounding-context]]
+  (passages labeled by source document for document-qualified Q&A — the 2026-06-08 amendment) · [[knowledge/docs/decisions/0005-in-memory-vector-store-slice-azure-ai-search-production]]
   (in-memory top-k cosine + store seam) ·
   [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]] (both ports) ·
   [[knowledge/docs/decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config]] (live slice
