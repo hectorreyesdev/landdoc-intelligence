@@ -52,7 +52,7 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   the **config-swap fallback**. The swap is config-only; ADR-0012 **supersedes ADR-0007 and ADR-0010**.
   The acceptance test injects a **fake `IChatClient`** so the test is deterministic and offline.
 - **Port hygiene (`IChatClient` — amended):** `AnswerAsync` takes a QA-context DTO —
-  `QaPassage(Guid ChunkId, Guid DocumentId, string SourceName, string Text)` in the `Model` namespace —
+  `QaPassage(Guid ChunkId, Guid DocumentId, string Text, string SourceName)` in the `Model` namespace —
   **not** the storage `Chunk`, so the chat port carries no dependency on `Storage` (hexagonal ports,
   ADR-0002 / ADR-0004). The `Qa` handler maps each retrieved `ScoredChunk` → `QaPassage` for the chat
   call and → `Citation` for the response. The Qa handler sets `SourceName` from the chunk's persisted
