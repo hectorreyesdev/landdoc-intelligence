@@ -3,7 +3,7 @@
 > **What this is:** the single source of truth for the live Azure + Microsoft Foundry stack standing up
 > behind [[landdoc-intelligence]]. Snapshot for the **builder session** (adapter wiring) and the **azure
 > lane** deploy. Mentor-side state — lives in the vault; copy the relevant block into the builder as a prompt.
-> **Status:** Phase B (stack provisioned) ✅ · Phase D (hosted deploy) in progress. **As of 2026-06-07.**
+> **Status:** Phase B (stack provisioned) ✅ · Phase D (hosted deploy) ✅. **As of 2026-06-08.**
 >
 > 🔒 **No secret VALUES in this file.** Only Key Vault secret *names* + how to fetch. Keys live in Key Vault;
 > hosted apps read them via **managed identity**, local dev via **`dotnet user-secrets`** — never hardcode.
@@ -27,7 +27,8 @@
 | Resource | Type | Name | Endpoint | Tier / mode |
 |---|---|---|---|---|
 | **Foundry / AI Services** | Azure AI Services (multi-service) | `landdoc-rag-resource` | `https://landdoc-rag-resource.services.ai.azure.com` ‹confirm AOAI form — see §4› | Consumption |
-| **Document Intelligence** | Azure AI Document Intelligence (ex–Form Recognizer) | `di-landdoc-hr01` | `https://di-landdoc-hr01.cognitiveservices.azure.com/` ‹confirm› | Consumption |
+| **Document Intelligence** | Azure AI Document Intelligence (ex–Form Recognizer) | `di-landdoc-hr01` | `https://di-landdoc-hr01.cognitiveservices.azure.com/` ‹confirm› | Consumption — **provisioned, not wired** (PdfPig path; OCR out of scope) |
+| **Azure AI Search** | Cognitive Search (vector store, ADR-0017) | ‹confirm name› | `https://‹confirm›.search.windows.net` | **Free** tier (**eastus** — Free capacity was out in eastus2); index `landdoc-chunks`; **key auth (no MI)** |
 | **Blob Storage** | Storage account | `stlanddochr01` | `https://stlanddochr01.blob.core.windows.net` | **LRS** (caught the GRS default) |
 | ↳ container | Blob container | `documents` | — | — |
 | **Key Vault** | Key Vault (RBAC) | `kv-landdoc-hr01` | `https://kv-landdoc-hr01.vault.azure.net` | RBAC auth; self = *Key Vault Secrets Officer* |
@@ -57,9 +58,11 @@ value from **Foundry → the resource → Keys & Endpoint** and store it as the 
 |---|---|---|
 | `AzureOpenAI--Endpoint` | `AzureOpenAI:Endpoint` | AOAI/Foundry endpoint (the `.openai.azure.com` form — see §4) |
 | `AzureOpenAI--ApiKey` | `AzureOpenAI:ApiKey` | AOAI key 🔒 *(prefer managed identity in hosting; key for local/dev)* |
-| `DocIntelligence--Endpoint` | `DocIntelligence:Endpoint` | Document Intelligence endpoint |
-| `DocIntelligence--ApiKey` | `DocIntelligence:ApiKey` | Document Intelligence key 🔒 |
-| `Blob--ConnectionString` | `Blob:ConnectionString` | Storage account connection string 🔒 |
+| `DocIntelligence--Endpoint` | `DocIntelligence:Endpoint` | Document Intelligence endpoint (provisioned, unused) |
+| `DocIntelligence--ApiKey` | `DocIntelligence:ApiKey` | Document Intelligence key 🔒 (provisioned, unused) |
+| `Search--Endpoint` | `Search:Endpoint` | Azure AI Search endpoint (`.search.windows.net`) ‹confirm secret exists in KV — ADR-0017› |
+| `Search--ApiKey` | `Search:ApiKey` | Azure AI Search admin key 🔒 (Free tier = key auth, no MI — ADR-0017) ‹confirm› |
+| `Blob--ConnectionString` | `Blob:ConnectionString` | Storage account connection string 🔒 (fallback when `Blob:ServiceUri`/MI not used) |
 | `Anthropic--ApiKey` | `Anthropic:ApiKey` | Anthropic-direct fallback key 🔒 ‹confirm this 6th secret exists — build log says 6, provision note lists 5› |
 
 Fetch a (non-secret) endpoint value:
@@ -105,7 +108,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | App (SPA + API, one container) | Azure **Container App** | `landdoc` (env `cae-landdoc`, eastus2) | **deployed** — https://landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io/ |
 | Image registry | Azure Container Registry (Basic) | `ca6a00db456cacr` | deployed |
 | Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
-| Vector store (chunks) | Azure AI Search Free tier (index `landdoc-chunks`) | `landdoc-rag-resource…` (eastus) | wired (ADR-0017) |
+| Vector store (chunks) | Azure AI Search **Free tier** (index `landdoc-chunks`, **key auth**) | ‹confirm Search service name› (**eastus**) | wired (ADR-0017) |
 | Document store (files + metadata) | Azure Blob via app's MI (`Storage Blob Data Contributor`), container `documents` | `stlanddochr01` | wired (spec 0006 / ADR-0018) |
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
 | CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
@@ -130,8 +133,9 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 
 - [ ] Exact **AOAI endpoint form** (`.openai.azure.com` vs `.services.ai.azure.com`) + `api-version` (§4).
 - [x] **Deployment names** for chat + embeddings — `gpt-5.4-mini` / `text-embedding-3-small` (in `appsettings.json`) (§3).
-- [ ] **Secret count/names** in `kv-landdoc-hr01` — confirm the Anthropic fallback secret (§5).
-- [ ] API host's **managed identity** granted *Key Vault Secrets User* on the vault (§5).
+- [ ] **Secret count/names** in `kv-landdoc-hr01` — confirm the Anthropic fallback secret + the **`Search--Endpoint` / `Search--ApiKey`** secrets (§5).
+- [x] API host's **managed identity** granted *Key Vault Secrets User* on the vault — deployed (§7).
+- [ ] Record the **Azure AI Search service name/endpoint** (§2/§7) — not captured during the ADR-0017 build.
 - [ ] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4)
   and Container App env set: `Blob__ServiceUri=https://stlanddochr01.blob.core.windows.net`,
   `DocumentStore__Provider=azureblob`. (Local dev: `DocumentStore__Provider=inmemory`, or Azurite via
