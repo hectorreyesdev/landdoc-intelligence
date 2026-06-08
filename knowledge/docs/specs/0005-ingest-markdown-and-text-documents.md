@@ -94,4 +94,4 @@ The accepted set becomes **{ PDF, `.txt`, `.md`, `.markdown` }**; anything else 
   ([[knowledge/docs/decisions/0004-modular-monolith-over-microservices]],
   [[knowledge/docs/decisions/0002-split-model-access-into-chat-and-embedding-clients]]). The seam is
   deliberately port-neutral; a port-shaped change would require its own ADR.
-- **Implementing issue / PR:** _TBD — link once opened._
+- **Implementing issue / PR:** [#18](https://github.com/hectorreyesdev/landdoc-intelligence/issues/18) — _PR link TBD once opened._
