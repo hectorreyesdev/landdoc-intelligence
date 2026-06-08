@@ -51,11 +51,23 @@ public sealed class DocumentIngestionService(
             fields = [];
         }
 
+        // Sanitize once before the loop: filenames flow into the LLM grounding prompt and a crafted
+        // name containing newlines or bracket characters can break the [Source: …] label structure
+        // and inject arbitrary instructions. The original fileName is kept for the UI response
+        // (React escapes it); only the value that reaches the prompt needs sanitizing.
+        var safeSource = fileName
+            .ReplaceLineEndings(" ")
+            .Replace("[", "(")
+            .Replace("]", ")")
+            .Trim();
+        if (safeSource.Length > 200)
+            safeSource = safeSource[..200];
+
         var chunkTexts = textChunker.Chunk(text);
         foreach (var chunkText in chunkTexts)
         {
             var vector = await embeddingClient.EmbedAsync(chunkText, cancellationToken);
-            vectorStore.Add(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, fileName));
+            vectorStore.Add(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, safeSource));
         }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);
