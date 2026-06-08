@@ -1,0 +1,30 @@
+BEFORE THE COLORADO ENERGY AND CARBON MANAGEMENT COMMISSION
+
+
+APPLICANT: Mesa Verde Resources, LP
+
+RELIEF SOUGHT: Pooling
+
+LEGAL DESCRIPTION: Township 6 South, Range 89 West, 6th P.M., Section 14: NW/4, Garfield County, Colorado
+
+CAUSE CD NO. CD 2024-100122    ORDER NO. 700122
+
+DATE OF ORDER: March 4, 2024
+
+
+# Order of the Commission (Pooling)
+
+The Commission FINDS: Applicant owns an interest in the Spraberry common source of supply underlying the above unit; the owners have not agreed to pool voluntarily; and pooling is necessary to avoid the drilling of unnecessary wells, to protect correlative rights, and to prevent waste.
+
+IT IS ORDERED that the interests in the unit are pooled. Each owner who has not agreed shall, within twenty (20) days of this Order, elect one of the following:
+
+| Election Option | Cash Bonus / Net Acre | Royalty |
+| --- | --- | --- |
+| (a) Participate (share of est. well cost $3,400,000) | n/a | n/a |
+| (b) Cash bonus plus royalty | $1,500 | 3/16 |
+| (c) Higher royalty, lower bonus | $200 | 1/5 |
+
+Owners who do not timely elect are deemed to have elected the lowest cash bonus option. Mesa Verde Resources, LP is designated Operator of the unit and is authorized to drill and operate the unit well.
+
+
+DONE AND PERFORMED by order of the Commission.
