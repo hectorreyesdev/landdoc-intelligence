@@ -51,13 +51,27 @@ public sealed class DocumentIngestionService(
             fields = [];
         }
 
+        var safeSource = SanitizeSource(fileName);
+
         var chunkTexts = textChunker.Chunk(text);
         foreach (var chunkText in chunkTexts)
         {
             var vector = await embeddingClient.EmbedAsync(chunkText, cancellationToken);
-            vectorStore.Add(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, fileName));
+            vectorStore.Add(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, safeSource));
         }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);
+    }
+
+    // Sanitize filenames before they flow into the LLM grounding prompt: newlines break the
+    // Content-Disposition header and can inject prompt instructions; brackets break [Source: …] labels.
+    internal static string SanitizeSource(string fileName)
+    {
+        var safe = fileName
+            .ReplaceLineEndings(" ")
+            .Replace("[", "(")
+            .Replace("]", ")")
+            .Trim();
+        return safe.Length > 200 ? safe[..200] : safe;
     }
 }
