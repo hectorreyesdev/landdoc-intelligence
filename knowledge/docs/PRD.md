@@ -47,9 +47,12 @@ Resolved by the accepted slice specs:
 - **One document vs. corpus** — a global corpus query: `POST /ask` retrieves across all ingested
   documents ([spec 0002](specs/0002-rag-qa-with-citations.md),
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
-- **Local embedding model** — deterministic hashing / bag-of-words for the slice (no ONNX, no cloud)
+- **Embedding model** — live slice default is Azure OpenAI `text-embedding-3-small`
+  (`AzureOpenAIEmbeddingClient`), after the deterministic hashing embedder failed retrieval *selection*
+  at corpus scale; the hashing embedder is demoted to the offline/test default
   ([spec 0001](specs/0001-document-ingestion-write-path.md),
-  [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+  [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md),
+  superseding [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
 
 Still open:
 - Primary persona + the 2–3 questions they most need answered (see Users / personas).

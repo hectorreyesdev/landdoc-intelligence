@@ -1,6 +1,6 @@
 # 0008. Deterministic hashing embeddings in `LocalEmbeddingClient` for the slice
 
-- Status: Accepted
+- Status: Superseded by [ADR-0013](0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)
 - Date: 2026-06-06
 
 ## Context

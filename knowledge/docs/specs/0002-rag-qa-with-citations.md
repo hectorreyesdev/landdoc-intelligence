@@ -37,9 +37,11 @@ in-memory store that spec 0001 populates, so this spec **depends on 0001** being
   Retrieval is **global** — top-k across ALL ingested documents in the store; each citation carries
   `documentId` so the UI can resolve which document a claim came from. This **supersedes** the
   `POST /documents/{id}/ask` shape sketched in `API.md`/`DATA-FLOW.md` (reconcile both on merge).
-- **Ports:** `IEmbeddingClient` embeds the query (must be the **same** adapter/model that embedded the
-  chunks — `LocalEmbeddingClient` deterministic hashing for the slice — so vectors share a dimension,
-  the cosine invariant in DATA-MODEL). `IChatClient` composes the answer via the config-selected
+- **Ports:** `IEmbeddingClient` is config-selected via `ModelClient:EmbeddingProvider`; the live slice
+  default = Azure OpenAI `text-embedding-3-small` (`AzureOpenAIEmbeddingClient`), with
+  `LocalEmbeddingClient` hashing as the offline/test embedder (ADR-0013, supersedes ADR-0008) — the query
+  and the chunks use the **same** adapter so vectors share a dimension (the cosine invariant in
+  DATA-MODEL). `IChatClient` composes the answer via the config-selected
   adapter (`ModelClient:ChatProvider`). **Live slice default: Azure OpenAI GPT** (`AzureOpenAIChatClient`,
   OpenAI Chat Completions, `gpt-5.4-mini`; credentials from the per-provider `AzureOpenAI:*` config
   section) — directly-sold and PAYG-eligible, where Claude-in-Foundry is not (see ADR-0012).

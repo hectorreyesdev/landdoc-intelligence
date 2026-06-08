@@ -14,8 +14,9 @@ extracted fields, and the number of chunks that were embedded and stored — pro
 
 Two collaborators do the intelligence work behind ports: field extraction goes through the
 **`IChatClient`** port (config-selected; Azure OpenAI GPT live per ADR-0012 — the `Extraction` module's documented LLM call),
-and chunk embedding goes through the **`IEmbeddingClient`** port, which for this slice is
-`LocalEmbeddingClient` — a deterministic, dependency-free local embedder. This slice stands up the
+and chunk embedding goes through the **`IEmbeddingClient`** port (config-selected; Azure OpenAI
+`text-embedding-3-small` live per ADR-0013, with `LocalEmbeddingClient` hashing as the offline/test
+embedder). This slice stands up the
 backend solution, the `Ingestion` and `Extraction` modules, both ports, and the in-memory store that
 a later retrieval/Q&A spec will read.
 
@@ -51,11 +52,12 @@ a later retrieval/Q&A spec will read.
   stores the chunks and returns `201` with an empty `fields` array if the provider can't extract,
   never `500`. Extraction is decoupled from the chunk→embed→store path so a missing key or unreachable
   gateway can't fail the write path (degradation, distinct from the out-of-scope provider failover).
-- **Embedding port:** `IEmbeddingClient` = `LocalEmbeddingClient`, a **deterministic hashing /
-  bag-of-words** embedder producing a fixed-dimension `float[]` *(assumption: dimension is a small
-  constant, e.g. 256, set in config; same text → same vector)*. No model download, no cloud
-  dependency (resolves the PRD "local embedding model" open question toward the simplest slice). All
-  vectors in the store share one dimension (cosine invariant, DATA-MODEL).
+- **Embedding port:** `IEmbeddingClient` is config-selected via `ModelClient:EmbeddingProvider`; the
+  live slice default = Azure OpenAI `text-embedding-3-small` (`AzureOpenAIEmbeddingClient`), with
+  `LocalEmbeddingClient` (**deterministic hashing / bag-of-words**) as the offline/test embedder
+  (ADR-0013, supersedes ADR-0008). Either way it produces a fixed-dimension `float[]` *(assumption:
+  dimension is a small constant, e.g. 256, set in config; for the local embedder, same text → same
+  vector)*. All vectors in the store share one dimension (cosine invariant, DATA-MODEL).
 - **PDF parsing:** local text extraction from a **text-based (digital) PDF** *(assumption: a NuGet
   such as UglyToad.PdfPig)*. **No OCR** of scanned/handwritten documents (PRD non-goal); Azure AI
   Document Intelligence OCR tuning stays out of scope.
@@ -87,8 +89,9 @@ a later retrieval/Q&A spec will read.
   (non-empty) and is **resolvable by a stable `Id`** carrying the correct `DocumentId` — i.e. the full
   `{ Id, DocumentId, Text, Vector }` shape, asserted explicitly so a "vector-only" store that drops
   `Text` can't pass while silently breaking 0002's citations.
-- **Deterministic embeddings:** embedding the same chunk text twice yields identical vectors
-  (unit test over `LocalEmbeddingClient`).
+- **Deterministic embeddings:** tests pin `EmbeddingProvider=local`, so embedding the same chunk text
+  twice yields identical vectors (unit test over `LocalEmbeddingClient`, the offline/test embedder per
+  ADR-0013).
 - **Extraction wiring:** with the fake `IChatClient` returning canned fields, those exact fields
   appear in the response — proving the `Extraction` module calls the port and maps its result.
 - **Best-effort extraction (amendment):** with an `IChatClient` whose `ExtractFieldsAsync` throws,
@@ -110,6 +113,8 @@ a later retrieval/Q&A spec will read.
   `DATA-FLOW.md` (ingest sequence) · `DATA-MODEL.md` (Document / Chunk / ExtractedField) ·
   `ARCHITECTURE.md` (Ingestion + Extraction modules, both ports, in-memory store). Resolves PRD open
   questions on the field set and the local embedding model.
-- **Decision pinned in:** [[knowledge/docs/decisions/0008-deterministic-hashing-embeddings-for-slice]]
-  — records `LocalEmbeddingClient`'s deterministic-hashing embedding for the slice.
+- **Decision pinned in:** [[knowledge/docs/decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter]]
+  — live slice default = Azure OpenAI `text-embedding-3-small` (`AzureOpenAIEmbeddingClient`), config-selected
+  via `ModelClient:EmbeddingProvider`, with `LocalEmbeddingClient` hashing as the offline/test embedder;
+  supersedes [[knowledge/docs/decisions/0008-deterministic-hashing-embeddings-for-slice]].
 - **Implementing PR:** _TBD — link once opened._
