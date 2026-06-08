@@ -25,8 +25,8 @@ a later retrieval/Q&A spec will read.
   monolith (ADR-0004). C# conventions per `CLAUDE.md`: nullable enabled, `async`/`await` end-to-end,
   constructor DI, file-scoped namespaces, one public type per file, `record` DTOs, validate/throw
   early.
-- **Endpoint:** `POST /documents`, `multipart/form-data` with a single `file` part (one PDF per
-  request). Response `201` with body:
+- **Endpoint:** `POST /documents`, `multipart/form-data` with a single `file` part (one file per
+  request — PDF originally; `.txt`/`.md`/`.markdown` added by spec 0005, see amendment). Response `201` with body:
   ```json
   {
     "id": "guid",
@@ -71,7 +71,14 @@ a later retrieval/Q&A spec will read.
   `chunkId → { documentId, text }` from the store to build citations, so dropping `Text` or using
   unstable ids silently breaks 0002's citations. This shape is part of the **write-side** contract,
   not an 0002 concern.
-- **Errors:** ASP.NET Core `ProblemDetails` (RFC 7807): `400` for a missing/empty/non-PDF file.
+- **Errors:** ASP.NET Core `ProblemDetails` (RFC 7807): `400` for a missing/empty file or an
+  unsupported file type *(spec 0005 amendment, below, supersedes the original "non-PDF → 400")*.
+- **Accepted formats extended → spec 0005 (amendment, 2026-06-08):** `POST /documents` now also accepts
+  `.txt`, `.md`, and `.markdown` uploads alongside PDF, selected by **filename extension** — see
+  [[knowledge/docs/specs/0005-ingest-markdown-and-text-documents]] (Accepted, merged PR #19). Text/markdown
+  bytes are UTF-8-decoded (no parsing) and flow through the same chunk→embed→store + best-effort extraction
+  path; a missing/empty file, an unsupported extension, or a `.pdf` failing the `%PDF-` guard returns `400`.
+  Ports and the `Chunk` contract are unchanged.
 - **Out of scope for this spec:** `GET /documents/{id}`, retrieval, and `POST /documents/{id}/ask`
   (read path — separate specs); the chat availability fallback; Azure AI Search; auth/RBAC;
   observability; multi-file batch upload.
@@ -97,8 +104,9 @@ a later retrieval/Q&A spec will read.
 - **Best-effort extraction (amendment):** with an `IChatClient` whose `ExtractFieldsAsync` throws,
   `POST /documents` still returns `201` with `status` `"ready"`, an **empty `fields`** array, and
   `chunkCount` = N (N > 1); the store holds those N chunks for the returned id (no 500).
-- **Bad input:** `POST /documents` with no `file` part, an empty file, or a non-PDF returns `400`
-  with a `ProblemDetails` body; nothing is added to the store.
+- **Bad input:** `POST /documents` with no `file` part, an empty file, or an unsupported file type
+  (per the spec 0005 amendment — an unknown extension, or a `.pdf` failing the `%PDF-` guard) returns
+  `400` with a `ProblemDetails` body; nothing is added to the store.
 - **Suite green (tdd):** `dotnet build` and `dotnet test` pass; the behaviors above are covered by
   new tests, written test-first.
 

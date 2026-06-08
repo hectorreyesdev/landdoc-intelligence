@@ -11,9 +11,9 @@ Media type: `application/json`, except upload (`multipart/form-data`).
 
 ## Endpoints (proposed)
 
-### `POST /documents`  ·  spec [0001](specs/0001-document-ingestion-write-path.md)
-Upload and ingest a PDF (parse → extract fields → chunk → embed → store).
-- Request: `multipart/form-data` with a single `file` part (one text-based PDF; no OCR).
+### `POST /documents`  ·  spec [0001](specs/0001-document-ingestion-write-path.md), extended by [0005](specs/0005-ingest-markdown-and-text-documents.md)
+Upload and ingest a document — a PDF or a text/markdown file (parse **or** UTF-8-decode → extract fields → chunk → embed → store).
+- Request: `multipart/form-data` with a single `file` part. The format is selected by **filename extension**: `.pdf` (text-based, no OCR), or `.txt` / `.md` / `.markdown` (read as UTF-8 — the bytes are the document text, no parsing).
 - Response `201`:
   ```json
   {
@@ -29,7 +29,7 @@ Upload and ingest a PDF (parse → extract fields → chunk → embed → store)
   `sourceChunkId` may be `null` when a field isn't pinned to a chunk. Field extraction is **best-effort**
   (spec 0001 amendment): if the chat provider can't extract, the document is still chunked, embedded, and
   stored — the response is `201` with an empty `fields` array (`chunkCount` unaffected). `400` on a
-  missing/empty/non-PDF file.
+  missing/empty file, an unsupported extension, or a `.pdf` whose bytes fail the `%PDF-` magic-byte check.
 
 ### `GET /documents/{id}`  ·  *intended — not yet specced*
 Fetch a document and its extracted fields.
@@ -61,7 +61,7 @@ see [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
 
 ## Error model
 Standard ASP.NET Core **`ProblemDetails`** (RFC 7807):
-- `400` — validation (missing/empty/non-PDF file; blank question).
+- `400` — validation (missing/empty file, unsupported file type, or a `.pdf` failing the `%PDF-` magic-byte check; blank question).
 - `404` — unknown document id (`GET /documents/{id}`).
 - `409` — `POST /ask` against an empty store (nothing ingested to cite).
 - `502` / `503` — a provider failure that **isn't** swallowed: the *embedding* provider failing at

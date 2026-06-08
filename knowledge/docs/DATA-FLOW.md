@@ -14,9 +14,10 @@ sequenceDiagram
     participant V as Vector store
     participant C as IChatClient
 
-    A->>SPA: Upload PDF
-    SPA->>API: POST /documents (PDF)
-    API->>API: Parse text
+    A->>SPA: Upload document (PDF or text/markdown)
+    SPA->>API: POST /documents (multipart file)
+    API->>API: Select by extension — parse PDF, or UTF-8-decode .txt/.md/.markdown
+    note over API: unsupported extension (or bad .pdf) → 400
     API->>C: Extract fields (Extraction, IChatClient)
     C-->>API: Structured fields
     API->>API: Chunk text
