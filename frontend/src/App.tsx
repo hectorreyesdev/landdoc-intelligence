@@ -10,7 +10,7 @@ import { deleteDocument } from './api/client'
 import { useDocuments } from './ui/useDocuments'
 import { useDocumentTable } from './ui/useDocumentTable'
 
-type Tab = 'workspace' | 'dashboard'
+type Tab = 'workspace' | 'documents' | 'dashboard'
 
 /**
  * The vertical slice (spec 0003) + persisted library (spec 0006) + insights (spec 0007). A header tab
@@ -56,6 +56,14 @@ export function App(): ReactElement {
           </button>
           <button
             type="button"
+            className={tab === 'documents' ? 'tab tab--active' : 'tab'}
+            aria-pressed={tab === 'documents'}
+            onClick={() => setTab('documents')}
+          >
+            Documents
+          </button>
+          <button
+            type="button"
             className={tab === 'dashboard' ? 'tab tab--active' : 'tab'}
             aria-pressed={tab === 'dashboard'}
             onClick={() => setTab('dashboard')}
@@ -66,22 +74,27 @@ export function App(): ReactElement {
         <ThemeToggle />
       </header>
 
-      {tab === 'workspace' ? (
+      {tab === 'workspace' && (
         <div className="columns">
           <div className="column">
             <UploadPanel onFiles={handleFiles} progress={progress} />
             <DocumentList items={items} />
-            <DocumentsTable
-              documents={table.documents}
-              onOpenDocument={setViewerId}
-              onDeleteSelected={handleDeleteSelected}
-            />
           </div>
           <div className="column">
             <AskPanel canAsk={canAsk} onOpenDocument={setViewerId} />
           </div>
         </div>
-      ) : (
+      )}
+
+      {tab === 'documents' && (
+        <DocumentsTable
+          documents={table.documents}
+          onOpenDocument={setViewerId}
+          onDeleteSelected={handleDeleteSelected}
+        />
+      )}
+
+      {tab === 'dashboard' && (
         <Dashboard documents={table.documents} status={table.status} onOpenDocument={setViewerId} />
       )}
 
