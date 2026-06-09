@@ -41,10 +41,11 @@ flowchart TD
   question box + **answer-with-citations** (each citation links to its source document), and a
   **source-file viewer** (a modal showing the extracted fields **beside** the original file — **markdown
   is rendered formatted**, PDF/plain-text embed inline).
-  *Documents:* the full-width **persisted documents table** (search · CSV export · multi-select
-  **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI tiles,
-  documents-by-location and ingest-over-time charts (Recharts), a needs-review list, and a
-  lease-expiration widget — all aggregated client-side from `GET /documents`. *Ops / Usage:* an
+  *Documents:* the full-width **persisted documents table** (**sortable** columns · search · CSV export ·
+  multi-select **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI
+  tiles, documents-by-location and **ingest-by-hour** charts (Recharts), a **county bubble map** (d3-geo
+  Albers-USA + d3-zoom, zoom/pan with constant-size dots; us-atlas TopoJSON lazy-imported), a needs-review
+  list, and a lease-expiration widget — all aggregated client-side from `GET /documents`. *Ops / Usage:* an
   **operator-facing** read-out (totals · per-deployment table · request-health + latency cards, with a
   range selector) over `GET /usage` (spec 0009) — distinct audience from the analyst Dashboard. React over
   Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
