@@ -58,4 +58,7 @@ delete** in the documents table.
   (the documents table this delete UI lives in).
 - **Docs to reconcile on merge:** `API.md` (add `DELETE /documents/{id}`) · `ARCHITECTURE.md` /
   `DATA-MODEL.md` (both ports gain a delete operation) · `DATA-FLOW.md` (a delete path) · README feature line.
-- **ADRs:** none new — additive port extensions within the existing ADR-0017/0018 designs; no infra change.
+- **ADRs:** [[knowledge/docs/decisions/0019-hard-best-effort-non-transactional-document-deletion]] records
+  the consistency posture (hard delete; best-effort, non-transactional across the two stores; idempotent
+  retry as the convergence mechanism). The port *extensions* themselves are additive within the existing
+  ADR-0017/0018 designs; no infra change.
