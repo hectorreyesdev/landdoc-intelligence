@@ -16,11 +16,16 @@ public sealed record EvalSummary(
 public sealed record EvalMeans(double? RecallAtK, double? Groundedness, double? Equivalence);
 
 /// <summary>
-/// One case's scores. <see cref="Abstained"/> is true when the answer was the exact abstain string
-/// (the no-hallucination path).
+/// One case's scores plus the demo-facing dataset text (question / expected answer / expected source
+/// file names) so the snapshot is self-describing — the SPA can show the actual Q&amp;A behind each case
+/// without shipping the backend dataset. <see cref="Abstained"/> is true when the answer was the exact
+/// abstain string (the no-hallucination path).
 /// </summary>
 public sealed record EvalCaseSummary(
     string Id,
+    string Question,
+    string ExpectedAnswer,
+    IReadOnlyList<string> ExpectedSources,
     double? RecallAtK,
     double? Groundedness,
     double? Equivalence,

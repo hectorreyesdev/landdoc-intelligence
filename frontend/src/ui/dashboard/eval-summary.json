@@ -1,36 +1,153 @@
 {
-  "generatedAt": "2026-06-09T11:55:56.893681Z",
+  "generatedAt": "2026-06-09T14:39:26.1202130+00:00",
   "judgeModel": "claude-sonnet-4-6",
-  "caseCount": 18,
+  "caseCount": 37,
   "means": {
-    "recallAtK": 1.0,
-    "groundedness": 5.0,
-    "equivalence": 4.78
+    "recallAtK": 1,
+    "groundedness": 5,
+    "equivalence": 4.89
   },
   "cases": [
     {
+      "id": "absent-converse-joa-operator",
+      "question": "Who is the operator named in the Converse County, Wyoming joint operating agreement?",
+      "expectedAnswer": "The answer is not found in the document(s).",
+      "expectedSources": [
+        "(absent \u2014 not in the curated corpus)"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
+    {
+      "id": "absent-kern-royalty",
+      "question": "What royalty is reserved in the San Joaquin Heritage Farms oil and gas lease in Kern County, California?",
+      "expectedAnswer": "The answer is not found in the document(s).",
+      "expectedSources": [
+        "(absent \u2014 not in the curated corpus)"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
+    {
       "id": "absent-permian-master-royalty",
+      "question": "What is the royalty rate in the 2023 Permian Basin master lease covering Section 99, Block Z in Crane County, Texas?",
+      "expectedAnswer": "The answer is not found in the document(s).",
+      "expectedSources": [
+        "(absent \u2014 not in the curated corpus)"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": true
     },
     {
-      "id": "absent-weld-co-operator",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 5,
-      "abstained": true
-    },
-    {
-      "id": "eddy-bonus",
+      "id": "belmont-lessee",
+      "question": "Who is the lessee in the Novak Revocable Living Trust oil and gas lease in Belmont County, Ohio?",
+      "expectedAnswer": "The lessee is Buckeye Utica Operating, LLC.",
+      "expectedSources": [
+        "11-ogl-belmont-oh.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "eddy-lessee",
+      "id": "belmont-royalty",
+      "question": "What royalty does the Novak Revocable Living Trust oil and gas lease in Belmont County, Ohio reserve?",
+      "expectedAnswer": "The royalty is one-sixth (1/6).",
+      "expectedSources": [
+        "11-ogl-belmont-oh.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "campbell-royalty-grantor",
+      "question": "Who is the grantor in the royalty deed in Campbell County, Wyoming conveying an interest to Gulf Coast Minerals?",
+      "expectedAnswer": "The grantor is Ramon C. Trujillo.",
+      "expectedSources": [
+        "057-royalty-deed-campbell-wy.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "carbon-grazing-acres",
+      "question": "How many acres does the Beartooth Mountain grazing and ranch lease in Carbon County, Montana cover?",
+      "expectedAnswer": "It covers 1,280.00 acres (all of Sections 4 and 9).",
+      "expectedSources": [
+        "23-grazing-lease-carbon-mt.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "dewitt-easement-date",
+      "question": "What is the effective date of the pipeline easement granted by Cuero Creek Ranch in DeWitt County, Texas?",
+      "expectedAnswer": "The effective date is August 4, 2024.",
+      "expectedSources": [
+        "21-easement-dewitt-tx.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "dunn-surface-operator",
+      "question": "Which operator is the grantee in the surface use and damage agreement with Knutson Brothers Farm Partnership in Dunn County, North Dakota?",
+      "expectedAnswer": "The grantee is Bakken Ridge Energy, Inc.",
+      "expectedSources": [
+        "20-surface-use-dunn-nd.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-bonus",
+      "question": "What is the bonus per net mineral acre in the Pecos Valley Land Company lease in Eddy County, New Mexico?",
+      "expectedAnswer": "The bonus is $1,750.00 per net mineral acre.",
+      "expectedSources": [
+        "04-ogl-eddy-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-divorder-payor",
+      "question": "Which operator is the payor on the division order in Eddy County, New Mexico?",
+      "expectedAnswer": "The payor is Keystone Shale Partners, LP.",
+      "expectedSources": [
+        "096-division-order-eddy-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-pecos-farmee-multi",
+      "question": "Who is the lessee/farmee on the Pecos Valley Land Company acreage in Eddy County, New Mexico across the oil and gas lease and the farmout agreement?",
+      "expectedAnswer": "Mesa Verde Resources, LP.",
+      "expectedSources": [
+        "04-ogl-eddy-nm.pdf",
+        "31-farmout-eddy-nm.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -38,6 +155,35 @@
     },
     {
       "id": "eddy-royalty",
+      "question": "What royalty is reserved in the Pecos Valley Land Company oil and gas lease in Eddy County, New Mexico?",
+      "expectedAnswer": "The royalty is one-fifth (1/5).",
+      "expectedSources": [
+        "04-ogl-eddy-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "garfield-warranty-grantee",
+      "question": "Who are the grantees in the Roaring Fork Holdings general warranty deed in Garfield County, Colorado?",
+      "expectedAnswer": "The grantees are Caleb and Marie Donnelly, as joint tenants.",
+      "expectedSources": [
+        "18-warranty-deed-garfield-co.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "harrison-grazing-lessee",
+      "question": "Who is the lessee in the Sage Creek Minerals grazing and ranch lease in Harrison County, West Virginia?",
+      "expectedAnswer": "The lessee is Rock Creek Cattle Company.",
+      "expectedSources": [
+        "081-grazing-harrison-wv.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -45,6 +191,14 @@
     },
     {
       "id": "henderson-acres-multi",
+      "question": "How many acres does the Henderson estate tract in Loving County, Texas comprise across the title opinion and supporting documents?",
+      "expectedAnswer": "The tract comprises 640 acres.",
+      "expectedSources": [
+        "22-title-opinion-loving-tx.pdf",
+        "27-affidavit-heirship-loving-tx.pdf",
+        "28-probate-order-loving-tx.pdf",
+        "34-release-loving-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -52,13 +206,121 @@
     },
     {
       "id": "henderson-legal-multi",
+      "question": "What is the legal description of the Henderson estate tract in Loving County, Texas covered by the drilling title opinion, the affidavit of heirship, and the probate order?",
+      "expectedAnswer": "The tract is Section 30, Block C-24, PSL Survey, Abstract No. 612 (640 acres).",
+      "expectedSources": [
+        "22-title-opinion-loving-tx.pdf",
+        "27-affidavit-heirship-loving-tx.pdf",
+        "28-probate-order-loving-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 4,
       "abstained": false
     },
     {
-      "id": "mckenzie-lessee",
+      "id": "howard-surface-grantee",
+      "question": "Who is the operator in the Sage Creek Minerals surface use and damage agreement in Howard County, Texas?",
+      "expectedAnswer": "The operator/grantee is Caddo Pine Energy, LLC.",
+      "expectedSources": [
+        "069-surface-use-howard-tx.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "karnes-ami-term",
+      "question": "What is the term of the area of mutual interest (AMI) agreement in Karnes County, Texas?",
+      "expectedAnswer": "The term is three (3) years.",
+      "expectedSources": [
+        "32-ami-karnes-tx.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "karnes-memo-term",
+      "question": "What is the primary term of the memorandum of oil and gas lease for Esperanza Ranch Partners in Karnes County, Texas?",
+      "expectedAnswer": "The primary term is three (3) years.",
+      "expectedSources": [
+        "15-memo-karnes-tx.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "kingfisher-mineral-acres",
+      "question": "How many acres does the Cuero Creek Ranch mineral deed in Kingfisher County, Oklahoma cover?",
+      "expectedAnswer": "The mineral deed covers 320.00 acres (the S/2 of Section 22).",
+      "expectedSources": [
+        "053-mineral-deed-kingfisher-ok.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "kingfisher-pooling-applicant",
+      "question": "Who is the applicant in the pooling order in Kingfisher County, Oklahoma?",
+      "expectedAnswer": "The applicant is Red River Minerals, LLC.",
+      "expectedSources": [
+        "33-pooling-order-kingfisher-ok.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lasalle-easement-grantee",
+      "question": "Who is the grantee of the right-of-way and pipeline easement in La Salle County, Texas?",
+      "expectedAnswer": "The grantee is Permian Gathering Co.",
+      "expectedSources": [
+        "073-easement-lasalle-tx.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lea-amendment-royalty",
+      "question": "What royalty is set by the Whitaker lease amendment and extension covering Section 33: W/2 in Lea County, New Mexico?",
+      "expectedAnswer": "The royalty is one-fourth (1/4).",
+      "expectedSources": [
+        "24-amendment-lea-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lea-ratification-royalty",
+      "question": "What royalty applies to the Whitaker lease ratification covering Section 16: SE/4 in Lea County, New Mexico?",
+      "expectedAnswer": "The royalty is three-sixteenths (3/16).",
+      "expectedSources": [
+        "35-ratification-lea-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "loving-title-operator",
+      "question": "For which operator was the drilling title opinion in Loving County, Texas prepared?",
+      "expectedAnswer": "It was prepared for Delaware Basin Resources, LP.",
+      "expectedSources": [
+        "22-title-opinion-loving-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -66,13 +328,12 @@
     },
     {
       "id": "mckenzie-operator-multi",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 5,
-      "abstained": false
-    },
-    {
-      "id": "mckenzie-royalty",
+      "question": "Which operator is named across the McKenzie County, North Dakota joint operating agreement and the authority for expenditure (AFE)?",
+      "expectedAnswer": "The operator is Bakken Ridge Energy, Inc.",
+      "expectedSources": [
+        "30-joa-mckenzie-nd.pdf",
+        "36-afe-mckenzie-nd.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -80,20 +341,36 @@
     },
     {
       "id": "mckenzie-tract-multi",
+      "question": "What tract (township, range, and section) do the McKenzie County, North Dakota joint operating agreement and AFE both cover?",
+      "expectedAnswer": "Township 150 North, Range 98 West, 5th P.M., Section 22.",
+      "expectedSources": [
+        "30-joa-mckenzie-nd.pdf",
+        "36-afe-mckenzie-nd.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 4,
       "abstained": false
     },
     {
-      "id": "midland-legal",
+      "id": "midland-assignment-grantee",
+      "question": "Who acquired Llano Estacado Operating's leasehold interests under the assignment, bill of sale and conveyance in Midland County, Texas?",
+      "expectedAnswer": "Permian Acquisition Partners, LP acquired the interests.",
+      "expectedSources": [
+        "29-assignment-absc-midland-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "midland-lessee",
+      "id": "midland-legal",
+      "question": "What is the legal description of the tract in the Margaret A. Caldwell lease in Midland County, Texas?",
+      "expectedAnswer": "Section 14, Block 39, T-2-S, Texas & Pacific Ry. Co. Survey, Abstract No. 1187.",
+      "expectedSources": [
+        "01-ogl-midland-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -101,34 +378,83 @@
     },
     {
       "id": "midland-royalty",
+      "question": "What royalty is reserved in the oil and gas lease where Margaret A. Caldwell is the lessor in Midland County, Texas?",
+      "expectedAnswer": "The lessor's royalty is one-fourth (1/4).",
+      "expectedSources": [
+        "01-ogl-midland-tx.pdf"
+      ],
       "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 4,
+      "groundedness": null,
+      "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "reeves-royalty",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 4,
-      "abstained": false
-    },
-    {
-      "id": "reeves-term",
+      "id": "mountrail-memo-royalty",
+      "question": "What royalty is stated in the Holloway Family Trust memorandum of oil and gas lease in Mountrail County, North Dakota?",
+      "expectedAnswer": "The royalty is three-sixteenths (3/16).",
+      "expectedSources": [
+        "049-memo-mountrail-nd.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "whitaker-original-multi",
+      "id": "reagan-royalty-grantee",
+      "question": "Who is the grantee in the University Lands Heritage Trust royalty deed in Reagan County, Texas?",
+      "expectedAnswer": "The grantee is Santa Rita Royalty Company.",
+      "expectedSources": [
+        "17-royalty-deed-reagan-tx.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "whitaker-royalty",
+      "id": "richland-warranty-grantee",
+      "question": "Who is the grantee in the Pecos Valley Land Company general warranty deed in Richland County, Montana?",
+      "expectedAnswer": "The grantee is Permian Acquisition Partners, LP.",
+      "expectedSources": [
+        "061-warranty-deed-richland-mt.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "rioarriba-quitclaim-legal",
+      "question": "What land does the Ramon C. Trujillo quitclaim deed in Rio Arriba County, New Mexico describe?",
+      "expectedAnswer": "A portion of the Tierra Amarilla Land Grant, Tract 7-B, as shown on the amended grant plat of record (35.75 acres).",
+      "expectedSources": [
+        "19-quitclaim-rio-arriba-nm.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "stephens-mineral-grantee",
+      "question": "Who is the grantee in the Dorothy M. Albright mineral deed in Stephens County, Oklahoma?",
+      "expectedAnswer": "The grantee is Chisholm Trail Royalties, LLC.",
+      "expectedSources": [
+        "16-mineral-deed-stephens-ok.pdf"
+      ],
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "weld-divorder-payor",
+      "question": "Which company is the payor on the division order in Weld County, Colorado?",
+      "expectedAnswer": "The payor is Front Range Petroleum, LLC.",
+      "expectedSources": [
+        "26-division-order-weld-co.pdf"
+      ],
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
