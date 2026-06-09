@@ -90,6 +90,38 @@ mid-delete failure can orphan one side; the operation is **idempotent**, so re-i
 converges (see [ADR-0019](decisions/0019-hard-best-effort-non-transactional-document-deletion.md),
 [spec 0008](specs/0008-delete-documents-multi-select.md)).
 
+## Usage — LLM ops dashboard
+
+```mermaid
+sequenceDiagram
+    actor O as Operator
+    participant SPA as React SPA (Ops / Usage)
+    participant API as Web API (Usage)
+    participant U as IUsageSource
+    participant M as Azure Monitor metrics
+    participant K as UsageCostCalculator
+
+    O->>SPA: Open Ops / Usage, pick range (24h/7d/30d)
+    SPA->>API: GET /usage?range=…
+    note over API: unrecognized range → 400
+    API->>U: GetUsageAsync(range)
+    U->>M: Query platform metrics (tokens · requests · latency), split by ModelDeploymentName
+    note over U,M: live adapter only; inmemory returns canned aggregates offline/test
+    M-->>U: Raw aggregates (no cost)
+    U-->>API: UsageData
+    API->>K: ToReport(data, range) — tokens × price table
+    K-->>API: UsageReport (+ estimatedCostUsd)
+    API-->>SPA: 200 (zeros + 200 when the window has no data)
+    SPA-->>O: Totals · per-deployment · requests · latency
+```
+
+**State change:** none — usage is read-only and reads **live** from Azure Monitor each call (no stored
+history). Cost is **computed** from a non-secret price table (an estimate, not the invoice); the source is
+config-selected (`UsageSource:Provider` — `azuremonitor` live / `inmemory` offline-test) and cost is layered
+on **outside** the adapter by a pure calculator (see
+[ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md),
+[spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md)).
+
 ## Notes
 - The same `IEmbeddingClient` embeds chunks at ingest and the query at ask — they must share a model
   (and thus dimension) for cosine similarity to be meaningful. Config-selected via

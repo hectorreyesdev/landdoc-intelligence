@@ -5,6 +5,7 @@ using LandDoc.Api.Model;
 using LandDoc.Api.Qa;
 using LandDoc.Api.Retrieval;
 using LandDoc.Api.Storage;
+using LandDoc.Api.Usage;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -33,6 +34,7 @@ builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection(
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
 builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection("Search"));
 builder.Services.Configure<BlobOptions>(builder.Configuration.GetSection("Blob"));
+builder.Services.Configure<MonitorOptions>(builder.Configuration.GetSection("Monitor"));
 
 // Vector store — config-selected adapter (VectorStore:Provider). Live default: azuresearch (ADR-0017);
 // inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton so ingest (write)
@@ -56,6 +58,25 @@ builder.Services.AddSingleton<IDocumentStore>(sp => documentStoreProvider.ToLowe
     "inmemory" => new InMemoryDocumentStore(),
     "azureblob" => new AzureBlobDocumentStore(sp.GetRequiredService<IOptions<BlobOptions>>()),
     _ => throw new InvalidOperationException($"Unknown DocumentStore:Provider '{documentStoreProvider}'."),
+});
+
+// Usage source — config-selected adapter (UsageSource:Provider). Live default: azuremonitor (ADR-0020);
+// inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton — read-only metrics.
+var usageSourceProvider = builder.Configuration["UsageSource:Provider"] ?? "azuremonitor";
+builder.Services.AddSingleton<IUsageSource>(sp => usageSourceProvider.ToLowerInvariant() switch
+{
+    "inmemory" => new InMemoryUsageSource(),
+    "azuremonitor" => new AzureMonitorUsageSource(sp.GetRequiredService<IOptions<MonitorOptions>>()),
+    _ => throw new InvalidOperationException($"Unknown UsageSource:Provider '{usageSourceProvider}'."),
+});
+
+// Cost calculator — pure, provider-independent (ADR-0020). Price table from the NON-secret Pricing config,
+// keyed by deployment name (USD per 1K tokens, input/output). Missing entry → that deployment costs $0.
+builder.Services.AddSingleton(_ =>
+{
+    var prices = builder.Configuration.GetSection("Pricing").Get<Dictionary<string, DeploymentPrice>>()
+        ?? new Dictionary<string, DeploymentPrice>();
+    return new UsageCostCalculator(prices);
 });
 
 // Embeddings — config-selected adapter (ModelClient:EmbeddingProvider). Live slice default: azureopenai
@@ -107,6 +128,7 @@ app.UseStaticFiles();
 
 app.MapDocumentsEndpoints();
 app.MapAskEndpoints();
+app.MapUsageEndpoints();
 
 // Any non-API path falls back to the SPA shell so client-side routing works on deep links/refresh.
 // /documents and /ask are matched by the endpoint maps above, so this never shadows the API.

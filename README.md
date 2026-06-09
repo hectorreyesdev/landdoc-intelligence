@@ -28,6 +28,9 @@ and an agentic process that's part of the deliverable.
   documents table also adds search + CSV export.
 - **Delete** (`DELETE /documents/{id}`) — multi-select removal of documents from both stores (chunks +
   file/metadata); idempotent.
+- **Monitor** (`GET /usage`, Ops / Usage tab) — LLM token usage, **estimated** cost, request health
+  (success / 4xx / 429 / 5xx), and latency, read live from free Azure Monitor platform metrics
+  ([ADR-0020](knowledge/docs/decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md)).
 
 ## Ports & adapters — provider choice is config, not code
 Every external dependency sits behind an interface with a **live** adapter (production default) and an
@@ -40,6 +43,7 @@ never a code change.
 | `IEmbeddingClient` | Azure OpenAI `text-embedding-3-small`, 256-d ([ADR-0013](knowledge/docs/decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)) | Local deterministic hashing (offline/test) |
 | `IVectorStore` | Azure AI Search Free tier ([ADR-0017](knowledge/docs/decisions/0017-azure-ai-search-free-tier-live-vector-store.md)) | In-memory cosine (offline/test) |
 | `IDocumentStore` | Azure Blob Storage ([ADR-0018](knowledge/docs/decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md)) | In-memory (offline/test) |
+| `IUsageSource` | Azure Monitor platform metrics ([ADR-0020](knowledge/docs/decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md)) | In-memory (offline/test) |
 
 ## Quickstart
 **Backend** (`backend/`) — ASP.NET Core, .NET 10:
@@ -62,11 +66,11 @@ a fake, `VectorStore__Provider=inmemory`, `DocumentStore__Provider=inmemory`. Se
 ## Repo map
 - [`CLAUDE.md`](CLAUDE.md) — project constitution (architecture · conventions · guardrails)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — how to work in this repo + the doc workflow
-- `backend/` — ASP.NET Core Web API; modules `Ingestion` · `Extraction` · `Retrieval` · `Qa`, ports/adapters under `Storage/` + `Model/`
+- `backend/` — ASP.NET Core Web API; modules `Ingestion` · `Extraction` · `Retrieval` · `Qa` · `Usage`, ports/adapters under `Storage/` + `Model/`
 - `frontend/` — React/TS SPA (upload → fields → documents table → ask → answer-with-citations → source viewer)
 - [`knowledge/`](knowledge/README.md) — living docs, evergreen notes, committed session logs, lessons
   - **Design:** [PRD](knowledge/docs/PRD.md) · [Stack](knowledge/docs/STACK.md) · [Architecture](knowledge/docs/ARCHITECTURE.md) · [Data model](knowledge/docs/DATA-MODEL.md) · [Data flow](knowledge/docs/DATA-FLOW.md) · [API](knowledge/docs/API.md) · [Glossary](knowledge/docs/GLOSSARY.md)
-  - **Operate:** [Runbook](knowledge/docs/RUNBOOK.md) · [Deployment](knowledge/docs/DEPLOYMENT.md) · [CI/CD](knowledge/docs/CICD.md) · [Azure config](knowledge/docs/AZURE-CONFIG.md)
+  - **Operate:** [Runbook](knowledge/docs/RUNBOOK.md) · [Deployment](knowledge/docs/DEPLOYMENT.md) · [CI/CD](knowledge/docs/CICD.md) · [Azure config](knowledge/docs/AZURE-CONFIG.md) · [Usage dashboard](knowledge/docs/USAGE-DASHBOARD.md)
   - **Decide:** [ADRs](knowledge/docs/decisions/) · [Specs](knowledge/docs/specs/README.md) · [Lessons](knowledge/lessons.md)
 
 > Docs are authored as **design intent** before code; once code lands, `/wrap` keeps them current.

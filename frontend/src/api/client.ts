@@ -6,7 +6,7 @@
 // proxy forwards /documents and /ask to the backend; in prod a single container serves the SPA
 // and the API on one origin (same-origin, no CORS). There is no base URL here — by design.
 
-import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
+import type { AskResponse, DocumentResponse, DocumentSummary, UsageRange, UsageReport } from './types'
 
 /** Why a request didn't succeed, keyed off HTTP status (the UI renders a state per kind). */
 export type ApiErrorKind =
@@ -148,6 +148,25 @@ export async function deleteDocument(id: string): Promise<ApiResult<void>> {
 
   if (response.ok) {
     return { ok: true, value: undefined }
+  }
+  return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}
+
+/**
+ * LLM usage + estimated cost for a time range (spec 0009). The backend reads live from Azure Monitor
+ * platform metrics each call; cost is a computed estimate. Maps status → ApiResult like the others
+ * (an invalid range is a 400 → `validation`).
+ */
+export async function getUsage(range: UsageRange): Promise<ApiResult<UsageReport>> {
+  let response: Response
+  try {
+    response = await fetch(`/usage?range=${encodeURIComponent(range)}`)
+  } catch {
+    return { ok: false, error: NETWORK_ERROR }
+  }
+
+  if (response.ok) {
+    return { ok: true, value: (await response.json()) as UsageReport }
   }
   return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
 }

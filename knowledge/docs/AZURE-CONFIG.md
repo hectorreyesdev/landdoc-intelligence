@@ -94,6 +94,21 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    source-file viewer. **Role grant done:** the Container App's MI (`landdoc`) holds *Storage Blob Data
    Contributor* on `stlanddochr01` (the passwordless `ServiceUri` path); endpoint supplied via the
    `Blob--ServiceUri` Key Vault secret (§5).
+5. ✅ **Built + Azure-wired (spec 0009 / ADR-0020).** **`AzureMonitorUsageSource : IUsageSource`** — reads
+   **Azure Monitor platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query` 1.7.1) for the Foundry
+   resource `landdoc-rag-resource` to back `GET /usage`; managed-identity auth (**no new secret**);
+   `UsageSource:Provider` switch (`azuremonitor` live default in `appsettings.json` / `inmemory` offline-test).
+   See the operator guide [USAGE-DASHBOARD.md](USAGE-DASHBOARD.md). Wired on **2026-06-09**:
+   - **Role grant done:** the Container App's MI (`landdoc`, principal `77ebbf97-2387-4a50-a96b-4aadd7c101c9`)
+     holds **Monitoring Reader** on `landdoc-rag-resource` (`AIServices` — hosts the chat + embedding
+     deployments; read-only, least privilege) — procedure in [DEPLOYMENT.md §1g](DEPLOYMENT.md).
+   - **Config set (non-secret, NOT a Key Vault entry):** `Monitor__ResourceId` env var on the Container App =
+     the `landdoc-rag-resource` resource id (persists across redeploys; the live adapter throws fast if
+     unset). The `Pricing:<deployment>` table (`InputPer1K` / `OutputPer1K`, USD per 1K tokens) ships as
+     committed **example** rates in `appsettings.json` — override via `Pricing__…` env vars for real dollars.
+     Cost is computed (tokens × table), an estimate — Azure Cost Management is the future billing-grade cross-check.
+   - **The `/usage` endpoint goes live when the feature ships to `main`** (CI/CD redeploys); the Azure wiring
+     above is already in place.
 
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).
@@ -112,6 +127,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
 | Vector store (chunks) | Azure AI Search **Free tier** (index `landdoc-chunks`, **key auth**) | ‹confirm Search service name› (**eastus**) | wired (ADR-0017) |
 | Document store (files + metadata) | Azure Blob via app's MI (`Storage Blob Data Contributor`), container `documents` | `stlanddochr01` | wired (spec 0006 / ADR-0018) |
+| LLM usage metrics | Azure Monitor platform metrics via app's MI (`Monitoring Reader`) | `landdoc-rag-resource` | wired 2026-06-09 (spec 0009 / ADR-0020) — endpoint ships with the feature |
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
 | CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
 | Custom domain | ACA **custom domain** binding + free managed cert | **`landdoc.hectorreyes.dev`** — cert `mc-cae-landdoc-landdoc-hectorre-8517` (Namecheap CNAME + `asuid` TXT) | **bound** (SniEnabled, auto-renew) — https://landdoc.hectorreyes.dev/ |
@@ -142,3 +158,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
   and the blob endpoint supplied via the `Blob--ServiceUri` Key Vault secret (§5) — `DocumentStore:Provider`
   is the committed `appsettings.json` default (`azureblob`), so no env var is needed. (Local dev:
   `DocumentStore__Provider=inmemory`, or Azurite via `Blob__ConnectionString`.)
+- [x] API host's **managed identity** (`landdoc`) granted *Monitoring Reader* on the Foundry resource
+  `landdoc-rag-resource`, and `Monitor__ResourceId` set on the Container App (§6.5) — done 2026-06-09; no new
+  secret. `UsageSource:Provider=azuremonitor` is the committed default; the `/usage` endpoint ships with the
+  feature. (Local dev / CI: `UsageSource__Provider=inmemory`; see [USAGE-DASHBOARD.md](USAGE-DASHBOARD.md).)

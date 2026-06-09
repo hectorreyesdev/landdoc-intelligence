@@ -17,5 +17,8 @@ internal static class TestModuleInitializer
 
         // Pin the in-memory document store so CI (no Azure Storage creds) stays green (ADR-0018).
         Environment.SetEnvironmentVariable("DocumentStore__Provider", "inmemory");
+
+        // Pin the in-memory usage source so CI (no Azure Monitor access) stays green (ADR-0020).
+        Environment.SetEnvironmentVariable("UsageSource__Provider", "inmemory");
     }
 }

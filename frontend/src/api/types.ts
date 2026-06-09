@@ -47,3 +47,49 @@ export interface DocumentSummary {
   readonly fields: readonly ExtractedField[]
   readonly ingestedAt: string
 }
+
+/** The time window for the Ops / Usage dashboard (spec 0009); the `range` query value for `GET /usage`. */
+export type UsageRange = '24h' | '7d' | '30d'
+
+/** Token totals for a window, with the server-computed estimated cost (spec 0009). */
+export interface UsageTotals {
+  readonly promptTokens: number
+  readonly completionTokens: number
+  readonly totalTokens: number
+  readonly estimatedCostUsd: number
+}
+
+/** Per-deployment token usage + estimated cost (spec 0009). */
+export interface DeploymentUsage {
+  readonly deployment: string
+  readonly promptTokens: number
+  readonly completionTokens: number
+  readonly totalTokens: number
+  readonly estimatedCostUsd: number
+}
+
+/** Request volume + health for a window (spec 0009): success 2xx · clientErrors 4xx · throttled429 · serverErrors 5xx. */
+export interface UsageRequests {
+  readonly total: number
+  readonly success: number
+  readonly clientErrors: number
+  readonly throttled429: number
+  readonly serverErrors: number
+}
+
+/** Response latency for a window, in milliseconds (spec 0009). */
+export interface UsageLatency {
+  readonly avgMs: number
+  readonly maxMs: number
+}
+
+/** `200` body from `GET /usage` (spec 0009): LLM usage + estimated cost, read live from Azure Monitor metrics. */
+export interface UsageReport {
+  readonly range: string
+  readonly from: string
+  readonly to: string
+  readonly totals: UsageTotals
+  readonly deployments: readonly DeploymentUsage[]
+  readonly requests: UsageRequests
+  readonly latency: UsageLatency
+}

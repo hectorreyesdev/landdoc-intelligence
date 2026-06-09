@@ -2,8 +2,8 @@
 
 > **Built.** `POST /documents` (spec 0001 — ingest write path), `POST /ask` (spec 0002 — read path), the
 > document read-back surface `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec 0006),
-> and `DELETE /documents/{id}` (spec 0008) are all implemented. The shapes below are the accepted-spec
-> contracts.
+> `DELETE /documents/{id}` (spec 0008), and `GET /usage` (spec 0009 — LLM usage/cost ops dashboard) are all
+> implemented. The shapes below are the accepted-spec contracts.
 
 Base path: none — endpoints are served at the root (`/documents`, `/ask`), matching specs 0001/0002.
 The SPA reaches them **same-origin** via relative paths (dev: Vite dev-proxy; prod: one container serving
@@ -89,9 +89,33 @@ see [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)).
   spec 0006). An **empty store** (nothing ingested) → `409`; a blank `question` → `400`. Read-only —
   `/ask` never mutates the store.
 
+### `GET /usage`  ·  spec [0009](specs/0009-llm-usage-and-cost-ops-dashboard.md)
+LLM usage + estimated cost for the Foundry-hosted deployments, read **live** from Azure Monitor platform
+metrics each call (ADR-0020). Read-only; computes cost from a configured price table.
+- Request: optional query `range` ∈ `24h` | `7d` | `30d` (**default `24h`** when omitted).
+- Response `200`:
+  ```json
+  {
+    "range": "24h",
+    "from": "2026-06-08T12:00:00+00:00",
+    "to": "2026-06-09T12:00:00+00:00",
+    "totals": { "promptTokens": 170000, "completionTokens": 30000, "totalTokens": 200000, "estimatedCostUsd": 0.037 },
+    "deployments": [
+      { "deployment": "gpt-5.4-mini", "promptTokens": 120000, "completionTokens": 30000, "totalTokens": 150000, "estimatedCostUsd": 0.036 }
+    ],
+    "requests": { "total": 400, "success": 380, "clientErrors": 8, "throttled429": 10, "serverErrors": 2 },
+    "latency": { "avgMs": 850, "maxMs": 4200 }
+  }
+  ```
+  `totalTokens` = prompt + completion. `requests` buckets `AzureOpenAIRequests` by status (success 2xx ·
+  clientErrors 4xx excl. 429 · throttled429 · serverErrors 5xx). `estimatedCostUsd` is **computed** (tokens ×
+  a non-secret price table) — an estimate, not the invoice; a deployment with no configured price contributes
+  $0. An **unrecognized `range` → `400`**. A **no-data window returns the same shape with zeros and `200`**
+  (never `500`). Config-selected source (`UsageSource:Provider`): `azuremonitor` live / `inmemory` offline/test.
+
 ## Error model
 Standard ASP.NET Core **`ProblemDetails`** (RFC 7807):
-- `400` — validation (missing/empty file, unsupported file type, or a `.pdf` failing the `%PDF-` magic-byte check; blank question).
+- `400` — validation (missing/empty file, unsupported file type, or a `.pdf` failing the `%PDF-` magic-byte check; blank question; an unrecognized `GET /usage` `range`).
 - `404` — unknown document id (`GET /documents/{id}`).
 - `409` — `POST /ask` against an empty store (nothing ingested to cite).
 - `502` / `503` — a provider failure that **isn't** swallowed: the *embedding* provider failing at
