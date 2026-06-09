@@ -5,13 +5,14 @@ import { DocumentList } from './ui/DocumentList'
 import { DocumentsTable } from './ui/DocumentsTable'
 import { DocumentViewer } from './ui/DocumentViewer'
 import { Dashboard } from './ui/dashboard/Dashboard'
+import { EvalQualityCard } from './ui/dashboard/EvalQualityCard'
 import { UsageView } from './ui/usage/UsageView'
 import { ThemeToggle } from './ui/ThemeToggle'
 import { deleteDocument } from './api/client'
 import { useDocuments } from './ui/useDocuments'
 import { useDocumentTable } from './ui/useDocumentTable'
 
-type Tab = 'workspace' | 'documents' | 'dashboard' | 'usage'
+type Tab = 'workspace' | 'documents' | 'dashboard' | 'eval' | 'usage'
 
 /**
  * The vertical slice (spec 0003) + persisted library (spec 0006) + insights (spec 0007). A header tab
@@ -73,6 +74,14 @@ export function App(): ReactElement {
           </button>
           <button
             type="button"
+            className={tab === 'eval' ? 'tab tab--active' : 'tab'}
+            aria-pressed={tab === 'eval'}
+            onClick={() => setTab('eval')}
+          >
+            Eval
+          </button>
+          <button
+            type="button"
             className={tab === 'usage' ? 'tab tab--active' : 'tab'}
             aria-pressed={tab === 'usage'}
             onClick={() => setTab('usage')}
@@ -106,6 +115,8 @@ export function App(): ReactElement {
       {tab === 'dashboard' && (
         <Dashboard documents={table.documents} status={table.status} onOpenDocument={setViewerId} />
       )}
+
+      {tab === 'eval' && <EvalQualityCard />}
 
       {tab === 'usage' && <UsageView />}
 

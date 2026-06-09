@@ -26,6 +26,8 @@ export interface StateCountyCount {
   readonly state: string
   readonly county: string
   readonly count: number
+  /** Ids of the documents in this county — lets the map open one on click. */
+  readonly documentIds: readonly string[]
 }
 
 export type ExpirationBucket = 'expired' | 'within30' | 'within60' | 'within90' | 'later'
@@ -37,6 +39,8 @@ export interface UpcomingExpiration {
   readonly bucket: ExpirationBucket
   /** `derived` = computed from effective date + primary term; `explicit` = read from a date field. */
   readonly basis: TermEndBasis
+  /** The lease's start (effective date) when the term end was derived; null for an explicit date field. */
+  readonly start: Date | null
 }
 
 export type TermEndBasis = 'explicit' | 'derived'
@@ -44,6 +48,8 @@ export type TermEndBasis = 'explicit' | 'derived'
 export interface TermEnd {
   readonly date: Date
   readonly basis: TermEndBasis
+  /** Effective date the term end was computed from (derived basis); null for an explicit field. */
+  readonly start: Date | null
 }
 
 const PARTY_RE = /lessee|lessor|grantor|grantee|party|buyer|seller/i
@@ -167,7 +173,12 @@ export function documentsByStateCounty(docs: readonly DocumentSummary[]): readon
     }
     const key = `${state.toLowerCase()}|${county.toLowerCase()}`
     const existing = counts.get(key)
-    counts.set(key, { state, county, count: (existing?.count ?? 0) + 1 })
+    counts.set(key, {
+      state,
+      county,
+      count: (existing?.count ?? 0) + 1,
+      documentIds: [...(existing?.documentIds ?? []), doc.id],
+    })
   }
   return [...counts.values()].sort((a, b) => b.count - a.count || a.state.localeCompare(b.state))
 }
@@ -231,7 +242,7 @@ export function findTermEnd(doc: DocumentSummary): TermEnd | null {
     if (EXPIRATION_RE.test(field.name)) {
       const parsed = parseLocalDate(field.value)
       if (parsed !== null) {
-        return { date: parsed, basis: 'explicit' }
+        return { date: parsed, basis: 'explicit', start: null }
       }
     }
   }
@@ -241,7 +252,7 @@ export function findTermEnd(doc: DocumentSummary): TermEnd | null {
     const effective = parseLocalDate(effectiveRaw)
     const duration = parseTermDuration(termRaw)
     if (effective !== null && duration !== null) {
-      return { date: addDuration(effective, duration), basis: 'derived' }
+      return { date: addDuration(effective, duration), basis: 'derived', start: effective }
     }
   }
   return null
@@ -274,7 +285,14 @@ export function upcomingExpirations(
       continue
     }
     const daysUntil = Math.ceil((termEnd.date.getTime() - now.getTime()) / DAY_MS)
-    result.push({ document: doc, date: termEnd.date, daysUntil, bucket: bucketFor(daysUntil), basis: termEnd.basis })
+    result.push({
+      document: doc,
+      date: termEnd.date,
+      daysUntil,
+      bucket: bucketFor(daysUntil),
+      basis: termEnd.basis,
+      start: termEnd.start,
+    })
   }
   return result.sort((a, b) => a.date.getTime() - b.date.getTime())
 }

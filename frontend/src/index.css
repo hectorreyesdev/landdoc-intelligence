@@ -1024,6 +1024,14 @@ button:disabled {
   stroke-width: 1;
 }
 
+.map-bubble--clickable {
+  cursor: pointer;
+}
+
+.map-bubble--clickable:hover {
+  fill-opacity: 0.8;
+}
+
 .map-reset {
   position: absolute;
   top: 0.4rem;
@@ -1074,6 +1082,100 @@ button:disabled {
 .expirations-note {
   margin: 0 0 0.6rem;
   font-size: 0.75rem;
+}
+
+/* ── Lease term widget: full-width + view switcher ────────────────────────── */
+.lease-term-card {
+  grid-column: 1 / -1; /* span the whole dashboard grid */
+}
+
+.lease-term-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.lease-term-header h3 {
+  margin: 0;
+}
+
+.seg-control {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.seg-button {
+  background: var(--surface);
+  color: var(--muted);
+  border: 0;
+  border-radius: 0;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.seg-button:not(:last-child) {
+  border-right: 1px solid var(--border);
+}
+
+.seg-button--active,
+.seg-button--active:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.lease-chart-frame {
+  width: 100%;
+}
+
+.chart-tooltip {
+  padding: 0.4rem 0.6rem;
+  font-size: 0.8rem;
+  color: var(--fg);
+}
+
+/* Heatmap (year × quarter expiry density) */
+.heatmap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 28rem;
+}
+
+.heatmap-row {
+  display: grid;
+  grid-template-columns: 3.5rem repeat(4, 1fr);
+  gap: 4px;
+}
+
+.heatmap-q,
+.heatmap-year {
+  font-size: 0.75rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+}
+
+.heatmap-q {
+  justify-content: center;
+}
+
+.heatmap-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 2rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--fg);
 }
 
 .expiry-est {
