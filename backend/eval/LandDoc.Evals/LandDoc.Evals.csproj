@@ -47,20 +47,41 @@
     <Content Include="Dataset\questions.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
-  <!-- Curated corpus: copy the eval subset of samples/leases/*.pdf into <output>/samples/ at build.
-       File names must match Corpus[] in EvalPipelineFixture and expectedSources in questions.json. -->
+  <!-- Curated, type-diverse corpus: copy the eval subset of samples/leases/*.pdf into <output>/samples/
+       at build. File names must match Corpus[] in EvalPipelineFixture and expectedSources in questions.json. -->
   <ItemGroup>
     <Content Include="..\..\..\samples\leases\01-ogl-midland-tx.pdf" Link="samples\01-ogl-midland-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\..\samples\leases\02-ogl-reeves-tx.pdf" Link="samples\02-ogl-reeves-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\..\samples\leases\03-ogl-lea-nm.pdf" Link="samples\03-ogl-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\04-ogl-eddy-nm.pdf" Link="samples\04-ogl-eddy-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\..\samples\leases\05-ogl-mckenzie-nd.pdf" Link="samples\05-ogl-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\11-ogl-belmont-oh.pdf" Link="samples\11-ogl-belmont-oh.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\15-memo-karnes-tx.pdf" Link="samples\15-memo-karnes-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\049-memo-mountrail-nd.pdf" Link="samples\049-memo-mountrail-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\16-mineral-deed-stephens-ok.pdf" Link="samples\16-mineral-deed-stephens-ok.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\053-mineral-deed-kingfisher-ok.pdf" Link="samples\053-mineral-deed-kingfisher-ok.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\17-royalty-deed-reagan-tx.pdf" Link="samples\17-royalty-deed-reagan-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\057-royalty-deed-campbell-wy.pdf" Link="samples\057-royalty-deed-campbell-wy.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\18-warranty-deed-garfield-co.pdf" Link="samples\18-warranty-deed-garfield-co.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\061-warranty-deed-richland-mt.pdf" Link="samples\061-warranty-deed-richland-mt.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\19-quitclaim-rio-arriba-nm.pdf" Link="samples\19-quitclaim-rio-arriba-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\20-surface-use-dunn-nd.pdf" Link="samples\20-surface-use-dunn-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\069-surface-use-howard-tx.pdf" Link="samples\069-surface-use-howard-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\21-easement-dewitt-tx.pdf" Link="samples\21-easement-dewitt-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\073-easement-lasalle-tx.pdf" Link="samples\073-easement-lasalle-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\22-title-opinion-loving-tx.pdf" Link="samples\22-title-opinion-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\27-affidavit-heirship-loving-tx.pdf" Link="samples\27-affidavit-heirship-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\28-probate-order-loving-tx.pdf" Link="samples\28-probate-order-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\34-release-loving-tx.pdf" Link="samples\34-release-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\23-grazing-lease-carbon-mt.pdf" Link="samples\23-grazing-lease-carbon-mt.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\081-grazing-harrison-wv.pdf" Link="samples\081-grazing-harrison-wv.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\24-amendment-lea-nm.pdf" Link="samples\24-amendment-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\26-division-order-weld-co.pdf" Link="samples\26-division-order-weld-co.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\096-division-order-eddy-nm.pdf" Link="samples\096-division-order-eddy-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\29-assignment-absc-midland-tx.pdf" Link="samples\29-assignment-absc-midland-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\30-joa-mckenzie-nd.pdf" Link="samples\30-joa-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="..\..\..\samples\leases\35-ratification-lea-nm.pdf" Link="samples\35-ratification-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="..\..\..\samples\leases\36-afe-mckenzie-nd.pdf" Link="samples\36-afe-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\31-farmout-eddy-nm.pdf" Link="samples\31-farmout-eddy-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\32-ami-karnes-tx.pdf" Link="samples\32-ami-karnes-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\33-pooling-order-kingfisher-ok.pdf" Link="samples\33-pooling-order-kingfisher-ok.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\35-ratification-lea-nm.pdf" Link="samples\35-ratification-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

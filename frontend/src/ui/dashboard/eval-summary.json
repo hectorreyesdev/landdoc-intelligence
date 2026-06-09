@@ -1,13 +1,27 @@
 {
-  "generatedAt": "2026-06-09T11:55:56.893681Z",
+  "generatedAt": "2026-06-09T14:39:26.1202130\u002B00:00",
   "judgeModel": "claude-sonnet-4-6",
-  "caseCount": 18,
+  "caseCount": 37,
   "means": {
-    "recallAtK": 1.0,
-    "groundedness": 5.0,
-    "equivalence": 4.78
+    "recallAtK": 1,
+    "groundedness": 5,
+    "equivalence": 4.89
   },
   "cases": [
+    {
+      "id": "absent-converse-joa-operator",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
+    {
+      "id": "absent-kern-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
     {
       "id": "absent-permian-master-royalty",
       "recallAtK": 1,
@@ -16,11 +30,46 @@
       "abstained": true
     },
     {
-      "id": "absent-weld-co-operator",
+      "id": "belmont-lessee",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
-      "abstained": true
+      "abstained": false
+    },
+    {
+      "id": "belmont-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "campbell-royalty-grantor",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "carbon-grazing-acres",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "dewitt-easement-date",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "dunn-surface-operator",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
     },
     {
       "id": "eddy-bonus",
@@ -30,7 +79,14 @@
       "abstained": false
     },
     {
-      "id": "eddy-lessee",
+      "id": "eddy-divorder-payor",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-pecos-farmee-multi",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -38,6 +94,20 @@
     },
     {
       "id": "eddy-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "garfield-warranty-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "harrison-grazing-lessee",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -58,7 +128,63 @@
       "abstained": false
     },
     {
-      "id": "mckenzie-lessee",
+      "id": "howard-surface-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "karnes-ami-term",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "karnes-memo-term",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "kingfisher-mineral-acres",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "kingfisher-pooling-applicant",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lasalle-easement-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lea-amendment-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "lea-ratification-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "loving-title-operator",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
@@ -72,17 +198,17 @@
       "abstained": false
     },
     {
-      "id": "mckenzie-royalty",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 5,
-      "abstained": false
-    },
-    {
       "id": "mckenzie-tract-multi",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "midland-assignment-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
       "abstained": false
     },
     {
@@ -93,42 +219,49 @@
       "abstained": false
     },
     {
-      "id": "midland-lessee",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 5,
-      "abstained": false
-    },
-    {
       "id": "midland-royalty",
       "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 4,
+      "groundedness": null,
+      "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "reeves-royalty",
-      "recallAtK": 1,
-      "groundedness": 5,
-      "equivalence": 4,
-      "abstained": false
-    },
-    {
-      "id": "reeves-term",
+      "id": "mountrail-memo-royalty",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "whitaker-original-multi",
+      "id": "reagan-royalty-grantee",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,
       "abstained": false
     },
     {
-      "id": "whitaker-royalty",
+      "id": "richland-warranty-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "rioarriba-quitclaim-legal",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "stephens-mineral-grantee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "weld-divorder-payor",
       "recallAtK": 1,
       "groundedness": 5,
       "equivalence": 5,

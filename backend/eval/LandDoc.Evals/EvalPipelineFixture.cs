@@ -35,23 +35,66 @@ namespace LandDoc.Evals;
 public sealed class EvalPipelineFixture : IAsyncLifetime
 {
     /// <summary>
-    /// The curated subset ingested for every run (~doc set from the handoff): single-document field cases
-    /// plus the three cross-linked sets (Henderson / Whitaker / McKenzie) that drive multi-document recall@k.
-    /// File names must match the <c>expectedSources</c> in <c>Dataset/questions.json</c>.
+    /// The curated, type-DIVERSE subset ingested for every run: a few documents of each instrument kind
+    /// (leases, memoranda, mineral/royalty/warranty/quitclaim deeds, surface-use & easement agreements,
+    /// title opinions, grazing leases, amendments, division orders, affidavits, probate orders,
+    /// assignments, JOAs, farmouts, AMIs, pooling orders, releases, ratifications, AFEs), including the
+    /// cross-linked clusters (Henderson/Loving · Bakken/McKenzie · Pecos Valley/Eddy) that drive
+    /// multi-document recall@k. File names must match the <c>expectedSources</c> in
+    /// <c>Dataset/questions.json</c>.
     /// </summary>
     private static readonly string[] Corpus =
     [
+        // Oil & gas leases
         "01-ogl-midland-tx.pdf",
-        "02-ogl-reeves-tx.pdf",
-        "03-ogl-lea-nm.pdf",
         "04-ogl-eddy-nm.pdf",
-        "05-ogl-mckenzie-nd.pdf",
+        "11-ogl-belmont-oh.pdf",
+        // Memoranda of lease
+        "15-memo-karnes-tx.pdf",
+        "049-memo-mountrail-nd.pdf",
+        // Mineral deeds
+        "16-mineral-deed-stephens-ok.pdf",
+        "053-mineral-deed-kingfisher-ok.pdf",
+        // Royalty deeds
+        "17-royalty-deed-reagan-tx.pdf",
+        "057-royalty-deed-campbell-wy.pdf",
+        // Warranty deeds
+        "18-warranty-deed-garfield-co.pdf",
+        "061-warranty-deed-richland-mt.pdf",
+        // Quitclaim deed
+        "19-quitclaim-rio-arriba-nm.pdf",
+        // Surface use & damage agreements
+        "20-surface-use-dunn-nd.pdf",
+        "069-surface-use-howard-tx.pdf",
+        // Easements / rights-of-way
+        "21-easement-dewitt-tx.pdf",
+        "073-easement-lasalle-tx.pdf",
+        // Title opinion + Loving "Henderson" cluster
         "22-title-opinion-loving-tx.pdf",
         "27-affidavit-heirship-loving-tx.pdf",
         "28-probate-order-loving-tx.pdf",
+        "34-release-loving-tx.pdf",
+        // Grazing leases
+        "23-grazing-lease-carbon-mt.pdf",
+        "081-grazing-harrison-wv.pdf",
+        // Amendment
+        "24-amendment-lea-nm.pdf",
+        // Division orders
+        "26-division-order-weld-co.pdf",
+        "096-division-order-eddy-nm.pdf",
+        // Assignment
+        "29-assignment-absc-midland-tx.pdf",
+        // McKenzie "Bakken Ridge" cluster (JOA + AFE)
         "30-joa-mckenzie-nd.pdf",
-        "35-ratification-lea-nm.pdf",
         "36-afe-mckenzie-nd.pdf",
+        // Farmout (Pecos Valley / Eddy cluster pairs with 04)
+        "31-farmout-eddy-nm.pdf",
+        // AMI
+        "32-ami-karnes-tx.pdf",
+        // Pooling order
+        "33-pooling-order-kingfisher-ok.pdf",
+        // Ratification
+        "35-ratification-lea-nm.pdf",
     ];
 
     private static readonly JsonSerializerOptions SummaryJsonOptions = new()
