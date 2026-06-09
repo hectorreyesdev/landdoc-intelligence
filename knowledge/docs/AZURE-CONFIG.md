@@ -99,7 +99,7 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    resource `landdoc-rag-resource` to back `GET /usage`; managed-identity auth (**no new secret**);
    `UsageSource:Provider` switch (`azuremonitor` live default in `appsettings.json` / `inmemory` offline-test).
    See the operator guide [USAGE-DASHBOARD.md](USAGE-DASHBOARD.md). Wired on **2026-06-09**:
-   - **Role grant done:** the Container App's MI (`landdoc`, principal `77ebbf97-2387-4a50-a96b-4aadd7c101c9`)
+   - **Role grant done:** the Container App's MI (`landdoc`, principal `<MI_PRINCIPAL_ID>`)
      holds **Monitoring Reader** on `landdoc-rag-resource` (`AIServices` — hosts the chat + embedding
      deployments; read-only, least privilege) — procedure in [DEPLOYMENT.md §1g](DEPLOYMENT.md).
    - **Config set (non-secret, NOT a Key Vault entry):** `Monitor__ResourceId` env var on the Container App =
@@ -142,7 +142,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 - **Teardown after the interview (mandatory):**
   ```bash
   az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
-  az ad app delete --id bfce2d5a-ca40-4c2f-8a9b-1308927b2951 # the CI/CD Entra app — lives in Entra, not the RG
+  az ad app delete --id <CI_APP_ID> # the CI/CD Entra app — lives in Entra, not the RG
   ```
   (Custom-domain CNAME at Namecheap is harmless to leave or remove.) For **targeted** teardown that keeps the
   Key Vault + AI resource, see [DEPLOYMENT.md §4](DEPLOYMENT.md).

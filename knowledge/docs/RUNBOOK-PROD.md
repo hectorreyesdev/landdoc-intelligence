@@ -10,7 +10,7 @@ operator's guide. For first-time provisioning and the full CLI walkthrough see
 | Thing | Value |
 |---|---|
 | Public URL | <https://landdoc.hectorreyes.dev/> (also the ACA FQDN `landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io`) |
-| Subscription | `c3ef00c0-da7f-4e63-86ac-fee62aee44ce` |
+| Subscription | `<SUBSCRIPTION_ID>` |
 | Resource group | `rg-landdoc-deomo` (`eastus2`) |
 | Container App | `landdoc` (env `cae-landdoc`) |
 | Registry | `ca6a00db456cacr.azurecr.io` (repo `landdoc`) |
@@ -18,7 +18,7 @@ operator's guide. For first-time provisioning and the full CLI walkthrough see
 | Storage (documents) | `stlanddochr01` → container `documents` |
 
 ```bash
-SUBSCRIPTION="c3ef00c0-da7f-4e63-86ac-fee62aee44ce"
+SUBSCRIPTION="<SUBSCRIPTION_ID>"
 RG="rg-landdoc-deomo"; APP="landdoc"; ENV="cae-landdoc"; ACR="ca6a00db456cacr"
 az account set --subscription "$SUBSCRIPTION"
 ```

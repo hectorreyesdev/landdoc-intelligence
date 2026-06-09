@@ -29,7 +29,7 @@ the subscription or RG).
 
 ```bash
 SUBSCRIPTION="<SUBSCRIPTION_ID>"
-TENANT="722f552d-3ff8-4c48-a139-44857d2a2363"
+TENANT="<TENANT_ID>"
 RG="rg-landdoc-deomo"
 APP="landdoc"
 ACR="ca6a00db456cacr"
