@@ -558,6 +558,40 @@ button:disabled {
   white-space: nowrap;
 }
 
+/* Sortable column headers. Override the global filled-button style so headers stay plain text — the
+   selectors are scoped to `.doc-table th` to outrank `button:hover:not(:disabled)`. */
+.doc-table th .doc-sort-button,
+.doc-table th .doc-sort-button:hover:not(:disabled),
+.doc-table th .doc-sort-button:active:not(:disabled) {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--muted);
+  cursor: pointer;
+  transform: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.doc-table th .doc-sort-button:hover {
+  color: var(--heading);
+}
+
+/* Active sort column: highlight via accent text on the dark surface (no fill, so it stays readable). */
+.doc-table th[aria-sort='ascending'] .doc-sort-button,
+.doc-table th[aria-sort='descending'] .doc-sort-button {
+  color: var(--accent);
+}
+
+.doc-sort-indicator {
+  font-size: 0.7rem;
+}
+
 .doc-table-file {
   font-weight: 600;
   word-break: break-word;
@@ -957,6 +991,56 @@ button:disabled {
   height: 240px;
 }
 
+/* County bubble map (spec 0007 amendment). */
+.map-frame {
+  position: relative;
+  width: 100%;
+  height: 240px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.map-frame svg {
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-frame svg:active {
+  cursor: grabbing;
+}
+
+.map-states path {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 0.5;
+}
+
+.map-bubbles circle {
+  fill: var(--accent);
+  fill-opacity: 0.55;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+
+.map-reset {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.map-hint {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+
 .review-list {
   list-style: none;
   margin: 0;
@@ -1064,4 +1148,65 @@ button:disabled {
 .doc-delete-button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+
+/* Ops / Usage view (spec 0009) */
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.usage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.usage-header h2 {
+  margin: 0;
+}
+
+.usage-ranges {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.usage-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.usage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.usage-stat dt {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.usage-stat dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.1;
+}
+
+.usage-stat--alert dd {
+  color: var(--error);
 }

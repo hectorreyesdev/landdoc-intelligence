@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!--
-    Answer-quality eval RUNNER (spec 0009, ADR-0020). xUnit project that drives the REAL pipeline
+    Answer-quality eval RUNNER (spec 0012, ADR-0021). xUnit project that drives the REAL pipeline
     end-to-end over the production stack and scores answers (recall@k / grounding / correctness).
 
     ⚠️ DELIBERATELY NOT in backend/LandDoc.slnx and NOT in ci.yml's `dotnet test LandDoc.slnx`.
@@ -18,7 +18,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Eval framework (latest stable / GA on nuget.org) — see ADR-0020. -->
+    <!-- Eval framework (latest stable / GA on nuget.org) — see ADR-0021. -->
     <PackageReference Include="Microsoft.Extensions.AI.Evaluation" Version="10.6.0" />
     <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" Version="10.6.0" />
     <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.6.0" />

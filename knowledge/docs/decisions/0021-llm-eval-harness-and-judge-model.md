@@ -1,10 +1,10 @@
-# 0020. Microsoft.Extensions.AI.Evaluation as the eval framework, Claude Sonnet 4.6 as the LLM judge
+# 0021. Microsoft.Extensions.AI.Evaluation as the eval framework, Claude Sonnet 4.6 as the LLM judge
 
 - Status: Accepted
 - Date: 2026-06-09
 
 ## Context
-[[knowledge/docs/specs/0009-rag-answer-quality-eval-harness]] (Accepted) calls for an on-demand
+[[knowledge/docs/specs/0012-rag-answer-quality-eval-harness]] (Accepted) calls for an on-demand
 harness that measures the *quality of real answers to real questions* — something the offline green
 suite (`backend/tests/LandDoc.Tests`) deliberately can't do. That suite proves the pipeline's
 **contract** with fakes (fake `IChatClient`, `LocalEmbeddingClient`, `InMemoryVectorStore`) and stays
@@ -14,7 +14,7 @@ Azure OpenAI embeddings per [[knowledge/docs/decisions/0013-azure-openai-text-em
 Azure AI Search per [[knowledge/docs/decisions/0017-azure-ai-search-free-tier-live-vector-store]]) and a
 way to score free-text answers, which can't be an `x == y` assertion.
 
-Two choices need recording. **(A) The eval framework.** Spec 0009 scores three metrics — retrieval
+Two choices need recording. **(A) The eval framework.** Spec 0012 scores three metrics — retrieval
 recall@k, grounding/faithfulness, answer correctness. Recall@k is deterministic (does the expected
 source `DocumentId` appear in the `/ask` response's citations) and is hand-rolled as a custom
 evaluator regardless. Grounding and correctness need an LLM judge. Options: a .NET-native framework
@@ -51,7 +51,7 @@ the library's `ChatConfiguration` — distinct from, and with no effect on, the 
 is a custom deterministic `IEvaluator` (no model call). This binds the new
 `backend/eval/LandDoc.Evals` project only; it is **excluded from `LandDoc.slnx` and the CI green
 suite**, runs on the full production stack against an isolated `landdoc-eval-{runId}` Search index, and
-is **report-only by default** with an opt-in threshold floor (per spec 0009).
+is **report-only by default** with an opt-in threshold floor (per spec 0012).
 
 ## Consequences
 - **One language, one toolchain.** Evals live in the same .NET 10 / `dotnet test` world as the rest of
@@ -81,4 +81,4 @@ is **report-only by default** with an opt-in threshold floor (per spec 0009).
   (`aieval`).
 - Judge wiring: `Anthropic` SDK → `Microsoft.Extensions.AI.IChatClient` → `ChatConfiguration`; model
   `claude-sonnet-4-6` via `Eval:JudgeModel`; key from the existing `Anthropic:ApiKey` secret.
-- See spec 0009 for the harness shape, corpus subset, gating, and the `eval.yml` CI job.
+- See spec 0012 for the harness shape, corpus subset, gating, and the `eval.yml` CI job.

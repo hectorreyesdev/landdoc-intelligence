@@ -14,15 +14,20 @@ means manually reading dozens of pages, and any answer must be traceable back to
 ## Non-goals
 "Production hardening" — explicitly out of scope (see `CLAUDE.md` → Out of scope):
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search **beyond the Free-tier
-vector store** (the Free tier is now the live store — ADR-0017) · auth/RBAC · observability stack. Also
-out: multi-tenant/multi-user concerns and high-accuracy OCR of scanned/handwritten documents.
+vector store** (the Free tier is now the live store — ADR-0017) · auth/RBAC · the **infra** observability
+stack (Log Analytics ingestion · App Insights traces · alerting) — but the **in-app LLM usage dashboard**
+reading free, read-only Azure Monitor platform metrics **is in scope** (ADR-0020). Also out:
+multi-tenant/multi-user concerns and high-accuracy OCR of scanned/handwritten documents.
 
 **Now built (no longer hypothetical):** the slice is **deployed** — a single container on Azure Container
 Apps, serving the SPA + API on one origin, with secrets from Key Vault via managed identity and CI/CD on
 merge to `main` ([DEPLOYMENT](DEPLOYMENT.md) · [CICD](CICD.md) · [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md)).
 Storage is persisted too: chunk vectors in **Azure AI Search (Free tier)** ([ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md))
 and original files + metadata in **Azure Blob Storage** ([ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md)),
-each behind a config-selected port (in-memory for offline/test). The remaining hardening items above stay out of scope.
+each behind a config-selected port (in-memory for offline/test). An **Ops / Usage** dashboard surfaces LLM
+token usage + estimated cost from **Azure Monitor platform metrics** behind a third config-selected port
+([ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md) ·
+[spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md)). The remaining hardening items above stay out of scope.
 
 ## Users / personas
 - **Landman / title analyst** — uploads documents, reviews extracted fields, asks questions.
@@ -38,7 +43,8 @@ each behind a config-selected port (in-memory for offline/test). The remaining h
 ## Scope
 **In:** document upload (PDF / text / markdown) · field extraction · chunk + embed · retrieval (Azure AI
 Search live / in-memory offline) · cited Q&A · a persisted document library (table · search · CSV · delete
-· source-file viewer) · React UI across Workspace / Documents / Dashboard tabs.
+· source-file viewer) · an LLM usage/cost **Ops dashboard** (Azure Monitor metrics — ADR-0020) · React UI
+across Workspace / Documents / Dashboard / Ops · Usage tabs.
 **Out:** everything under Non-goals · auth.
 
 ## Success metrics

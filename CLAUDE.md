@@ -9,7 +9,7 @@ every session (see **Project docs** below).
 
 ## Architecture
 - **Backend** — ASP.NET Core Web API on **.NET 10 (LTS)**. Modular monolith: one process,
-  modules split by folder/namespace (`Ingestion`, `Extraction`, `Retrieval`, `Qa`) — not
+  modules split by folder/namespace (`Ingestion`, `Extraction`, `Retrieval`, `Qa`, `Usage`) — not
   microservices.
 - **Model access** — split into TWO interfaces (chat and embeddings have different providers and
   fail over differently):
@@ -26,12 +26,17 @@ every session (see **Project docs** below).
   live / in-memory cosine offline — ADR-0017) and **`IDocumentStore`** for the original file + metadata
   (Azure Blob Storage live / in-memory offline — ADR-0018). Swap via `VectorStore:Provider` /
   `DocumentStore:Provider`, never a code change.
-- **Frontend** — React + TypeScript SPA with three tabs: **Workspace** (drag-drop upload →
+- **Usage telemetry** — a third config-selected port, **`IUsageSource`** (read-only, not persistence):
+  LLM token/cost/latency metrics for the dashboard (Azure Monitor platform metrics live / in-memory
+  offline — ADR-0020). Swap via `UsageSource:Provider`; cost is **computed** from a non-secret price
+  table by a pure calculator outside the adapter.
+- **Frontend** — React + TypeScript SPA with four tabs: **Workspace** (drag-drop upload →
   extracted-field tiles · question box → answer-with-citations · a source-file viewer), **Documents**
   (the full-width persisted documents table — search / CSV export / multi-select delete / row "View";
-  fields shown as a count), and **Dashboard** (KPI tiles, charts, needs-review, and lease expirations,
-  aggregated from `GET /documents`). The source-file viewer is a modal showing the extracted fields
-  **beside** the original file.
+  fields shown as a count), **Dashboard** (KPI tiles, charts, needs-review, and lease expirations,
+  aggregated from `GET /documents`), and **Ops / Usage** (operator-facing LLM usage: totals ·
+  per-deployment table · request-health + latency cards, over `GET /usage` — ADR-0020). The source-file
+  viewer is a modal showing the extracted fields **beside** the original file.
 - **RAG pipeline** — ingest PDF/text/Markdown → extract structured fields → chunk → embed
   (`IEmbeddingClient`) → store chunks (`IVectorStore`) + persist the original file/metadata
   (`IDocumentStore`) → on ask, retrieve top-k by cosine → answer **with citations**. Stores are
@@ -40,18 +45,21 @@ every session (see **Project docs** below).
 ### Models & cost
 Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable
 per call-type for cost — e.g. the extraction step. Lean on **prompt caching** for the repeated
-document context. All model IDs live in config, never hardcoded.
+document context. All model IDs live in config, never hardcoded. Token usage + **estimated** cost are
+surfaced in-app via the **Ops / Usage** dashboard, read from free Azure Monitor platform metrics (ADR-0020).
 
 ### Out of scope — "production hardening", do NOT build
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search beyond the Free-tier
 vector store (semantic ranker / reranking, Basic+ scale — ADR-0017 brought the Free tier in as the
-live store) · auth/RBAC · observability stack. If a task seems to need one, stub it and note why in
-`knowledge/lessons.md`.
+live store) · auth/RBAC · the **infra** observability stack — Log Analytics ingestion, Application
+Insights traces, alerting (the **in-app** LLM usage dashboard reading free, read-only Azure Monitor
+platform metrics is **in** scope — ADR-0020; it's a product surface, not an infra stack). If a task
+seems to need an out-of-scope item, stub it and note why in `knowledge/lessons.md`.
 
 ## Coding conventions
 **C#** — nullable reference types **enabled**; `async`/`await` end-to-end (never `.Result` /
 `.Wait()`); constructor injection via the built-in DI container; **file-scoped namespaces**; one
-public type per file; `record` types for DTOs; validate and throw early on bad input.
+public type per file; validate and throw early on bad input.
 
 **TypeScript** — `strict: true`; **function components + hooks** (no class components); a single
 **typed API client** wraps `fetch` (no ad-hoc `fetch` in components); explicit return types on
@@ -101,11 +109,13 @@ knowledge/docs/
   STACK.md         layer · choice · version · why
   ARCHITECTURE.md  system + component diagrams · ports/adapters · cross-cutting concerns · conventions
   DATA-MODEL.md    domain types · ER diagram · invariants
-  DATA-FLOW.md     ingest + ask sequence diagrams
-  API.md           endpoints · request/response shapes · error model (intended surface)
+  DATA-FLOW.md     ingest · ask · delete · usage sequence diagrams
+  API.md           endpoints · request/response shapes · error model
   RUNBOOK.md       install · run · test · build · env/secret names · teardown
   DEPLOYMENT.md    first-time deploy · redeploy · teardown for Azure Container Apps
   CICD.md          OIDC identity setup · role grants · GitHub secrets · CI/CD usage
+  AZURE-CONFIG.md  Azure resource inventory · adapter wiring · model deployments · role grants
+  USAGE-DASHBOARD.md  LLM usage/cost Ops dashboard — how it works · config keys · local + Azure setup
   GLOSSARY.md      domain + project terms
   decisions/       ADRs (Nygard, NNNN-slug.md), immutable once Accepted — supersede convention below
   specs/           feature specs, one per file (NNNN-<slug>.md); design interface changes here

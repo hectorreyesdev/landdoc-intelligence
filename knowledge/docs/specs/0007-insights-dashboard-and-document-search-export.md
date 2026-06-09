@@ -76,3 +76,24 @@ The persisted documents table moved out of the Workspace column into its **own f
 (tabs are now Workspace · Documents · Dashboard). Its Fields column shows a **count** ("N fields") rather
 than every field inline — the full set lives in the source-file viewer. Search still matches over all field
 names/values and CSV export still includes them. Visual/layout refinement; no contract change.
+
+## Amendment — 2026-06-09 (sortable table · hourly ingest · county map)
+Three refinements, all still riding the in-memory `GET /documents` data (no backend/contract change):
+- **Sortable documents table.** Every data column (File · Status · Chunks · Fields · Ingested) is a clickable
+  header that cycles unsorted → ascending → descending, with `aria-sort` on the active `<th>`. Sorting is a
+  pure client-side reorder of the already-filtered rows (`ui/documentSort.ts`, unit-tested); chunks/fields
+  sort numerically, ingested chronologically, others by locale string. Default stays server order.
+- **Ingest activity by hour.** `ingestByDay` → **`ingestByHour`** (UTC `YYYY-MM-DDTHH:00` buckets) so a corpus
+  ingested in one session spreads across hours instead of collapsing to a single point. Axis/tooltip show
+  `MM-DD HH:00`.
+- **County bubble map.** A new dashboard card renders documents-by-county as proportional bubbles at each
+  county's centroid over a US states basemap, **beside the kept "Documents by county" bar chart**. New
+  framework-agnostic runtime deps (no React-19 peer conflict — *why not `react-simple-maps`*, which caps at
+  React 18): **`d3-geo`**, **`topojson-client`**, **`us-atlas`** (+ `@types/*`). The ~600 KB atlas is
+  **dynamically imported** so it stays out of the main bundle. Pure geo math (`documentsByStateCounty` in
+  `metrics.ts`; `resolveMarkers` in `ui/dashboard/geo.ts`) is unit-tested with a stub centroid index; the
+  projection/SVG is presentational glue, untested under jsdom (same rationale as the Recharts SVG above).
+  Documents lacking both a State and a County field don't plot — the map shows an honest empty state.
+  The map is **zoom/pan-able** (`d3-zoom`): the basemap scales with the transform while bubble radii and
+  strokes are counter-scaled by `1/k`, so dots keep a constant screen size and zooming in pinpoints which
+  county a dot sits on. A "Reset view" control appears once zoomed.

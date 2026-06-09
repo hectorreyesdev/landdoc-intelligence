@@ -9,7 +9,7 @@ using Microsoft.Extensions.Configuration;
 namespace LandDoc.Evals;
 
 /// <summary>
-/// The answer-quality eval scenarios (spec 0009, ADR-0020). One xUnit theory per dataset case: ask the
+/// The answer-quality eval scenarios (spec 0012, ADR-0021). One xUnit theory per dataset case: ask the
 /// real <c>/ask</c> endpoint, then score the answer on three metrics through a
 /// <see cref="Microsoft.Extensions.AI.Evaluation.Reporting.ReportingConfiguration"/> backed by a disk
 /// result store:

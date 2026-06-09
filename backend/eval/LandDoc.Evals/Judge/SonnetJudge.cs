@@ -6,7 +6,7 @@ using Microsoft.Extensions.Configuration;
 namespace LandDoc.Evals.Judge;
 
 /// <summary>
-/// Builds the LLM judge for the grounding + correctness evaluators (ADR-0020): Claude Sonnet 4.6 as a
+/// Builds the LLM judge for the grounding + correctness evaluators (ADR-0021): Claude Sonnet 4.6 as a
 /// <see cref="Microsoft.Extensions.AI.IChatClient"/> via the Anthropic SDK's built-in MEAI adapter
 /// (<c>AnthropicClientExtensions.AsIChatClient</c>) — no hand-written adapter needed.
 /// <para>

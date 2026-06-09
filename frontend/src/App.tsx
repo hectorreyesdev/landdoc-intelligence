@@ -5,12 +5,13 @@ import { DocumentList } from './ui/DocumentList'
 import { DocumentsTable } from './ui/DocumentsTable'
 import { DocumentViewer } from './ui/DocumentViewer'
 import { Dashboard } from './ui/dashboard/Dashboard'
+import { UsageView } from './ui/usage/UsageView'
 import { ThemeToggle } from './ui/ThemeToggle'
 import { deleteDocument } from './api/client'
 import { useDocuments } from './ui/useDocuments'
 import { useDocumentTable } from './ui/useDocumentTable'
 
-type Tab = 'workspace' | 'documents' | 'dashboard'
+type Tab = 'workspace' | 'documents' | 'dashboard' | 'usage'
 
 /**
  * The vertical slice (spec 0003) + persisted library (spec 0006) + insights (spec 0007). A header tab
@@ -70,6 +71,14 @@ export function App(): ReactElement {
           >
             Dashboard
           </button>
+          <button
+            type="button"
+            className={tab === 'usage' ? 'tab tab--active' : 'tab'}
+            aria-pressed={tab === 'usage'}
+            onClick={() => setTab('usage')}
+          >
+            Ops / Usage
+          </button>
         </nav>
         <ThemeToggle />
       </header>
@@ -97,6 +106,8 @@ export function App(): ReactElement {
       {tab === 'dashboard' && (
         <Dashboard documents={table.documents} status={table.status} onOpenDocument={setViewerId} />
       )}
+
+      {tab === 'usage' && <UsageView />}
 
       {viewerId !== null && (
         <DocumentViewer documentId={viewerId} onClose={() => setViewerId(null)} />

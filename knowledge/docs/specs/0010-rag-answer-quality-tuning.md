@@ -3,7 +3,7 @@
 **Status:** Accepted
 
 ## What to build
-Act on the misses the eval harness ([[knowledge/docs/specs/0009-rag-answer-quality-eval-harness]]) surfaced
+Act on the misses the eval harness ([[knowledge/docs/specs/0012-rag-answer-quality-eval-harness]]) surfaced
 on its first live run (2026-06-09). Two distinct failure modes, two targeted levers — measured against the
 harness, not guessed:
 
@@ -27,7 +27,7 @@ change.
   (`AzureOpenAIChatClient` — the live SUT — and `AnthropicChatClient`, kept in sync) to reduce
   over-abstention. **The exact abstain sentence `"The answer is not found in the document(s)."` MUST be
   preserved verbatim** — the cite-or-abstain invariant (API.md), the eval's absent-answer golden answers
-  (spec 0009), and any downstream string checks depend on it.
+  (spec 0012), and any downstream string checks depend on it.
 - **No port / contract change:** `IChatClient`, `IEmbeddingClient`, `IVectorStore`, `/ask`, `/documents`
   are untouched. The `AnswerAsync` signature and the strict cite-or-error invariant are unchanged.
 - **Green suite stays green + offline:** `dotnet test LandDoc.slnx` passes with no keys. The answer
@@ -52,8 +52,8 @@ change.
   the harness is the feedback loop.
 
 ## Links
-- **Driven by:** [[knowledge/docs/specs/0009-rag-answer-quality-eval-harness]] (the harness that surfaced
-  and will re-measure these misses) · [[knowledge/docs/decisions/0020-llm-eval-harness-and-judge-model]].
+- **Driven by:** [[knowledge/docs/specs/0012-rag-answer-quality-eval-harness]] (the harness that surfaced
+  and will re-measure these misses) · [[knowledge/docs/decisions/0021-llm-eval-harness-and-judge-model]].
 - **Touches:** the answer path of [[knowledge/docs/specs/0002-rag-qa-with-citations]] (prompt wording;
   the cite-or-abstain invariant is unchanged) and the retrieval seam of
   [[knowledge/docs/specs/0004-extract-retrieval-service]] (`Retrieval:TopK`).

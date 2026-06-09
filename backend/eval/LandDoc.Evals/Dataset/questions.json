@@ -1,4 +1,4 @@
-// RAG answer-quality eval cases (spec 0009, ADR-0020). Golden values are derived from
+// RAG answer-quality eval cases (spec 0012, ADR-0021). Golden values are derived from
 // samples/manifest.json (the answer key). `expectedSources` are the curated samples/leases/*.pdf
 // file names whose chunks should be cited (recall@k matches them against Citation.Source).
 // Comments + trailing commas are allowed: EvalDataset.Parse skips comments / allows trailing commas.

@@ -3,7 +3,7 @@
 **Status:** Accepted
 
 ## What to build
-Surface the latest answer-quality eval run ([[knowledge/docs/specs/0009-rag-answer-quality-eval-harness]])
+Surface the latest answer-quality eval run ([[knowledge/docs/specs/0012-rag-answer-quality-eval-harness]])
 in the SPA, as a read-only **scorecard** on the Dashboard tab. The eval is on-demand, offline, paid, and
 non-deterministic — it is **not** on the app's request path — so this shows a **committed snapshot** of the
 most recent run, clearly dated, not live data.
@@ -52,7 +52,7 @@ most recent run, clearly dated, not live data.
   compiles; `dotnet test LandDoc.slnx` still green and the eval runner still absent from the solution.
 
 ## Links
-- **Shows:** [[knowledge/docs/specs/0009-rag-answer-quality-eval-harness]] results · post-tuning baseline
+- **Shows:** [[knowledge/docs/specs/0012-rag-answer-quality-eval-harness]] results · post-tuning baseline
   from [[knowledge/docs/specs/0010-rag-answer-quality-tuning]].
 - **Builds on:** [[knowledge/docs/specs/0007-insights-dashboard-and-document-search-export]] (the Dashboard)
   · [[knowledge/docs/decisions/0006-react-typescript-frontend-over-blazor]] (single typed client / fetch

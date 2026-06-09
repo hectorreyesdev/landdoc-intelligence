@@ -15,12 +15,14 @@ import type { DocumentTableStatus } from '../useDocumentTable'
 import {
   documentsByCounty,
   documentsByState,
-  ingestByDay,
+  documentsByStateCounty,
+  ingestByHour,
   needsReviewDocuments,
   summarize,
 } from './metrics'
 import { ExpirationsWidget } from './ExpirationsWidget'
 import { EvalQualityCard } from './EvalQualityCard'
+import { CountyMap } from './CountyMap'
 
 interface DashboardProps {
   documents: readonly DocumentSummary[]
@@ -31,6 +33,17 @@ interface DashboardProps {
 function formatIngest(date: Date | null): string {
   return date === null ? '—' : date.toLocaleString()
 }
+
+/** "2026-06-09T03:00" → "06-09 03:00" — compact axis/tooltip label for the hourly ingest series. */
+function formatHour(hour: string): string {
+  const match = /^\d{4}-(\d{2}-\d{2})T(\d{2}:\d{2})$/.exec(hour)
+  return match === null ? hour : `${match[1]} ${match[2]}`
+}
+
+// Recharts renders the tooltip as a floating div with default light styling (white background, light label),
+// which is unreadable in dark mode. Pin it to the theme tokens so it adapts to both themes.
+const TOOLTIP_CONTENT_STYLE = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }
+const TOOLTIP_LABEL_STYLE = { color: 'var(--heading)' }
 
 /**
  * The read-only analytics view (spec 0007). The answer-quality eval scorecard (spec 0011) renders first
@@ -67,7 +80,8 @@ function DashboardCorpus({ documents, status, onOpenDocument }: DashboardProps):
   // Show whichever location field the extractor actually populated (more distinct values = more useful).
   const location = byState.length >= byCounty.length ? byState : byCounty
   const locationLabel = location === byState ? 'state' : 'county'
-  const ingest = ingestByDay(documents)
+  const ingest = ingestByHour(documents)
+  const byStateCounty = documentsByStateCounty(documents)
   const review = needsReviewDocuments(documents)
 
   return (
@@ -90,7 +104,7 @@ function DashboardCorpus({ documents, status, onOpenDocument }: DashboardProps):
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
                 <Bar dataKey="count" fill="var(--accent)" />
               </BarChart>
             </ResponsiveContainer>
@@ -98,18 +112,27 @@ function DashboardCorpus({ documents, status, onOpenDocument }: DashboardProps):
         </section>
 
         <section className="panel dashboard-card" aria-labelledby="ingest-heading">
-          <h3 id="ingest-heading">Ingest activity</h3>
+          <h3 id="ingest-heading">Ingest activity (by hour)</h3>
           <div className="chart-frame">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[...ingest]}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="hour" tickFormatter={(value) => formatHour(String(value))} minTickGap={24} />
                 <YAxis allowDecimals={false} />
-                <Tooltip />
+                <Tooltip
+                  labelFormatter={(label) => formatHour(String(label))}
+                  contentStyle={TOOLTIP_CONTENT_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Area dataKey="count" stroke="var(--accent)" fill="var(--accent-2)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+        </section>
+
+        <section className="panel dashboard-card" aria-labelledby="map-heading">
+          <h3 id="map-heading">Documents by county (map)</h3>
+          <CountyMap locations={byStateCounty} />
         </section>
 
         <ExpirationsWidget documents={documents} onOpenDocument={onOpenDocument} />

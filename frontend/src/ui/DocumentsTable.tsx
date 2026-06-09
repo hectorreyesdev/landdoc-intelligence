@@ -1,6 +1,12 @@
 import { useMemo, useState, type ReactElement } from 'react'
 import type { DocumentSummary } from '../api/types'
 import { documentsToCsv } from './csv'
+import { sortDocuments, type SortDir, type SortKey } from './documentSort'
+
+interface SortState {
+  readonly key: SortKey
+  readonly dir: SortDir
+}
 
 interface DocumentsTableProps {
   documents: readonly DocumentSummary[]
@@ -51,9 +57,23 @@ export function DocumentsTable({
 }: DocumentsTableProps): ReactElement {
   const [query, setQuery] = useState('')
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+  const [sort, setSort] = useState<SortState | null>(null)
 
-  const filtered = useMemo(() => documents.filter((doc) => matchesQuery(doc, query)), [documents, query])
+  const filtered = useMemo(() => {
+    const matched = documents.filter((doc) => matchesQuery(doc, query))
+    return sort === null ? matched : sortDocuments(matched, sort.key, sort.dir)
+  }, [documents, query, sort])
   const allShownSelected = filtered.length > 0 && filtered.every((doc) => selected.has(doc.id))
+
+  // Click a column to sort by it: first click ascending, second descending, then back to unsorted.
+  function toggleSort(key: SortKey): void {
+    setSort((prev) => {
+      if (prev === null || prev.key !== key) {
+        return { key, dir: 'asc' }
+      }
+      return prev.dir === 'asc' ? { key, dir: 'desc' } : null
+    })
+  }
 
   function toggle(id: string): void {
     setSelected((prev) => {
@@ -141,11 +161,11 @@ export function DocumentsTable({
                   onChange={toggleAllShown}
                 />
               </th>
-              <th scope="col">File</th>
-              <th scope="col">Status</th>
-              <th scope="col">Chunks</th>
-              <th scope="col">Fields</th>
-              <th scope="col">Ingested</th>
+              <SortableHeader label="File" sortKey="file" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Status" sortKey="status" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Chunks" sortKey="chunks" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Fields" sortKey="fields" sort={sort} onSort={toggleSort} />
+              <SortableHeader label="Ingested" sortKey="ingested" sort={sort} onSort={toggleSort} />
               <th scope="col">View</th>
             </tr>
           </thead>
@@ -188,5 +208,30 @@ export function DocumentsTable({
         </table>
       )}
     </section>
+  )
+}
+
+/** A column header that sorts the table by its key. `aria-sort` reflects the active direction for a11y. */
+function SortableHeader({
+  label,
+  sortKey,
+  sort,
+  onSort,
+}: {
+  label: string
+  sortKey: SortKey
+  sort: SortState | null
+  onSort: (key: SortKey) => void
+}): ReactElement {
+  const active = sort?.key === sortKey ? sort.dir : null
+  const ariaSort = active === 'asc' ? 'ascending' : active === 'desc' ? 'descending' : 'none'
+  const indicator = active === 'asc' ? '▲' : active === 'desc' ? '▼' : ''
+  return (
+    <th scope="col" aria-sort={ariaSort}>
+      <button type="button" className="doc-sort-button" onClick={() => onSort(sortKey)}>
+        {label}
+        {indicator !== '' && <span className="doc-sort-indicator" aria-hidden="true">{indicator}</span>}
+      </button>
+    </th>
   )
 }

@@ -3,7 +3,7 @@ using LandDoc.Evals.Core;
 namespace LandDoc.Tests;
 
 /// <summary>
-/// Spec 0009 — deterministic recall@k scoring (the framework-free half of the eval harness). These run
+/// Spec 0012 — deterministic recall@k scoring (the framework-free half of the eval harness). These run
 /// in the green suite: pure math, no model call, no keys.
 /// </summary>
 public sealed class RecallScoringTests

@@ -1,8 +1,8 @@
 # RAG Answer-Quality Eval Harness — operations guide
 
 > **What this is:** how to run, set up, and reason about the on-demand evaluation harness
-> (`backend/eval/LandDoc.Evals`, spec [0009](specs/0009-rag-answer-quality-eval-harness.md) /
-> [ADR-0020](decisions/0020-llm-eval-harness-and-judge-model.md)). It runs the **real** pipeline against
+> (`backend/eval/LandDoc.Evals`, spec [0012](specs/0012-rag-answer-quality-eval-harness.md) /
+> [ADR-0021](decisions/0021-llm-eval-harness-and-judge-model.md)). It runs the **real** pipeline against
 > the **live Azure/Foundry stack** and scores answer quality. This is the operational companion to the
 > project [README](../../backend/eval/LandDoc.Evals/README.md); the Azure resource inventory lives in
 > [AZURE-CONFIG.md](AZURE-CONFIG.md) and is referenced (not duplicated) here.

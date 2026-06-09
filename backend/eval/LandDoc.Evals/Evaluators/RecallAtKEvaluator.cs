@@ -30,7 +30,7 @@ public sealed class RecallAtKContext : EvaluationContext
 }
 
 /// <summary>
-/// Custom, deterministic retrieval recall@k evaluator (spec 0009, ADR-0020). Wraps the pure
+/// Custom, deterministic retrieval recall@k evaluator (spec 0012, ADR-0021). Wraps the pure
 /// <see cref="RecallScoring.RecallAtK{T}"/> from <c>LandDoc.Evals.Core</c> (unit-tested in the green
 /// suite) — it makes <b>no</b> model call. For each case it scores the share of the case's expected
 /// source documents that appear in the <c>/ask</c> answer's citations, matching <c>Citation.Source</c>

@@ -4,7 +4,7 @@
 > baseline results): [`knowledge/docs/EVAL-HARNESS.md`](../../../knowledge/docs/EVAL-HARNESS.md).
 > This README is the quickstart.
 
-On-demand evaluation harness (spec 0009 / ADR-0020) that runs the **real** pipeline end-to-end against
+On-demand evaluation harness (spec 0012 / ADR-0021) that runs the **real** pipeline end-to-end against
 the **full production stack** (Azure OpenAI chat + embeddings, Azure AI Search, Azure Blob) over a
 curated subset of `samples/leases/*.pdf`, and scores each answer on three metrics:
 

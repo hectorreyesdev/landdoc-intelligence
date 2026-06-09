@@ -1,7 +1,7 @@
-# Handoff — RAG Answer-Quality Eval Harness (spec 0009 / ADR-0020)
+# Handoff — RAG Answer-Quality Eval Harness (spec 0012 / ADR-0021)
 
 > Transient handoff note for continuing the eval-harness build in a fresh session. Safe to delete once
-> the harness is complete. The authoritative design is **spec 0009** + **ADR-0020** (committed); this
+> the harness is complete. The authoritative design is **spec 0012** + **ADR-0021** (committed); this
 > doc is the working state + gotchas. The original approved plan is at
 > `/root/.claude/plans/what-s-going-on-snazzy-kernighan.md` (not in the repo — re-read this doc instead).
 
@@ -16,7 +16,7 @@ three metrics — **retrieval recall@k**, **citation/grounding faithfulness**, *
 It is **separate from the offline green suite** (which uses fakes and stays free/deterministic). This
 is *not* unit testing — it measures real answer quality with real, paid, non-deterministic models.
 
-## Locked decisions (see spec 0009 + ADR-0020)
+## Locked decisions (see spec 0012 + ADR-0021)
 - **Framework:** `Microsoft.Extensions.AI.Evaluation` + `.Quality` + `.Reporting` (NOT `.Safety`).
 - **Metrics → evaluators:** recall@k = custom deterministic `IEvaluator`; grounding =
   `GroundednessEvaluator` (GroundingContext = concatenated citation texts); correctness =
@@ -34,7 +34,7 @@ is *not* unit testing — it measures real answer quality with real, paid, non-d
 - **Corpus:** focused ~15–25 doc subset (see Dataset below).
 - **Invocation:** local (`dotnet test` on the runner project) + a **manual** `eval.yml` CI job
   (`workflow_dispatch`, OIDC + Key Vault). ⚠️ **CI workflow is ON HOLD** — user said do NOT apply the
-  CI change yet. The `eval.yml` draft is in spec 0009 (and the plan file). Do not create
+  CI change yet. The `eval.yml` draft is in spec 0012 (and the plan file). Do not create
   `.github/workflows/eval.yml` until the user approves.
 
 ## Architecture: two projects (isolation is the point)
@@ -48,8 +48,8 @@ is *not* unit testing — it measures real answer quality with real, paid, non-d
    — it needs real keys and must never run in the offline gate. ⬅️ **THIS IS THE REMAINING WORK.**
 
 ## ✅ DONE & COMMITTED (pushed)
-1. `docs(spec+adr)`: spec 0009 + ADR-0020 + propagation (README decisions index, specs index, STACK row).
-   Commit subject starts `docs(spec+adr): spec 0009 RAG answer-quality eval harness ...`.
+1. `docs(spec+adr)`: spec 0012 + ADR-0021 + propagation (README decisions index, specs index, STACK row).
+   Commit subject starts `docs(spec+adr): spec 0012 RAG answer-quality eval harness ...`.
 2. `feat(eval)`: `LandDoc.Evals.Core` (3 source files) + added to `LandDoc.slnx` +
    `LandDoc.Tests` references it + `RecallScoringTests.cs` (7) + `EvalDatasetLoaderTests.cs` (7).
    **Green suite passes at 75 tests** (was 61), offline, and **`dotnet restore --locked-mode` passes**.

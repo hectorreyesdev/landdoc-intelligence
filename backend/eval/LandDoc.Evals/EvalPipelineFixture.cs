@@ -18,7 +18,7 @@ using Microsoft.Extensions.DependencyInjection;
 namespace LandDoc.Evals;
 
 /// <summary>
-/// xUnit fixture (spec 0009, ADR-0020) that boots the REAL pipeline against the FULL production stack —
+/// xUnit fixture (spec 0012, ADR-0021) that boots the REAL pipeline against the FULL production stack —
 /// Azure OpenAI chat + embeddings, Azure AI Search — via <see cref="WebApplicationFactory{Program}"/>
 /// with <b>no fakes</b> (the opposite of <c>tests/LandDoc.Tests/LandDocApiFactory.cs</c>). It isolates
 /// every run to a dedicated Azure AI Search index <c>landdoc-eval-{runId}</c> so the live

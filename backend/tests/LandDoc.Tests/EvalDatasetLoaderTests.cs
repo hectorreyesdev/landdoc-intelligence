@@ -3,7 +3,7 @@ using LandDoc.Evals.Core;
 namespace LandDoc.Tests;
 
 /// <summary>
-/// Spec 0009 — the eval dataset loader (pure data, no model call). Green-suite tests for parsing +
+/// Spec 0012 — the eval dataset loader (pure data, no model call). Green-suite tests for parsing +
 /// validation; the loader rejects malformed/incomplete cases early.
 /// </summary>
 public sealed class EvalDatasetLoaderTests
