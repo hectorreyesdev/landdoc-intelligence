@@ -56,23 +56,27 @@ is *not* unit testing — it measures real answer quality with real, paid, non-d
 
 ## 🔨 REMAINING WORK — the runner (`backend/eval/LandDoc.Evals`)
 Files to create:
-- `LandDoc.Evals.csproj` — xUnit test project; `<IsPackable>false</IsPackable>`; net10.0.
-  PackageReferences: `Microsoft.Extensions.AI.Evaluation`, `.Quality`, `.Reporting` (latest stable —
-  was 10.4/10.5 on NuGet; verify), `Microsoft.AspNetCore.Mvc.Testing` (10.0.8), `Anthropic` (12.27.0),
-  xunit / Microsoft.NET.Test.Sdk (match versions in `tests/LandDoc.Tests/LandDoc.Tests.csproj`).
-  ProjectReferences: `../LandDoc.Evals.Core/...` and `../../src/LandDoc.Api/LandDoc.Api.csproj`.
-  ⚠️ Do NOT add this project to `LandDoc.slnx`.
+- ✅ **`LandDoc.Evals.csproj` — SCAFFOLDED** (this session). xUnit, net10.0, `<IsPackable>false</IsPackable>`.
+  Pinned: eval packages **`10.6.0`** (latest STABLE/GA — confirmed on nuget.org; 9.5.0+ is GA, no preview),
+  `Anthropic` 12.27.0, `Microsoft.AspNetCore.Mvc.Testing` 10.0.8, `Microsoft.NET.Test.Sdk` 17.14.1,
+  `xunit` 2.9.3, `xunit.runner.visualstudio` 3.1.4, `coverlet.collector` 6.0.4. ProjectRefs:
+  `../LandDoc.Evals.Core` + `../../src/LandDoc.Api`. `dotnet restore` clean, `packages.lock.json` generated.
+  Confirmed **NOT** in `LandDoc.slnx`. (`Directory.Build.props` forces the lock file on; CI doesn't restore it.)
 - `RecallAtKEvaluator.cs` — implements `Microsoft.Extensions.AI.Evaluation.IEvaluator`; wraps
   `RecallScoring.RecallAtK` over the expected source **file names** vs the answer's `Citation.Source`
-  values (case-insensitive). Returns a `NumericMetric`.
+  values (case-insensitive). Returns a `NumericMetric`. **Confirmed shape** (10.6.0):
+  `IReadOnlyCollection<string> EvaluationMetricNames { get; }` +
+  `ValueTask<EvaluationResult> EvaluateAsync(IEnumerable<ChatMessage> messages, ChatResponse modelResponse,
+  ChatConfiguration? chatConfiguration = null, IEnumerable<EvaluationContext>? additionalContext = null,
+  CancellationToken = default)`; `new NumericMetric(name, double? value, string? reason)`;
+  `new EvaluationResult(params EvaluationMetric[])`.
 - `SonnetJudgeChatClient` / `JudgeChatConfiguration.cs` — build a MEAI `IChatClient` for Sonnet 4.6.
-  ⚠️ The `Anthropic` SDK (v12.27.0, namespace `Anthropic` + `Anthropic.Models.Messages`,
-  `AnthropicClient.Messages.Create(MessageCreateParams, ct)`) shows **no obvious `.AsChatClient()`**.
-  Options: (a) check whether the package ships a `Microsoft.Extensions.AI` adapter after restore;
-  (b) otherwise write a thin adapter implementing MEAI `IChatClient.GetResponseAsync` over
-  `AnthropicClient`. See `backend/src/LandDoc.Api/Model/AnthropicChatClient.cs` for the SDK call shape.
-  Wrap in the eval lib's `ChatConfiguration`. Model id from `Eval:JudgeModel` (default `claude-sonnet-4-6`),
-  key from existing `Anthropic:ApiKey` secret.
+  ✅ **RESOLVED — no hand-written adapter needed.** `Anthropic` 12.27.0 depends on
+  `Microsoft.Extensions.AI.Abstractions` and ships the extension
+  `Microsoft.Extensions.AI.AnthropicClientExtensions.AsIChatClient(this IAnthropicClient, string model, int? maxTokens = null)`.
+  Use: `IChatClient judge = new AnthropicClient { ApiKey = key }.AsIChatClient("claude-sonnet-4-6");`
+  then `new ChatConfiguration(judge)`. Model id from `Eval:JudgeModel` (default `claude-sonnet-4-6`),
+  key from the existing `Anthropic:ApiKey` secret. (⚠️ this `IChatClient` is MEAI's, NOT the project's port.)
 - `EvalPipelineFixture.cs` — `IAsyncLifetime` xUnit fixture. Boots `WebApplicationFactory<Program>`
   configured for the full prod stack + a unique `landdoc-eval-{Guid}` index (model on
   `tests/LandDoc.Tests/LandDocApiFactory.cs`, but WITHOUT the fakes — set config via env/inmemory
@@ -175,8 +179,30 @@ Re-pull any field with:
    HTML report renders.
 6. `eval.yml` CI job — **HELD** by user; do not create it yet.
 
+## ✅ Eval-framework API — CONFIRMED against restored 10.6.0 (was the #1 open risk)
+De-risked by scaffolding the runner csproj, restoring, and compiling a throwaway probe that referenced
+every type (then deleted it). Verified from the package XML docs + a green `dotnet build`:
+
+- **Custom evaluator:** `IEvaluator` (ns `Microsoft.Extensions.AI.Evaluation`) — see RecallAtKEvaluator
+  bullet above for the exact `EvaluateAsync` signature + `NumericMetric` / `EvaluationResult` ctors.
+- **Built-in evaluators (ns `…Evaluation.Quality`):** `new GroundednessEvaluator()` / `new EquivalenceEvaluator()`
+  — **default (parameterless) ctor**, both implement `IEvaluator`.
+- **EvaluationContext inputs (the per-metric extra data, passed as `additionalContext`):**
+  - grounding → `new GroundednessEvaluatorContext(string groundingContext)` (prop `GroundingContext`) —
+    feed it the concatenated `Citation.Text` of the answer's citations.
+  - correctness → `new EquivalenceEvaluatorContext(string groundTruth)` (prop `GroundTruth`) — the golden answer.
+- **Judge wiring:** `new ChatConfiguration(IChatClient)` (ns `…Evaluation`). IChatClient via Anthropic
+  `AsIChatClient(...)` (see judge bullet).
+- **Reporting entry point (ns `…Evaluation.Reporting` + `…Reporting.Storage`):**
+  `ReportingConfiguration` built by **`DiskBasedReportingConfiguration.Create(string storageRootPath,
+  IEnumerable<IEvaluator> evaluators, ChatConfiguration chatConfiguration, … all later params optional)`**
+  (⚠️ `Create` lives in `…Reporting.Storage`; first arg is a **string** path, not `DirectoryInfo`).
+  Then `await reportingConfiguration.CreateScenarioRunAsync(scenarioName, iterationName?, tags?, …)` →
+  `ScenarioRun` (is `IAsyncDisposable`); run per case with the `ScenarioRunExtensions.EvaluateAsync(...)`
+  string/`ChatResponse` overloads, passing the two `EvaluationContext`s. `ScenarioRunResult.EvaluationResult`
+  holds the metrics; the `aieval` report tool renders the HTML.
+- **Result store:** `DiskBasedResultStore` / `IEvaluationResultStore` (used internally by the disk-based config).
+
 ## Open question for the next session
-- Confirm the exact `Microsoft.Extensions.AI.Evaluation` API surface (ReportingConfiguration /
-  ScenarioRun / EvaluationContext for Groundedness+Equivalence / custom IEvaluator). Was about to pull
-  current docs via context7 when this handoff was requested — verify against the actual restored
-  package (the API has shifted across preview→GA).
+- (none blocking) — pick the curated ~15–20 dataset cases and wire the fixture/scenarios per the
+  confirmed API above. Live run still gated on Azure/Anthropic keys; `eval.yml` CI remains HELD.

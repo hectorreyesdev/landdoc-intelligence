@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Answer-quality eval RUNNER (spec 0009, ADR-0020). xUnit project that drives the REAL pipeline
+    end-to-end over the production stack and scores answers (recall@k / grounding / correctness).
+
+    ⚠️ DELIBERATELY NOT in backend/LandDoc.slnx and NOT in ci.yml's `dotnet test LandDoc.slnx`.
+    It pulls in the Microsoft.Extensions.AI.Evaluation packages + needs real Azure/Anthropic keys,
+    so it must never run in the offline green gate. Run it explicitly:
+    `dotnet test backend/eval/LandDoc.Evals` with secrets set. The deterministic bits it builds on
+    (recall@k math, dataset loader) live in LandDoc.Evals.Core and ARE unit-tested in the green suite.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Eval framework (latest stable / GA on nuget.org) — see ADR-0020. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation" Version="10.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" Version="10.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.6.0" />
+    <!-- Judge model (Claude Sonnet 4.6) via the Anthropic SDK's MEAI adapter (AsIChatClient). -->
+    <PackageReference Include="Anthropic" Version="12.27.0" />
+    <!-- WebApplicationFactory<Program> host + xUnit runner — versions matched to tests/LandDoc.Tests. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LandDoc.Evals.Core\LandDoc.Evals.Core.csproj" />
+    <ProjectReference Include="..\..\src\LandDoc.Api\LandDoc.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+</Project>
