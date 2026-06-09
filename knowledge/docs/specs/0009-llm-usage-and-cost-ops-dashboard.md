@@ -66,7 +66,7 @@ a request-health card (success / 4xx / 429 / 5xx), and a latency card (avg / max
      - `AzureOpenAIRequests` (sum, **split by `StatusCode`**) → bucketed into the `RequestSummary`:
        `Success` = 2xx · `ClientErrors` = 4xx **excluding 429** · `Throttled429` = 429 · `ServerErrors` = 5xx ·
        `Total` = sum of all
-     - `AzureOpenAITimeToResponse` → `AvgMs` (Average aggregation) · `MaxMs` (Maximum aggregation)
+     - `Latency` → `AvgMs` (Average aggregation) · `MaxMs` (Maximum aggregation) *(the AIServices-resource latency metric — see the 2026-06-09 amendment)*
    - The `UsageRange` maps to the Azure Monitor query timespan (`Last24h` → 24h, etc.); the resolved
      `From`/`To` are echoed back.
 
@@ -192,4 +192,19 @@ TDD — tests written first, the suite green before done.
   already seeded by ADR-0020) · `ARCHITECTURE.md` / `DATA-FLOW.md` (the `IUsageSource` seam + the `/usage`
   read path) · `DEPLOYMENT.md` (the Monitoring Reader grant step) · `STACK.md` (`Azure.Monitor.Query` —
   row already seeded by ADR-0020, pin its version on build) · README feature line.
-- **Implementing PR:** _TBD_ (on `feat/llm-dashboard`).
+- **Implementing PR:** landed on `main` via `feat/llm-dashboard` (#40); live-metrics fix via `fix/usage-azure-monitor-metrics`.
+
+## Amendment — 2026-06-09 (live metric names on the AIServices resource)
+Verifying `/usage` against the live Foundry resource (`landdoc-rag-resource`, kind **AIServices**) corrected
+two implementation details — behavior and the response contract are unchanged:
+- **Latency is the `Latency` metric, not `AzureOpenAITimeToResponse`.** The classic Azure-OpenAI latency
+  metric doesn't exist on an AIServices account; `Latency` (ms, Average/Maximum) is the one carrying data.
+  The token (`ProcessedPromptTokens` / `GeneratedTokens`) and request (`AzureOpenAIRequests` split by
+  `StatusCode`) metric names were correct as written.
+- **Split-dimension metadata keys come back lower-cased** (`modeldeploymentname` / `statuscode`) and the SDK
+  exposes them in a case-sensitive dictionary, so the adapter reads dimensions **case-insensitively**
+  (`MetricMetadata.TryGetDimension`). Without it every split series was dropped — tokens, per-deployment
+  rows, and status buckets read 0 while request `Total` (summed unconditionally) still showed.
+
+[[knowledge/docs/decisions/0020-llm-usage-cost-observability-azure-monitor-metrics]] is **not** amended
+(immutable — it still records `AzureOpenAITimeToResponse` as the original intent). Verified live 2026-06-09.
