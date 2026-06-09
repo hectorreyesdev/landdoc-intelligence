@@ -223,3 +223,19 @@ issues** (not harness bugs):
 
 These belong on the RAG backlog (tune chunking/`Retrieval:TopK`, revisit the abstain prompt). Set
 sensible floors here once addressed, then flip `Eval:Thresholds:Enabled=true` to make this a gate.
+
+### Post-tuning ([spec 0010](specs/0010-rag-answer-quality-tuning.md), same day)
+Acted on the misses with the harness as the feedback loop — all four are now fixed, no regressions, both
+absent cases still abstain (5/5), no judge errors:
+
+| | recall@k | groundedness | correctness |
+|---|---|---|---|
+| baseline | 0.96 | 4.67 | 3.94 |
+| `Retrieval:TopK` 8→12 + softened answer prompt | 1.00 | 4.72 | 4.39 |
+| + `Chunking` 800/150 → 1400/250 | **1.00** | **5.0** | **4.78** |
+
+The two **depth** misses (`henderson-acres-multi`, `mckenzie-tract-multi`) cleared with TopK; the three
+**retrieval** misses (`reeves-royalty`, `reeves-term`, `mckenzie-royalty`) needed the larger/more-overlapping
+chunks so each value clause stays with its identifying context. Scores are now strong enough to set floors
+and flip `Eval:Thresholds:Enabled=true` if you want a hard gate. (Note: the chunking change re-chunks the
+**live** index on next deploy — existing `landdoc-chunks` content was embedded at 800/150 until re-ingested.)

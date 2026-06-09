@@ -218,14 +218,19 @@ subscription Owner: **Key Vault Secrets User** (read secrets) and **Storage Blob
 - **Baseline scores (18 cases, report-only):** recall@k mean **0.96** (two multi-doc cases at 0.67 = 2/3
   sources cited); groundedness mean **4.67/5**; correctness (equivalence) mean **3.94/5**. Both absent
   cases correctly abstained (correctness 5/5 — no-hallucination path works).
-- **Real signal surfaced:** the live pipeline **abstained on answerable single-doc lookups** —
-  `mckenzie-royalty`, `reeves-royalty`, `reeves-term` returned "not found" though the doc was ingested and
-  cited (recall=1). That's a genuine retrieval/answer-quality miss for the product backlog, not a harness bug.
+- **Real signal surfaced (now FIXED — [[knowledge/docs/specs/0010-rag-answer-quality-tuning]]):** the live
+  pipeline **abstained on answerable lookups** — `mckenzie-royalty`, `reeves-royalty`, `reeves-term`, plus
+  two multi-doc cases at recall 0.67. Acted on with the harness as the loop: `Retrieval:TopK` 8→12 +
+  softened answer prompt, then `Chunking` 800/150→1400/250. All cleared; means moved
+  **recall 0.96→1.0 · groundedness 4.67→5.0 · correctness 3.94→4.78**, no regressions, absent cases still
+  abstain (5/5). See `EVAL-HARNESS.md §11`.
 - **Teardown verified clean:** no leftover `landdoc-eval-*` Search index; no eval blobs left in the
   `documents` container (per-id `DELETE /documents/{id}` + index delete both ran).
 - **Runtime/cost:** ~2m38s with the judge active (36 Sonnet calls); ~24s when the judge was erroring.
 
 ## Open question for the next session
-- (none blocking) — harness is built, live-verified, and self-cleaning. Next: triage the abstain-on-answerable
-  misses above (a product/RAG issue), and decide thresholds before turning on `Eval:Thresholds:Enabled`.
-  `eval.yml` CI remains HELD.
+- (none blocking) — harness is built, live-verified, self-cleaning, and has already driven one tuning pass
+  (spec 0010). With scores now strong (recall 1.0 · ground 5.0 · correctness 4.78), the next decision is
+  whether to set per-metric floors and flip `Eval:Thresholds:Enabled=true` to make it a hard gate. Note the
+  chunking change (1400/250) re-chunks the **live** `landdoc-chunks` index on next deploy (re-ingest to
+  re-embed existing docs at the new size). `eval.yml` CI remains HELD.
