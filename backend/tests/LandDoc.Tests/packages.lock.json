@@ -95,6 +95,15 @@
           "Azure.Core": "1.53.0"
         }
       },
+      "Azure.Monitor.Query": {
+        "type": "Transitive",
+        "resolved": "1.7.1",
+        "contentHash": "HJnal+BIaBiuiba1p2X5lNyx6I+CnqcjEMNv19R1jtjas5hk9sdUcPmZOLaECFRExFBxLDc2xuLJkXmglFXQbg==",
+        "dependencies": {
+          "Azure.Core": "1.47.1",
+          "System.ClientModel": "1.6.0"
+        }
+      },
       "Azure.Search.Documents": {
         "type": "Transitive",
         "resolved": "11.6.0",
@@ -578,6 +587,7 @@
           "Azure.AI.OpenAI": "[2.1.0, )",
           "Azure.Extensions.AspNetCore.Configuration.Secrets": "[1.5.1, )",
           "Azure.Identity": "[1.21.0, )",
+          "Azure.Monitor.Query": "[1.7.1, )",
           "Azure.Search.Documents": "[11.6.0, )",
           "Azure.Storage.Blobs": "[12.29.0, )",
           "Microsoft.AspNetCore.OpenApi": "[10.0.8, )",

@@ -1010,3 +1010,64 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Ops / Usage view (spec 0009) */
+.usage {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.usage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.usage-header h2 {
+  margin: 0;
+}
+
+.usage-ranges {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.usage-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.usage-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(72px, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.usage-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.usage-stat dt {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.usage-stat dd {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.1;
+}
+
+.usage-stat--alert dd {
+  color: var(--error);
+}

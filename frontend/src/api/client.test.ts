@@ -5,10 +5,11 @@ import {
   documentFileUrl,
   getDocument,
   getDocumentFileText,
+  getUsage,
   listDocuments,
   uploadDocument,
 } from './client'
-import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
+import type { AskResponse, DocumentResponse, DocumentSummary, UsageReport } from './types'
 
 interface FakeOpts {
   reject?: boolean
@@ -57,6 +58,18 @@ const summary: DocumentSummary = {
   chunkCount: 7,
   fields: [{ name: 'Lessor', value: 'Jane Roe', sourceChunkId: 'c1' }],
   ingestedAt: '2026-06-08T12:00:00+00:00',
+}
+
+const usageBody: UsageReport = {
+  range: '24h',
+  from: '2026-06-08T12:00:00+00:00',
+  to: '2026-06-09T12:00:00+00:00',
+  totals: { promptTokens: 170000, completionTokens: 30000, totalTokens: 200000, estimatedCostUsd: 0.037 },
+  deployments: [
+    { deployment: 'gpt-5.4-mini', promptTokens: 120000, completionTokens: 30000, totalTokens: 150000, estimatedCostUsd: 0.036 },
+  ],
+  requests: { total: 400, success: 380, clientErrors: 8, throttled429: 10, serverErrors: 2 },
+  latency: { avgMs: 850, maxMs: 4200 },
 }
 
 function pdf(): File {
@@ -220,6 +233,48 @@ describe('deleteDocument', () => {
   it('maps a thrown fetch → network error', async () => {
     stubFetch(0, null, { reject: true })
     const result = await deleteDocument('doc-1')
+    expect(result).toEqual({ ok: false, error: { kind: 'network', status: null, detail: null } })
+  })
+})
+
+describe('getUsage', () => {
+  it('returns the typed report on 200 from /usage with the range query', async () => {
+    const fetchMock = stubFetch(200, usageBody)
+
+    const result = await getUsage('24h')
+
+    expect(result).toEqual({ ok: true, value: usageBody })
+    const [url] = fetchMock.mock.calls[0] as [string]
+    expect(url).toBe('/usage?range=24h')
+  })
+
+  it('passes the requested range through to the query string', async () => {
+    const fetchMock = stubFetch(200, usageBody)
+    await getUsage('7d')
+    const [url] = fetchMock.mock.calls[0] as [string]
+    expect(url).toBe('/usage?range=7d')
+  })
+
+  it('maps 400 → validation (invalid range)', async () => {
+    stubFetch(400, { detail: "The 'range' query parameter must be one of '24h', '7d', or '30d'." })
+    const result = await getUsage('30d')
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.kind).toBe('validation')
+      expect(result.error.status).toBe(400)
+    }
+  })
+
+  it('maps any other non-OK status → server', async () => {
+    stubFetch(503, { detail: 'monitor down' })
+    const result = await getUsage('24h')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error.kind).toBe('server')
+  })
+
+  it('maps a thrown fetch → network error', async () => {
+    stubFetch(0, null, { reject: true })
+    const result = await getUsage('24h')
     expect(result).toEqual({ ok: false, error: { kind: 'network', status: null, detail: null } })
   })
 })
