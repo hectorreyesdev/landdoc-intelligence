@@ -4,8 +4,9 @@ import {
   documentsByState,
   documentsByStateCounty,
   expirationBucketCounts,
-  findExpirationDate,
+  findTermEnd,
   ingestByHour,
+  parseTermDuration,
   needsReview,
   needsReviewDocuments,
   summarize,
@@ -121,14 +122,46 @@ describe('documentsByStateCounty', () => {
   })
 })
 
-describe('expirations', () => {
-  it('finds a date from an expiration-like field name', () => {
-    expect(findExpirationDate(doc({ fields: [field('ExpirationDate', '2027-01-01')] }))?.toISOString()).toBe(
-      '2027-01-01T00:00:00.000Z',
-    )
-    expect(findExpirationDate(doc({ fields: [field('EffectiveDate', '2026-01-15')] }))).toBeNull()
+describe('parseTermDuration', () => {
+  it('parses the corpus phrasings (spelled-out + parenthetical digit + unit)', () => {
+    expect(parseTermDuration('five (5) years')).toEqual({ years: 5, months: 0 })
+    expect(parseTermDuration('three (3) years from the effective date')).toEqual({ years: 3, months: 0 })
+    expect(parseTermDuration('two years')).toEqual({ years: 2, months: 0 })
+    expect(parseTermDuration('36 months')).toEqual({ years: 0, months: 36 })
+    expect(parseTermDuration('2 yrs')).toEqual({ years: 2, months: 0 })
   })
 
+  it('returns null without a recognizable unit or number', () => {
+    expect(parseTermDuration('5')).toBeNull() // no unit
+    expect(parseTermDuration('paid-up lease')).toBeNull() // no number/unit
+    expect(parseTermDuration('zero years')).toBeNull() // no positive number
+  })
+})
+
+describe('findTermEnd', () => {
+  it('prefers an explicit expiration/term-end date field', () => {
+    const result = findTermEnd(doc({ fields: [field('ExpirationDate', '2027-01-01')] }))
+    expect(result?.basis).toBe('explicit')
+    // Parsed as a local calendar date (not UTC), so assert on local components.
+    expect([result?.date.getFullYear(), result?.date.getMonth(), result?.date.getDate()]).toEqual([2027, 0, 1])
+  })
+
+  it('derives the primary-term end from effective date + primary term', () => {
+    const result = findTermEnd(
+      doc({ fields: [field('EffectiveDate', 'May 5, 2024'), field('PrimaryTerm', 'five (5) years')] }),
+    )
+    expect(result?.basis).toBe('derived')
+    expect(result?.date.getFullYear()).toBe(2029)
+    expect(result?.date.getMonth()).toBe(4) // May (0-indexed)
+  })
+
+  it('is null when only one of effective date / primary term is present', () => {
+    expect(findTermEnd(doc({ fields: [field('EffectiveDate', '2026-01-15')] }))).toBeNull()
+    expect(findTermEnd(doc({ fields: [field('PrimaryTerm', 'five (5) years')] }))).toBeNull()
+  })
+})
+
+describe('expirations', () => {
   it('buckets upcoming expirations relative to now', () => {
     const now = new Date('2026-06-09T00:00:00.000Z')
     const docs = [

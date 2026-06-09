@@ -53,7 +53,7 @@ it('renders KPI sections, the needs-review list, and the expirations widget', ()
 
   expect(screen.getByRole('heading', { name: /needs review \(1\)/i })).toBeInTheDocument()
   expect(screen.getByText('bad.pdf')).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: /lease expirations/i })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: /lease primary term/i })).toBeInTheDocument()
   // The location bar-chart heading ("Documents by state" / "…county") — exclude the new map card heading.
   expect(screen.getByRole('heading', { name: /^documents by (state|county)$/i })).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: /documents by county \(map\)/i })).toBeInTheDocument()

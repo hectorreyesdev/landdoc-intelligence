@@ -97,3 +97,20 @@ Three refinements, all still riding the in-memory `GET /documents` data (no back
   The map is **zoom/pan-able** (`d3-zoom`): the basemap scales with the transform while bubble radii and
   strokes are counter-scaled by `1/k`, so dots keep a constant screen size and zooming in pinpoints which
   county a dot sits on. A "Reset view" control appears once zoomed.
+
+## Amendment — 2026-06-09 (lease term widget = primary-term end, not explicit expiration)
+The lease-expiration widget originally looked only for an explicit `expir|term end|end date` **date field**,
+which the corpus never carries — **oil & gas leases have no explicit expiration date**; they state an
+**effective date + a primary term** ("five (5) years"), and the lease runs for that term, continuing past it
+only while production holds it (secondary term / held-by-production). Verified against the live corpus: 0/18
+docs have an expiration field, 18/18 have EffectiveDate + PrimaryTerm — so the widget was always empty.
+- The widget (relabeled **"Lease primary term"**, column **"Term ends"**) now shows each lease's
+  **primary-term end = effective date + primary term**, computed client-side. `metrics.findTermEnd` prefers
+  an explicit expiration/term-end date field if one ever appears (`basis: 'explicit'`), else derives it
+  (`basis: 'derived'`, shown with an "est." marker). New pure helpers `parseTermDuration` (parses
+  "five (5) years" / "36 months" / "2 yrs") and `parseLocalDate` (parses ISO + word dates as a **local**
+  calendar date so parse→add→format stay in one timezone) are unit-tested.
+- A caption states the formula and the held-by-production caveat (a past term ≠ definitively expired).
+- No backend/contract change; still aggregated from `GET /documents`. The earlier spec note about a backend
+  follow-up to emit an `ExpirationDate` is **superseded** for leases — the meaningful date is derived, not a
+  field the document contains.

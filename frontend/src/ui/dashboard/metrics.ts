@@ -35,6 +35,15 @@ export interface UpcomingExpiration {
   readonly date: Date
   readonly daysUntil: number
   readonly bucket: ExpirationBucket
+  /** `derived` = computed from effective date + primary term; `explicit` = read from a date field. */
+  readonly basis: TermEndBasis
+}
+
+export type TermEndBasis = 'explicit' | 'derived'
+
+export interface TermEnd {
+  readonly date: Date
+  readonly basis: TermEndBasis
 }
 
 const PARTY_RE = /lessee|lessor|grantor|grantee|party|buyer|seller/i
@@ -42,7 +51,14 @@ const DATE_RE = /date/i
 export const COUNTY_RE = /county/i
 export const STATE_RE = /\bstate\b/i
 const EXPIRATION_RE = /expir|term end|end date/i
+const EFFECTIVE_RE = /effective/i
+const PRIMARY_TERM_RE = /primary\s*term|\bterm\b/i
 const DAY_MS = 86_400_000
+
+const NUMBER_WORDS: Record<string, number> = {
+  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10,
+  eleven: 11, twelve: 12, fifteen: 15, twenty: 20, twentyfive: 25, thirty: 30,
+}
 
 /** First non-empty value of a field whose name matches the pattern, or null. */
 export function fieldValue(doc: DocumentSummary, pattern: RegExp): string | null {
@@ -156,14 +172,76 @@ export function documentsByStateCounty(docs: readonly DocumentSummary[]): readon
   return [...counts.values()].sort((a, b) => b.count - a.count || a.state.localeCompare(b.state))
 }
 
-/** Parse a document's lease term/expiration date from a date-like field, or null if none parses. */
-export function findExpirationDate(doc: DocumentSummary): Date | null {
+/**
+ * Parse a primary-term length ("five (5) years", "three (3) years from the effective date", "36 months")
+ * into years + months, or null if no number/unit is found. Prefers a parenthetical digit, then any digit
+ * run, then a spelled-out number word.
+ */
+export function parseTermDuration(value: string): { years: number; months: number } | null {
+  const text = value.toLowerCase()
+  const unit = /month/.test(text) ? 'months' : /year|annum|\byrs?\b/.test(text) ? 'years' : null
+  if (unit === null) {
+    return null
+  }
+  let n: number | null = null
+  const paren = text.match(/\((\d+)\)/)
+  const digits = text.match(/\d+/)
+  const word = text.match(/\b(one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|fifteen|twenty|thirty)\b/)
+  if (paren !== null) {
+    n = Number(paren[1])
+  } else if (digits !== null) {
+    n = Number(digits[0])
+  } else if (word !== null) {
+    n = NUMBER_WORDS[word[1]] ?? null
+  }
+  if (n === null || !Number.isFinite(n) || n <= 0) {
+    return null
+  }
+  return unit === 'months' ? { years: 0, months: n } : { years: n, months: 0 }
+}
+
+/**
+ * Parse a date string as a **local calendar date**. ISO `YYYY-MM-DD` is forced to local midnight (JS would
+ * otherwise read it as UTC, shifting the day in non-UTC zones); other forms (e.g. "May 5, 2024") already
+ * parse local. Returns null if unparseable. Keeps parse → add → format all in one timezone.
+ */
+export function parseLocalDate(value: string): Date | null {
+  const iso = value.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  const date = iso
+    ? new Date(Number(iso[1]), Number(iso[2]) - 1, Number(iso[3]))
+    : new Date(value)
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
+/** Add a year/month duration to a date, returning a new Date (never mutates the input). */
+function addDuration(date: Date, duration: { years: number; months: number }): Date {
+  const out = new Date(date.getTime())
+  out.setFullYear(out.getFullYear() + duration.years)
+  out.setMonth(out.getMonth() + duration.months)
+  return out
+}
+
+/**
+ * A document's primary-term end date. Prefers an explicit expiration/term-end **date field** if one exists
+ * (future-proof); otherwise computes it from **effective date + primary term** — which is how oil & gas
+ * leases actually define their term (they carry no explicit expiration date). Null when neither is derivable.
+ */
+export function findTermEnd(doc: DocumentSummary): TermEnd | null {
   for (const field of doc.fields) {
     if (EXPIRATION_RE.test(field.name)) {
-      const parsed = new Date(field.value)
-      if (!Number.isNaN(parsed.getTime())) {
-        return parsed
+      const parsed = parseLocalDate(field.value)
+      if (parsed !== null) {
+        return { date: parsed, basis: 'explicit' }
       }
+    }
+  }
+  const effectiveRaw = fieldValue(doc, EFFECTIVE_RE)
+  const termRaw = fieldValue(doc, PRIMARY_TERM_RE)
+  if (effectiveRaw !== null && termRaw !== null) {
+    const effective = parseLocalDate(effectiveRaw)
+    const duration = parseTermDuration(termRaw)
+    if (effective !== null && duration !== null) {
+      return { date: addDuration(effective, duration), basis: 'derived' }
     }
   }
   return null
@@ -191,12 +269,12 @@ export function upcomingExpirations(
 ): readonly UpcomingExpiration[] {
   const result: UpcomingExpiration[] = []
   for (const doc of docs) {
-    const date = findExpirationDate(doc)
-    if (date === null) {
+    const termEnd = findTermEnd(doc)
+    if (termEnd === null) {
       continue
     }
-    const daysUntil = Math.ceil((date.getTime() - now.getTime()) / DAY_MS)
-    result.push({ document: doc, date, daysUntil, bucket: bucketFor(daysUntil) })
+    const daysUntil = Math.ceil((termEnd.date.getTime() - now.getTime()) / DAY_MS)
+    result.push({ document: doc, date: termEnd.date, daysUntil, bucket: bucketFor(daysUntil), basis: termEnd.basis })
   }
   return result.sort((a, b) => a.date.getTime() - b.date.getTime())
 }
