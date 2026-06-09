@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vitest'
 import type { DocumentSummary, ExtractedField } from '../../api/types'
 import {
   documentsByState,
+  documentsByStateCounty,
   expirationBucketCounts,
   findExpirationDate,
-  ingestByDay,
+  ingestByHour,
   needsReview,
   needsReviewDocuments,
   summarize,
@@ -86,16 +87,36 @@ describe('documentsByState', () => {
   })
 })
 
-describe('ingestByDay', () => {
-  it('buckets by UTC day, sorted ascending', () => {
+describe('ingestByHour', () => {
+  it('buckets by UTC hour, sorted ascending', () => {
     const docs = [
-      doc({ ingestedAt: '2026-06-09T23:00:00.000Z' }),
-      doc({ ingestedAt: '2026-06-08T01:00:00.000Z' }),
-      doc({ ingestedAt: '2026-06-08T22:00:00.000Z' }),
+      doc({ ingestedAt: '2026-06-09T03:44:30.000Z' }),
+      doc({ ingestedAt: '2026-06-09T02:53:00.000Z' }),
+      doc({ ingestedAt: '2026-06-09T02:53:33.000Z' }),
     ]
-    expect(ingestByDay(docs)).toEqual([
-      { date: '2026-06-08', count: 2 },
-      { date: '2026-06-09', count: 1 },
+    expect(ingestByHour(docs)).toEqual([
+      { hour: '2026-06-09T02:00', count: 2 },
+      { hour: '2026-06-09T03:00', count: 1 },
+    ])
+  })
+
+  it('skips documents with an unparseable ingestedAt', () => {
+    expect(ingestByHour([doc({ ingestedAt: 'not-a-date' })])).toEqual([])
+  })
+})
+
+describe('documentsByStateCounty', () => {
+  it('counts documents per (state, county), skipping those missing either field', () => {
+    const docs = [
+      doc({ fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
+      doc({ fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
+      doc({ fields: [field('State', 'New Mexico'), field('County', 'Lea')] }),
+      doc({ fields: [field('County', 'Orphan')] }), // no state — skipped
+      doc({ fields: [] }), // nothing — skipped
+    ]
+    expect(documentsByStateCounty(docs)).toEqual([
+      { state: 'Texas', county: 'Reeves', count: 2 },
+      { state: 'New Mexico', county: 'Lea', count: 1 },
     ])
   })
 })

@@ -78,6 +78,28 @@ it('exports the shown documents to CSV', async () => {
   clickSpy.mockRestore()
 })
 
+it('sorts rows when a column header is clicked and reflects direction via aria-sort', async () => {
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} />)
+
+  function fileCellOrder(): string[] {
+    return screen.getAllByRole('cell').map((c) => c.textContent ?? '').filter((t) => /\.(pdf|md)$/.test(t))
+  }
+
+  // Default (server) order: lease-a before lease-b.
+  expect(fileCellOrder()).toEqual(['lease-a.pdf', 'lease-b.md'])
+
+  // Click Chunks: ascending → lease-b (2) before lease-a (4).
+  const chunksHeader = screen.getByRole('button', { name: /chunks/i })
+  await userEvent.click(chunksHeader)
+  expect(fileCellOrder()).toEqual(['lease-b.md', 'lease-a.pdf'])
+  expect(chunksHeader.closest('th')).toHaveAttribute('aria-sort', 'ascending')
+
+  // Click again: descending → lease-a (4) before lease-b (2).
+  await userEvent.click(chunksHeader)
+  expect(fileCellOrder()).toEqual(['lease-a.pdf', 'lease-b.md'])
+  expect(chunksHeader.closest('th')).toHaveAttribute('aria-sort', 'descending')
+})
+
 it('disables "Delete selected" until rows are selected', () => {
   render(<DocumentsTable documents={docs} onOpenDocument={() => {}} onDeleteSelected={() => {}} />)
   expect(screen.getByRole('button', { name: /delete selected \(0\)/i })).toBeDisabled()
