@@ -46,14 +46,14 @@ const TOOLTIP_CONTENT_STYLE = { background: 'var(--surface)', border: '1px solid
 const TOOLTIP_LABEL_STYLE = { color: 'var(--heading)' }
 
 /**
- * The read-only analytics view (spec 0007). The answer-quality eval scorecard (spec 0011) renders first
- * and is independent of the document list; the corpus analytics below aggregate from the GET /documents data.
+ * The read-only analytics view (spec 0007). The corpus analytics (aggregated from GET /documents) lead;
+ * the answer-quality eval scorecard (spec 0011) renders at the bottom and is independent of the document list.
  */
 export function Dashboard({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
   return (
     <div className="dashboard">
-      <EvalQualityCard />
       <DashboardCorpus documents={documents} status={status} onOpenDocument={onOpenDocument} />
+      <EvalQualityCard />
     </div>
   )
 }
