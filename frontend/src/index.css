@@ -1071,6 +1071,16 @@ button:disabled {
   color: var(--accent-fg);
 }
 
+.expirations-note {
+  margin: 0 0 0.6rem;
+  font-size: 0.75rem;
+}
+
+.expiry-est {
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
 /* ── Documents table toolbar (search + export, spec 0007) ─────────────────── */
 .doc-table-header {
   display: flex;

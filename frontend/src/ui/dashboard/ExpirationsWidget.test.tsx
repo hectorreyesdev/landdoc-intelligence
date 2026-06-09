@@ -18,7 +18,7 @@ function doc(id: string, fileName: string, fields: ReadonlyArray<readonly [strin
 
 const NOW = new Date('2026-06-09T00:00:00.000Z')
 
-it('shows an empty state when no document has a term/expiration field', () => {
+it('shows an empty state when neither a term nor effective+primary-term is derivable', () => {
   render(
     <ExpirationsWidget
       documents={[doc('d1', 'lease.pdf', [['Lessee', 'Acme']])]}
@@ -26,7 +26,21 @@ it('shows an empty state when no document has a term/expiration field', () => {
       now={NOW}
     />,
   )
-  expect(screen.getByText(/no term\/expiration dates found/i)).toBeInTheDocument()
+  expect(screen.getByText(/no lease term to compute yet/i)).toBeInTheDocument()
+})
+
+it('derives the term-end from effective date + primary term and marks it estimated', () => {
+  render(
+    <ExpirationsWidget
+      documents={[doc('d1', 'lease.pdf', [['EffectiveDate', '2025-03-01'], ['PrimaryTerm', 'three (3) years']])]}
+      onOpenDocument={() => {}}
+      now={NOW}
+    />,
+  )
+  // Effective 2025-03-01 + 3 years → 2028-03-01, shown with an "est." marker.
+  expect(screen.getByText('2028-03-01')).toBeInTheDocument()
+  expect(screen.getByText(/est\./i)).toBeInTheDocument()
+  expect(screen.getByRole('button', { name: /lease\.pdf/i })).toBeInTheDocument()
 })
 
 it('lists upcoming expirations soonest-first and opens a document on click', async () => {
