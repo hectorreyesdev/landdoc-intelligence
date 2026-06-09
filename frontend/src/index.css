@@ -989,7 +989,7 @@ button:disabled {
 }
 
 .eval-table-frame {
-  max-height: 18rem;
+  max-height: 28rem;
   overflow-y: auto;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -1041,7 +1041,11 @@ button:disabled {
   padding: 0;
 }
 
-.eval-row-toggle {
+/* Specific enough to beat the global `button` / `button:hover` accent fill (it carries an element
+   selector, so a single class loses to it). The row toggle must read as a table row, not a button. */
+.eval-table .eval-row-toggle,
+.eval-table .eval-row-toggle:hover:not(:disabled),
+.eval-table .eval-row-toggle:active:not(:disabled) {
   display: flex;
   align-items: center;
   gap: 0.45rem;
@@ -1055,8 +1059,8 @@ button:disabled {
   cursor: pointer;
 }
 
-.eval-row-toggle:hover,
-.eval-row-open .eval-row-toggle {
+.eval-table .eval-row-toggle:hover:not(:disabled),
+.eval-table .eval-row-open .eval-row-toggle {
   background: var(--surface-2);
 }
 
@@ -1067,6 +1071,38 @@ button:disabled {
 
 .eval-case-id {
   font-variant-numeric: tabular-nums;
+}
+
+.eval-instrument {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+/* Category section headers within the score table. */
+.eval-group-header th {
+  position: sticky;
+  top: 1.95rem; /* sits just below the sticky column header row */
+  text-align: left;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.eval-group-count {
+  margin-left: 0.45rem;
+  padding: 0.02rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
 }
 
 .eval-detail-row td {

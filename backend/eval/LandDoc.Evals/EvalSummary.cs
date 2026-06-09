@@ -26,6 +26,8 @@ public sealed record EvalCaseSummary(
     string Question,
     string ExpectedAnswer,
     IReadOnlyList<string> ExpectedSources,
+    string Category,
+    string Instrument,
     double? RecallAtK,
     double? Groundedness,
     double? Equivalence,

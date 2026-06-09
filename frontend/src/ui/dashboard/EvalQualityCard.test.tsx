@@ -17,12 +17,36 @@ it('renders the metric means from the committed snapshot', () => {
 it('renders one row per case, with an abstained marker on absent cases', () => {
   render(<EvalQualityCard />)
 
-  // header row + one row per case
-  expect(screen.getAllByRole('row')).toHaveLength(summary.cases.length + 1)
+  // thead row + one section-header row per distinct category + one row per case (none expanded)
+  const categoryCount = new Set(summary.cases.map((c) => c.category)).size
+  expect(screen.getAllByRole('row')).toHaveLength(summary.cases.length + 1 + categoryCount)
 
   const abstainedCount = summary.cases.filter((c) => c.abstained).length
   expect(abstainedCount).toBeGreaterThan(0)
   expect(screen.getAllByText(/abstained/i)).toHaveLength(abstainedCount)
+})
+
+it('groups cases into category sections in display order', () => {
+  render(<EvalQualityCard />)
+
+  // Every distinct category in the snapshot is rendered as a section header.
+  const escape = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const categories = [...new Set(summary.cases.map((c) => c.category))]
+  for (const category of categories) {
+    expect(
+      screen.getByRole('columnheader', { name: new RegExp(escape(category), 'i') }),
+    ).toBeInTheDocument()
+  }
+
+  // Single-document field lookups come before abstention cases in the rendered order.
+  const headers = screen
+    .getAllByRole('columnheader')
+    .map((h) => h.textContent ?? '')
+    .filter((t) => /lookups|retrieval|distractor|abstention/i.test(t))
+  const single = headers.findIndex((t) => /single-document/i.test(t))
+  const absent = headers.findIndex((t) => /abstention/i.test(t))
+  expect(single).toBeGreaterThanOrEqual(0)
+  expect(absent).toBeGreaterThan(single)
 })
 
 it('expands a case to reveal its question, expected answer, and copy control', () => {

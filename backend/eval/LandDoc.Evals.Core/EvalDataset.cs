@@ -58,7 +58,9 @@ public static class EvalDataset
                 dto.Id.Trim(),
                 dto.Question.Trim(),
                 dto.ExpectedAnswer.Trim(),
-                dto.ExpectedSources.Select(s => s.Trim()).ToList()));
+                dto.ExpectedSources.Select(s => s.Trim()).ToList(),
+                dto.Category?.Trim() ?? "",
+                dto.Instrument?.Trim() ?? ""));
         }
 
         return cases;
@@ -83,5 +85,11 @@ public static class EvalDataset
 
         [JsonPropertyName("expectedSources")]
         public List<string>? ExpectedSources { get; init; }
+
+        /// <summary>Optional reporting metadata — what the case exercises (for grouping in the report/SPA).</summary>
+        public string? Category { get; init; }
+
+        /// <summary>Optional reporting metadata — the document-type label (single-document cases).</summary>
+        public string? Instrument { get; init; }
     }
 }
