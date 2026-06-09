@@ -24,6 +24,13 @@ vi.mock('recharts', async () => {
   }
 })
 
+// The county map dynamically imports the ~600 KB us-atlas atlas and projects it — irrelevant to Dashboard's
+// composition and tested directly in CountyMap/geo. Stub it to a marker so Dashboard tests stay fast.
+vi.mock('./CountyMap', async () => {
+  const { createElement } = await import('react')
+  return { CountyMap: () => createElement('div', { 'data-testid': 'county-map' }) }
+})
+
 function doc(id: string, fileName: string, fields: ReadonlyArray<readonly [string, string]>): DocumentSummary {
   return {
     id,
@@ -47,7 +54,10 @@ it('renders KPI sections, the needs-review list, and the expirations widget', ()
   expect(screen.getByRole('heading', { name: /needs review \(1\)/i })).toBeInTheDocument()
   expect(screen.getByText('bad.pdf')).toBeInTheDocument()
   expect(screen.getByRole('heading', { name: /lease expirations/i })).toBeInTheDocument()
-  expect(screen.getByRole('heading', { name: /documents by (state|county)/i })).toBeInTheDocument()
+  // The location bar-chart heading ("Documents by state" / "…county") — exclude the new map card heading.
+  expect(screen.getByRole('heading', { name: /^documents by (state|county)$/i })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: /documents by county \(map\)/i })).toBeInTheDocument()
+  expect(screen.getByTestId('county-map')).toBeInTheDocument()
 })
 
 it('opens a document from the needs-review list', async () => {

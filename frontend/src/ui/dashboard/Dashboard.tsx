@@ -15,11 +15,13 @@ import type { DocumentTableStatus } from '../useDocumentTable'
 import {
   documentsByCounty,
   documentsByState,
-  ingestByDay,
+  documentsByStateCounty,
+  ingestByHour,
   needsReviewDocuments,
   summarize,
 } from './metrics'
 import { ExpirationsWidget } from './ExpirationsWidget'
+import { CountyMap } from './CountyMap'
 
 interface DashboardProps {
   documents: readonly DocumentSummary[]
@@ -29,6 +31,12 @@ interface DashboardProps {
 
 function formatIngest(date: Date | null): string {
   return date === null ? '—' : date.toLocaleString()
+}
+
+/** "2026-06-09T03:00" → "06-09 03:00" — compact axis/tooltip label for the hourly ingest series. */
+function formatHour(hour: string): string {
+  const match = /^\d{4}-(\d{2}-\d{2})T(\d{2}:\d{2})$/.exec(hour)
+  return match === null ? hour : `${match[1]} ${match[2]}`
 }
 
 /** The read-only analytics view (spec 0007), aggregated entirely from the GET /documents data. */
@@ -53,7 +61,8 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
   // Show whichever location field the extractor actually populated (more distinct values = more useful).
   const location = byState.length >= byCounty.length ? byState : byCounty
   const locationLabel = location === byState ? 'state' : 'county'
-  const ingest = ingestByDay(documents)
+  const ingest = ingestByHour(documents)
+  const byStateCounty = documentsByStateCounty(documents)
   const review = needsReviewDocuments(documents)
 
   return (
@@ -84,18 +93,23 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
         </section>
 
         <section className="panel dashboard-card" aria-labelledby="ingest-heading">
-          <h3 id="ingest-heading">Ingest activity</h3>
+          <h3 id="ingest-heading">Ingest activity (by hour)</h3>
           <div className="chart-frame">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={[...ingest]}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
+                <XAxis dataKey="hour" tickFormatter={(value) => formatHour(String(value))} minTickGap={24} />
                 <YAxis allowDecimals={false} />
-                <Tooltip />
+                <Tooltip labelFormatter={(label) => formatHour(String(label))} />
                 <Area dataKey="count" stroke="var(--accent)" fill="var(--accent-2)" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
+        </section>
+
+        <section className="panel dashboard-card" aria-labelledby="map-heading">
+          <h3 id="map-heading">Documents by county (map)</h3>
+          <CountyMap locations={byStateCounty} />
         </section>
 
         <ExpirationsWidget documents={documents} onOpenDocument={onOpenDocument} />

@@ -20,6 +20,7 @@ Seeded from `CLAUDE.md`. Backend and frontend rows are pinned from their manifes
 | Language (frontend) | TypeScript | 6 (`^6.0`, `strict`) | Type-safe UI + typed API client — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md) |
 | Build (frontend) | Vite (+ `@vitejs/plugin-react`) | `^8.0` · `^6.0` | Dev server + bundling; single-origin dev proxy — see [ADR-0011](decisions/0011-single-origin-spa-api-topology.md) |
 | Charts (frontend) | `recharts` | `^3.8` (3.8.1) | Dashboard bar/area charts (documents-by-location, ingest-over-time) — see [spec 0007](specs/0007-insights-dashboard-and-document-search-export.md) |
+| Map (frontend) | `d3-geo` + `topojson-client` + `us-atlas` | `^3.1` · `^3.1` · `^3.0` | Dashboard county bubble map (Albers-USA projection over us-atlas TopoJSON); framework-agnostic, so no React-19 peer conflict (unlike `react-simple-maps`) — see [spec 0007](specs/0007-insights-dashboard-and-document-search-export.md) amendment |
 | Markdown render (frontend) | `react-markdown` + `remark-gfm` | `^9.1` · `^4.0` | Formatted markdown in the source-file viewer (raw HTML not rendered) — see [spec 0006](specs/0006-document-read-back-list-view-original-file.md) amendment |
 | PDF text extraction | `PdfPig` (UglyToad, NuGet) | 0.1.14 | PDF → text for chunking (text-based; no OCR) |
 | Test (backend) | xUnit · `Microsoft.NET.Test.Sdk` · `Microsoft.AspNetCore.Mvc.Testing` | 2.9.3 · 17.14.1 · 10.0.8 | `dotnet test`; `WebApplicationFactory` integration tests |
