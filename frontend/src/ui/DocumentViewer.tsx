@@ -1,5 +1,7 @@
 import { useEffect, useState, type ReactElement } from 'react'
-import { documentFileUrl, getDocument } from '../api/client'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import { documentFileUrl, getDocument, getDocumentFileText } from '../api/client'
 import type { DocumentSummary } from '../api/types'
 
 interface DocumentViewerProps {
@@ -12,11 +14,77 @@ type ViewerState =
   | { status: 'ready'; document: DocumentSummary }
   | { status: 'error' }
 
+/** Markdown uploads render as formatted HTML; everything else (PDF, plain text) embeds as bytes. */
+function isMarkdown(contentType: string, fileName: string): boolean {
+  return (
+    contentType.toLowerCase().includes('markdown') || /\.(md|markdown)$/i.test(fileName)
+  )
+}
+
+type BodyState =
+  | { status: 'loading' }
+  | { status: 'ready'; text: string }
+  | { status: 'error' }
+
 /**
- * Modal viewer for a source document (spec 0006): shows the extracted fields and embeds the ORIGINAL
- * uploaded file in an `<iframe>` (the browser renders PDF and text inline). The file URL is a plain
- * same-origin string — no fetch here, so the single-typed-client invariant holds. Closes on the
- * backdrop, the × button, or Escape.
+ * Right-pane renderer for the original file. Markdown is fetched as text and rendered FORMATTED
+ * (headings, lists, tables via GFM) — raw HTML in the source is NOT rendered (react-markdown's safe
+ * default), so an uploaded document can't inject markup. PDFs and other formats embed their bytes in an
+ * `<iframe>` as before. Both paths go through the typed client, so the single-fetch invariant holds.
+ */
+function DocumentFileBody({ document }: { document: DocumentSummary }): ReactElement {
+  const renderMarkdown = isMarkdown(document.contentType, document.fileName)
+  const [body, setBody] = useState<BodyState>({ status: 'loading' })
+
+  useEffect(() => {
+    if (!renderMarkdown) {
+      return
+    }
+    let active = true
+    setBody({ status: 'loading' })
+    void getDocumentFileText(document.id).then((result) => {
+      if (!active) {
+        return
+      }
+      setBody(result.ok ? { status: 'ready', text: result.value } : { status: 'error' })
+    })
+    return () => {
+      active = false
+    }
+  }, [renderMarkdown, document.id])
+
+  if (!renderMarkdown) {
+    return (
+      <iframe
+        className="viewer-frame"
+        src={documentFileUrl(document.id)}
+        title={`Source file: ${document.fileName}`}
+      />
+    )
+  }
+
+  if (body.status === 'loading') {
+    return <p className="hint">Loading file…</p>
+  }
+  if (body.status === 'error') {
+    return (
+      <p className="error" role="alert">
+        Could not load the file contents.
+      </p>
+    )
+  }
+  return (
+    <div className="viewer-markdown" aria-label={`Source file: ${document.fileName}`}>
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{body.text}</ReactMarkdown>
+    </div>
+  )
+}
+
+/**
+ * Modal viewer for a source document (spec 0006): shows the extracted fields beside the ORIGINAL
+ * uploaded file. Markdown renders formatted (spec 0006 amendment); PDF and plain text embed in an
+ * `<iframe>`. All reads go through the typed client, so the single-typed-client invariant holds. Closes
+ * on the backdrop, the × button, or Escape.
  */
 export function DocumentViewer({ documentId, onClose }: DocumentViewerProps): ReactElement {
   const [state, setState] = useState<ViewerState>({ status: 'loading' })
@@ -83,11 +151,7 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps): Re
                 ))}
               </dl>
             )}
-            <iframe
-              className="viewer-frame"
-              src={documentFileUrl(documentId)}
-              title={`Source file: ${title}`}
-            />
+            <DocumentFileBody document={state.document} />
           </div>
         )}
       </div>

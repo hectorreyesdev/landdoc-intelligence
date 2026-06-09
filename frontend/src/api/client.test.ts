@@ -1,5 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ask, deleteDocument, documentFileUrl, getDocument, listDocuments, uploadDocument } from './client'
+import {
+  ask,
+  deleteDocument,
+  documentFileUrl,
+  getDocument,
+  getDocumentFileText,
+  listDocuments,
+  uploadDocument,
+} from './client'
 import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
 
 interface FakeOpts {
@@ -17,6 +25,7 @@ function stubFetch(status: number, body: unknown, opts: FakeOpts = {}): ReturnTy
         if (opts.badBody) throw new SyntaxError('not json')
         return body
       },
+      text: async () => (typeof body === 'string' ? body : JSON.stringify(body)),
     } as unknown as Response
   })
   vi.stubGlobal('fetch', fn)
@@ -218,5 +227,30 @@ describe('deleteDocument', () => {
 describe('documentFileUrl', () => {
   it('builds the same-origin relative file URL', () => {
     expect(documentFileUrl('doc-1')).toBe('/documents/doc-1/file')
+  })
+})
+
+describe('getDocumentFileText', () => {
+  it('returns the raw file text from the same-origin /file URL on 200', async () => {
+    const fetchMock = stubFetch(200, '# Heading\n\nbody')
+
+    const result = await getDocumentFileText('doc-1')
+
+    expect(result).toEqual({ ok: true, value: '# Heading\n\nbody' })
+    const [url] = fetchMock.mock.calls[0] as [string]
+    expect(url).toBe('/documents/doc-1/file')
+  })
+
+  it('maps 404 → server', async () => {
+    stubFetch(404, { title: 'Document not found.' })
+    const result = await getDocumentFileText('missing')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error.kind).toBe('server')
+  })
+
+  it('maps a thrown fetch → network error', async () => {
+    stubFetch(0, null, { reject: true })
+    const result = await getDocumentFileText('doc-1')
+    expect(result).toEqual({ ok: false, error: { kind: 'network', status: null, detail: null } })
   })
 })
