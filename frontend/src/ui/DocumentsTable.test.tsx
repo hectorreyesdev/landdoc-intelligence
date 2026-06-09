@@ -27,12 +27,13 @@ const docs: readonly DocumentSummary[] = [
   },
 ]
 
-it('renders a row per document with file name, chunk count, and fields', () => {
+it('renders a row per document with file name, chunk count, and a field count', () => {
   render(<DocumentsTable documents={docs} onOpenDocument={() => {}} />)
 
   expect(screen.getByText('lease-a.pdf')).toBeInTheDocument()
   expect(screen.getByText('lease-b.md')).toBeInTheDocument()
-  expect(screen.getByText(/Acme Minerals LLC/)).toBeInTheDocument()
+  // Fields are summarized as a count in the table; the full set lives in the viewer.
+  expect(screen.getByText('1 field')).toBeInTheDocument()
   // Two "View" buttons — one per row.
   expect(screen.getAllByRole('button', { name: /view/i })).toHaveLength(2)
 })

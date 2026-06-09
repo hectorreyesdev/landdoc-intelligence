@@ -118,14 +118,14 @@ az role assignment create \
   --scope "$STORAGE_ID"
 ```
 
-**Step 2 — point the app at the blob endpoint and select the provider** (`Blob__ServiceUri` triggers the
-managed-identity path; `DocumentStore__Provider=azureblob` selects the live adapter over `inmemory`):
+**Step 2 — supply the blob endpoint via Key Vault** (consistent with the other endpoints — the Key Vault
+config source loads it automatically as `Blob:ServiceUri`, which triggers the managed-identity path).
+`DocumentStore:Provider=azureblob` is the committed `appsettings.json` default, so no env var is needed —
+only the secret:
 
 ```bash
-az containerapp update \
-  -n "$APP" -g "$RG" \
-  --set-env-vars Blob__ServiceUri="https://stlanddochr01.blob.core.windows.net" \
-                 DocumentStore__Provider="azureblob"
+az keyvault secret set --vault-name "$VAULT" --name Blob--ServiceUri \
+  --value "https://stlanddochr01.blob.core.windows.net"
 ```
 
 **Step 3 — let RBAC propagate, then restart the revision so it picks up the grant** (the adapter creates

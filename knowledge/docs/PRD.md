@@ -6,21 +6,23 @@ records. Finding "who owns the minerals", "what's the royalty", or "when does th
 means manually reading dozens of pages, and any answer must be traceable back to its source.
 
 ## Goals
-- Ingest a land/title PDF and extract its key structured fields automatically.
+- Ingest a land/title document (PDF, or `.txt`/`.md`/`.markdown`) and extract its key structured fields automatically.
 - Answer free-text questions about an uploaded document with **citations** to the source chunk.
 - Prove the full ingest → extract → embed → retrieve → answer loop end to end (vertical slice).
 - Keep model access provider-swappable (Azure OpenAI GPT live, Anthropic-direct fallback — ADR-0012) by **config only**.
 
 ## Non-goals
 "Production hardening" — explicitly out of scope (see `CLAUDE.md` → Out of scope):
-VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search · auth/RBAC ·
-observability stack. Also out: multi-tenant/multi-user concerns, durable persistence beyond the
-process lifetime, and high-accuracy OCR of scanned/handwritten documents.
+VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search **beyond the Free-tier
+vector store** (the Free tier is now the live store — ADR-0017) · auth/RBAC · observability stack. Also
+out: multi-tenant/multi-user concerns and high-accuracy OCR of scanned/handwritten documents.
 
 **Now built (no longer hypothetical):** the slice is **deployed** — a single container on Azure Container
 Apps, serving the SPA + API on one origin, with secrets from Key Vault via managed identity and CI/CD on
 merge to `main` ([DEPLOYMENT](DEPLOYMENT.md) · [CICD](CICD.md) · [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md)).
-The hardening items above remain out of scope.
+Storage is persisted too: chunk vectors in **Azure AI Search (Free tier)** ([ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md))
+and original files + metadata in **Azure Blob Storage** ([ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md)),
+each behind a config-selected port (in-memory for offline/test). The remaining hardening items above stay out of scope.
 
 ## Users / personas
 - **Landman / title analyst** — uploads documents, reviews extracted fields, asks questions.
@@ -34,9 +36,10 @@ The hardening items above remain out of scope.
 - As an analyst, I trust the answer because every claim links back to its source text.
 
 ## Scope
-**In:** single-file (or small set) PDF upload · field extraction · chunk + embed · in-memory
-retrieval · cited Q&A · React UI for upload / fields / ask.
-**Out:** everything under Non-goals · durable storage · cloud vector search · auth.
+**In:** document upload (PDF / text / markdown) · field extraction · chunk + embed · retrieval (Azure AI
+Search live / in-memory offline) · cited Q&A · a persisted document library (table · search · CSV · delete
+· source-file viewer) · React UI across Workspace / Documents / Dashboard tabs.
+**Out:** everything under Non-goals · auth.
 
 ## Success metrics
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.

@@ -50,7 +50,7 @@ export function DocumentViewer({ documentId, onClose }: DocumentViewerProps): Re
   return (
     <div className="modal-backdrop" role="presentation" onClick={onClose}>
       <div
-        className="modal"
+        className="modal modal--wide"
         role="dialog"
         aria-modal="true"
         aria-label={`Document: ${title}`}

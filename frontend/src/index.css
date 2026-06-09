@@ -299,6 +299,13 @@ button:disabled {
   font-weight: 600;
 }
 
+.doc-card .fields {
+  margin: 0;
+  max-height: 13rem; /* cap how tall a tile grows once fields load */
+  overflow-y: auto; /* scroll the field list instead of stretching the tile */
+  overscroll-behavior: contain; /* don't chain the scroll to the page at the ends */
+}
+
 .doc-card .fields .field {
   display: block;
   padding: 0.2rem 0;
@@ -556,13 +563,8 @@ button:disabled {
   word-break: break-word;
 }
 
-.doc-table-fields {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.doc-table-fields .field-name {
+.doc-table-fieldcount {
+  white-space: nowrap;
   color: var(--muted);
 }
 
@@ -607,6 +609,12 @@ button:disabled {
   padding: 1.25rem;
 }
 
+/* The document viewer fills the viewport so the source file gets real estate. */
+.modal--wide {
+  width: min(1200px, 95vw);
+  height: 90vh;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -635,19 +643,67 @@ button:disabled {
   color: var(--fg);
 }
 
+/* Two columns: extracted fields on the left (scroll), the source document on the right (fills). */
 .viewer-body {
   display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  overflow: auto;
+  flex-direction: row;
+  gap: 1rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.viewer-body .fields {
+  flex: 0 0 38%;
+  overflow-y: auto;
+  min-height: 0;
+  margin: 0;
+  padding-right: 0.5rem;
+}
+
+/* In the narrow left column, stack each field's name over its value. */
+.viewer-body .field {
+  display: block;
+  padding: 0.4rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.viewer-body .field dt {
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.viewer-body .field dd {
+  margin: 0.1rem 0 0;
+  overflow-wrap: anywhere;
 }
 
 .viewer-frame {
-  width: 100%;
-  height: 65vh;
+  flex: 1;
+  width: auto;
+  height: 100%;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--surface-2);
+}
+
+/* Narrow screens: stack fields above the document. */
+@media (max-width: 720px) {
+  .viewer-body {
+    flex-direction: column;
+    overflow: auto;
+  }
+
+  .viewer-body .fields {
+    flex: 0 0 auto;
+  }
+
+  .viewer-frame {
+    flex: none;
+    height: 60vh;
+  }
 }
 
 /* ── Tabs (Workspace / Dashboard, spec 0007) ──────────────────────────────── */

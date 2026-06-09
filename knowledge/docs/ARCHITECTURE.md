@@ -35,14 +35,15 @@ flowchart TD
 ```
 
 ## Containers & components
-- **SPA** (React/TS) — two tabs (**Workspace** | **Dashboard**), light/dark **theme toggle**, one typed
-  API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload control
-  (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
-  **persisted documents table** (search · CSV export · multi-select **delete** · row "View"), a question
-  box + **answer-with-citations** (each citation links to its source document), and a **source-file
-  viewer** (modal embedding the original PDF/text). *Dashboard:* KPI tiles, documents-by-location and
-  ingest-over-time charts (Recharts), a needs-review list, and a lease-expiration widget — all aggregated
-  client-side from `GET /documents`. React over Blazor — see
+- **SPA** (React/TS) — three tabs (**Workspace** | **Documents** | **Dashboard**), light/dark **theme
+  toggle**, one typed API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload
+  control (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
+  question box + **answer-with-citations** (each citation links to its source document), and a
+  **source-file viewer** (a modal showing the extracted fields **beside** the original PDF/text).
+  *Documents:* the full-width **persisted documents table** (search · CSV export · multi-select
+  **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI tiles,
+  documents-by-location and ingest-over-time charts (Recharts), a needs-review list, and a
+  lease-expiration widget — all aggregated client-side from `GET /documents`. React over Blazor — see
   [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
 - **Web API** (ASP.NET Core) — thin HTTP surface; delegates to modules.
 - **Modules** (namespaces in one process):

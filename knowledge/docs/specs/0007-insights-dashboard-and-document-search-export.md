@@ -70,3 +70,9 @@ gains a simple in-page tab switch between the existing **Workspace** (upload · 
 - **ADRs:** none — no port or infra change; rides entirely on the existing `GET /documents` contract. A future
   backend aggregation endpoint or an extractor change to emit `ExpirationDate` would each get their own
   spec/ADR.
+
+## Amendment — 2026-06-09 (documents in their own tab)
+The persisted documents table moved out of the Workspace column into its **own full-width "Documents" tab**
+(tabs are now Workspace · Documents · Dashboard). Its Fields column shows a **count** ("N fields") rather
+than every field inline — the full set lives in the source-file viewer. Search still matches over all field
+names/values and CSV export still includes them. Visual/layout refinement; no contract change.

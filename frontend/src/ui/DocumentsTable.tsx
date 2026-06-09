@@ -165,17 +165,11 @@ export function DocumentsTable({
                 </td>
                 <td>{doc.status}</td>
                 <td>{doc.chunkCount}</td>
-                <td>
+                <td className="doc-table-fieldcount">
                   {doc.fields.length === 0 ? (
                     <span className="doc-empty">—</span>
                   ) : (
-                    <ul className="doc-table-fields">
-                      {doc.fields.map((field) => (
-                        <li key={field.name}>
-                          <span className="field-name">{field.name}:</span> {field.value}
-                        </li>
-                      ))}
-                    </ul>
+                    `${doc.fields.length} field${doc.fields.length === 1 ? '' : 's'}`
                   )}
                 </td>
                 <td>{formatIngested(doc.ingestedAt)}</td>

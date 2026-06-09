@@ -101,3 +101,8 @@ Give the slice a **persisted document library** on top of the chunk store, reali
 - **ADRs:** [[knowledge/docs/decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata]]
   (new) · realizes the follow-on from
   [[knowledge/docs/decisions/0014-surface-source-document-identity-in-ask-grounding-context]].
+
+## Amendment — 2026-06-09 (viewer layout)
+The source-file viewer is a **side-by-side** modal: extracted fields on the left (scrollable), the original
+file filling the right at full height (stacks vertically on narrow screens). This supersedes the original
+stacked fields-over-iframe layout — same data and read path, a visual refinement only.

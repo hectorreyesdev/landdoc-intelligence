@@ -62,6 +62,7 @@ value from **Foundry → the resource → Keys & Endpoint** and store it as the 
 | `DocIntelligence--ApiKey` | `DocIntelligence:ApiKey` | Document Intelligence key 🔒 (provisioned, unused) |
 | `Search--Endpoint` | `Search:Endpoint` | Azure AI Search endpoint (`.search.windows.net`). Code binds the `Search` section (ADR-0017); supply via KV `Search--*` or env `Search__*` |
 | `Search--ApiKey` | `Search:ApiKey` | Azure AI Search admin key 🔒 (Free tier = key auth, no MI — ADR-0017) |
+| `Blob--ServiceUri` | `Blob:ServiceUri` | Blob endpoint (`https://stlanddochr01.blob.core.windows.net`) — the live MI / passwordless path (ADR-0018); chosen over an env var for consistency with the other endpoint secrets |
 | `Blob--ConnectionString` | `Blob:ConnectionString` | Storage account connection string 🔒 (fallback when `Blob:ServiceUri`/MI not used) |
 | `Anthropic--ApiKey` | `Anthropic:ApiKey` | Anthropic-direct fallback key 🔒 ‹confirm this 6th secret exists — build log says 6, provision note lists 5› |
 
