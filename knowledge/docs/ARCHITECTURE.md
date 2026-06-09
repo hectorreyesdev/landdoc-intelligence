@@ -102,7 +102,7 @@ flowchart TD
   a chat-provider failure yields empty fields and a stored document, not a 500 (spec 0001 amendment).
 - **Citations** — every Q&A answer carries citations resolvable to a source chunk (core invariant).
 - **Conventions** — C#: nullable enabled · async/await throughout · constructor DI · file-scoped
-  namespaces · `record` DTOs. TypeScript: `strict` · function components · one typed API client.
+  namespaces · one public type per file. TypeScript: `strict` · function components · one typed API client.
   Full list in [`CLAUDE.md`](../../CLAUDE.md); this slice has no separate PATTERNS doc.
 - **Logging / observability** — app logging is minimal for the slice, and the **infra** observability
   stack (Log Analytics ingestion, App Insights traces, alerting) stays out of scope. The one in-scope

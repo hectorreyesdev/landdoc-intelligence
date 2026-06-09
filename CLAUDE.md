@@ -59,7 +59,7 @@ seems to need an out-of-scope item, stub it and note why in `knowledge/lessons.m
 ## Coding conventions
 **C#** — nullable reference types **enabled**; `async`/`await` end-to-end (never `.Result` /
 `.Wait()`); constructor injection via the built-in DI container; **file-scoped namespaces**; one
-public type per file; `record` types for DTOs; validate and throw early on bad input.
+public type per file; validate and throw early on bad input.
 
 **TypeScript** — `strict: true`; **function components + hooks** (no class components); a single
 **typed API client** wraps `fetch` (no ad-hoc `fetch` in components); explicit return types on
