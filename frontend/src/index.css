@@ -508,3 +508,339 @@ button:disabled {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* ── Clickable citation source (spec 0006) ────────────────────────────────── */
+.citation-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--accent);
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.citation-link:hover {
+  color: var(--accent-strong);
+}
+
+/* ── Persisted documents table (spec 0006) ────────────────────────────────── */
+.doc-table-panel {
+  margin-top: 1.25rem;
+}
+
+.doc-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.doc-table th,
+.doc-table td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+
+.doc-table th {
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.doc-table-file {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+.doc-table-fields {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.doc-table-fields .field-name {
+  color: var(--muted);
+}
+
+.doc-view-button {
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.doc-view-button:hover {
+  background: var(--accent-strong);
+}
+
+/* ── Document viewer modal (spec 0006) ────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 14, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 100;
+  animation: fade-in 0.2s ease both;
+}
+
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  width: min(900px, 100%);
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+}
+
+.modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  word-break: break-word;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.6rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 0.3rem;
+}
+
+.modal-close:hover {
+  color: var(--fg);
+}
+
+.viewer-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  overflow: auto;
+}
+
+.viewer-frame {
+  width: 100%;
+  height: 65vh;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+}
+
+/* ── Tabs (Workspace / Dashboard, spec 0007) ──────────────────────────────── */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+  margin-right: 1rem;
+}
+
+.tab {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 999px;
+  padding: 0.3rem 0.9rem;
+  font: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.tab:hover {
+  color: var(--fg);
+}
+
+.tab--active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+
+/* ── Dashboard (spec 0007) ────────────────────────────────────────────────── */
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 0.9rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.kpi-tile--alert {
+  border-color: var(--accent-2);
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: var(--heading);
+  line-height: 1.1;
+}
+
+.kpi-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.dashboard-card h3 {
+  margin-top: 0;
+}
+
+.chart-frame {
+  width: 100%;
+  height: 240px;
+}
+
+.review-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+/* ── Expirations widget ───────────────────────────────────────────────────── */
+.expiry-badge {
+  display: inline-block;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface-2);
+  color: var(--fg);
+}
+
+.expiry-expired {
+  background: var(--error-bg);
+  color: var(--error);
+}
+
+.expiry-within30 {
+  background: var(--accent-2);
+  color: var(--accent-fg);
+}
+
+/* ── Documents table toolbar (search + export, spec 0007) ─────────────────── */
+.doc-table-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.doc-table-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.doc-table-tools input[type='search'] {
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: 0.85rem;
+}
+
+.doc-export-button {
+  background: none;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.doc-export-button:hover:not(:disabled) {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+
+.doc-export-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ── Documents table delete / selection (spec 0008) ───────────────────────── */
+.doc-select-col {
+  width: 1.5rem;
+  text-align: center;
+}
+
+.doc-row--selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.doc-delete-button {
+  background: none;
+  border: 1px solid var(--error);
+  color: var(--error);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.doc-delete-button:hover:not(:disabled) {
+  background: var(--error);
+  color: var(--accent-fg);
+}
+
+.doc-delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

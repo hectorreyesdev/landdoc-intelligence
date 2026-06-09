@@ -32,6 +32,7 @@ builder.Services.Configure<ModelClientOptions>(builder.Configuration.GetSection(
 builder.Services.Configure<AzureOpenAIOptions>(builder.Configuration.GetSection("AzureOpenAI"));
 builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("Anthropic"));
 builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection("Search"));
+builder.Services.Configure<BlobOptions>(builder.Configuration.GetSection("Blob"));
 
 // Vector store — config-selected adapter (VectorStore:Provider). Live default: azuresearch (ADR-0017);
 // inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton so ingest (write)
@@ -44,6 +45,17 @@ builder.Services.AddSingleton<IVectorStore>(sp => vectorStoreProvider.ToLowerInv
         sp.GetRequiredService<IOptions<SearchOptions>>(),
         sp.GetRequiredService<IOptions<EmbeddingOptions>>()),
     _ => throw new InvalidOperationException($"Unknown VectorStore:Provider '{vectorStoreProvider}'."),
+});
+
+// Document store — config-selected adapter (DocumentStore:Provider). Live default: azureblob (ADR-0018);
+// inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton so ingest (write) and
+// the read endpoints share one instance. Sibling to the vector store: original bytes + document metadata.
+var documentStoreProvider = builder.Configuration["DocumentStore:Provider"] ?? "azureblob";
+builder.Services.AddSingleton<IDocumentStore>(sp => documentStoreProvider.ToLowerInvariant() switch
+{
+    "inmemory" => new InMemoryDocumentStore(),
+    "azureblob" => new AzureBlobDocumentStore(sp.GetRequiredService<IOptions<BlobOptions>>()),
+    _ => throw new InvalidOperationException($"Unknown DocumentStore:Provider '{documentStoreProvider}'."),
 });
 
 // Embeddings — config-selected adapter (ModelClient:EmbeddingProvider). Live slice default: azureopenai

@@ -22,7 +22,15 @@ function deferred<T>(): { promise: Promise<T>; resolve: (value: T) => void } {
 
 const answer: AskResponse = {
   answer: 'The lessee is Acme Minerals LLC.',
-  citations: [{ chunkId: 'c1', documentId: 'doc-1', score: 0.82, text: '…by and between … as Lessee …' }],
+  citations: [
+    {
+      chunkId: 'c1',
+      documentId: 'doc-1',
+      score: 0.82,
+      text: '…by and between … as Lessee …',
+      source: 'synthetic-lease-01.pdf',
+    },
+  ],
 }
 
 async function submitQuestion(text = 'Who is the lessee?'): Promise<void> {
@@ -30,7 +38,7 @@ async function submitQuestion(text = 'Who is the lessee?'): Promise<void> {
   await userEvent.click(screen.getByRole('button', { name: /^ask$/i }))
 }
 
-it('renders the answer and each citation (text, score, documentId)', async () => {
+it('renders the answer and each citation (text, score, source file name)', async () => {
   vi.mocked(client.ask).mockResolvedValue({ ok: true, value: answer })
   render(<AskPanel canAsk />)
 
@@ -38,8 +46,20 @@ it('renders the answer and each citation (text, score, documentId)', async () =>
 
   expect(await screen.findByText(/acme minerals llc/i)).toBeInTheDocument()
   expect(screen.getByText(/as Lessee/)).toBeInTheDocument()
-  expect(screen.getByText(/doc-1/)).toBeInTheDocument()
+  // The citation is labelled by its source file name (spec 0006), rendered as a clickable button.
+  expect(screen.getByRole('button', { name: /synthetic-lease-01\.pdf/i })).toBeInTheDocument()
   expect(screen.getByText(/0\.82/)).toBeInTheDocument()
+})
+
+it('clicking a citation opens that document via onOpenDocument', async () => {
+  vi.mocked(client.ask).mockResolvedValue({ ok: true, value: answer })
+  const onOpenDocument = vi.fn()
+  render(<AskPanel canAsk onOpenDocument={onOpenDocument} />)
+
+  await submitQuestion()
+  await userEvent.click(await screen.findByRole('button', { name: /synthetic-lease-01\.pdf/i }))
+
+  expect(onOpenDocument).toHaveBeenCalledWith('doc-1')
 })
 
 it('shows an animated loading indicator while the answer is pending, then the answer', async () => {

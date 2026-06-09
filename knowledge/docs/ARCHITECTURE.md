@@ -35,11 +35,15 @@ flowchart TD
 ```
 
 ## Containers & components
-- **SPA** (React/TS) — a multi-file **drag-and-drop** upload control (ingest-on-select, no submit
-  button; PDF/text/Markdown), a **document-tile grid** (each upload a placeholder that solidifies into
-  its extracted-fields card, or an error tile), a question box, and the answer-with-citations view;
-  light/dark **theme toggle**, two-column layout. One typed API client is the only `fetch`.
-  React over Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
+- **SPA** (React/TS) — two tabs (**Workspace** | **Dashboard**), light/dark **theme toggle**, one typed
+  API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload control
+  (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
+  **persisted documents table** (search · CSV export · multi-select **delete** · row "View"), a question
+  box + **answer-with-citations** (each citation links to its source document), and a **source-file
+  viewer** (modal embedding the original PDF/text). *Dashboard:* KPI tiles, documents-by-location and
+  ingest-over-time charts (Recharts), a needs-review list, and a lease-expiration widget — all aggregated
+  client-side from `GET /documents`. React over Blazor — see
+  [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
 - **Web API** (ASP.NET Core) — thin HTTP surface; delegates to modules.
 - **Modules** (namespaces in one process):
   - `Ingestion` — PDF **or** text/Markdown (dispatched by file extension) → text → chunks → embeddings → vector store.
@@ -50,11 +54,20 @@ flowchart TD
 - **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
   `AzureOpenAIEmbeddingClient` (live slice — `text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)) / `LocalEmbeddingClient` (offline/test — deterministic hashing).
 - **Vector store** — behind a narrow async `IVectorStore` seam (`AddAsync` chunks at ingest;
-  `TopKAsync(queryVector, k)` at ask), config-selected via `VectorStore:Provider`. Live default is
+  `TopKAsync(queryVector, k)` at ask; `DeleteByDocumentAsync(documentId)` on delete — spec 0008),
+  config-selected via `VectorStore:Provider`. Live default is
   **Azure AI Search Free tier** (`AzureAiSearchVectorStore`, `landdoc-chunks` index, 256-d HNSW +
   cosine) — persistence at $0; `InMemoryVectorStore` (cosine over `float[]`) is the offline/test
   provider. See [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md) (realizes
   [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
+- **Document store** — a *separate* port `IDocumentStore` (`SaveAsync` / `ListAsync` / `GetAsync` /
+  `GetFileAsync` / `DeleteAsync` — spec 0008) for original files + document metadata, config-selected via
+  `DocumentStore:Provider`.
+  Live default is **Azure Blob Storage** (`AzureBlobDocumentStore`, container `documents`, two blobs per
+  doc: bytes + metadata JSON; managed-identity-preferred auth); `InMemoryDocumentStore` is the offline/test
+  provider. Object storage, not a similarity index — kept distinct from the vector store so PDF bytes never
+  enter the search index. Backs `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec
+  0006). See [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.

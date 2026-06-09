@@ -50,6 +50,24 @@ public sealed class AskEndpointTests
     }
 
     [Fact]
+    public async Task Ask_Citations_CarrySourceFileName()
+    {
+        using var factory = new LandDocApiFactory();
+        var client = factory.CreateClient();
+
+        await IngestionTestHelpers.PostFixtureAsync(client);
+
+        var response = await client.PostAsJsonAsync("/ask", new { question = "Who is the lessee?" });
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<AskResponse>();
+        Assert.NotNull(body);
+        Assert.NotEmpty(body!.Citations);
+        // Spec 0006 / ADR-0014 follow-on: each citation labels its source document by file name.
+        Assert.All(body.Citations, c => Assert.Equal("synthetic-lease-01.pdf", c.Source));
+    }
+
+    [Fact]
     public async Task Ask_RetrievalCorrectness_LesseeChunkIsInTopK()
     {
         using var factory = new LandDocApiFactory();

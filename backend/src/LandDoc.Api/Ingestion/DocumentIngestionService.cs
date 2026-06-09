@@ -7,12 +7,14 @@ using Microsoft.Extensions.Logging;
 namespace LandDoc.Api.Ingestion;
 
 /// <summary>
-/// Orchestrates the ingest write path (spec 0001): parse PDF text → extract fields (via the Extraction
-/// module) → chunk with overlap → embed each chunk (<see cref="IEmbeddingClient"/>) → store the chunks in
-/// the shared <see cref="IVectorStore"/>. Returns the new document id, its extracted fields, and the
-/// number of chunks stored. Every value is produced by the pipeline — nothing is keyed to a document.
-/// Field extraction is **best-effort** (spec 0001 amendment): a failing <see cref="IChatClient"/> provider
-/// degrades to empty fields, it never fails the write path.
+/// Orchestrates the ingest write path (spec 0001, 0006): parse PDF text → extract fields (via the
+/// Extraction module) → chunk with overlap → embed each chunk (<see cref="IEmbeddingClient"/>) → store the
+/// chunks in the shared <see cref="IVectorStore"/> → persist the document (original bytes + metadata +
+/// fields) in <see cref="IDocumentStore"/>. Returns the new document id, its extracted fields, and the
+/// number of chunks stored. Field extraction is **best-effort** (spec 0001 amendment): a failing
+/// <see cref="IChatClient"/> provider degrades to empty fields, it never fails the write path. Document
+/// persistence, by contrast, is **required** (ADR-0018): a store failure fails the write path and the
+/// just-written chunks are rolled back (compensated) so no orphan chunks survive a failed ingest.
 /// </summary>
 public sealed class DocumentIngestionService(
     PdfTextExtractor pdfTextExtractor,
@@ -20,9 +22,10 @@ public sealed class DocumentIngestionService(
     TextChunker textChunker,
     IEmbeddingClient embeddingClient,
     IVectorStore vectorStore,
+    IDocumentStore documentStore,
     ILogger<DocumentIngestionService> logger)
 {
-    public async Task<IngestDocumentResponse> IngestAsync(string fileName, byte[] content, DocumentFormat format, CancellationToken cancellationToken = default)
+    public async Task<IngestDocumentResponse> IngestAsync(string fileName, byte[] content, DocumentFormat format, string contentType, CancellationToken cancellationToken = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         ArgumentNullException.ThrowIfNull(content);
@@ -58,6 +61,32 @@ public sealed class DocumentIngestionService(
         {
             var vector = await embeddingClient.EmbedAsync(chunkText, cancellationToken);
             await vectorStore.AddAsync(new Chunk(Guid.NewGuid(), documentId, chunkText, vector, safeSource), cancellationToken);
+        }
+
+        // Persist the document (original bytes + metadata + extracted fields) so it can be listed and the
+        // source file viewed (ADR-0018). Unlike best-effort extraction this is *required*: if we can't store
+        // the document, the "view source" feature is broken — so a store failure fails the write path. But
+        // the chunks are already committed at this point, so on failure we compensate by deleting them
+        // before rethrowing — otherwise /ask would retrieve orphan chunks with no viewable source, and a
+        // retried upload (new documentId) would silently accumulate duplicates. The compensation is
+        // best-effort: a cleanup failure is logged but must not mask the original store error.
+        var metadata = new DocumentMetadata(documentId, fileName, "ready", contentType, chunkTexts.Count, fields, DateTimeOffset.UtcNow);
+        try
+        {
+            await documentStore.SaveAsync(metadata, content, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Document store failed for {FileName}; rolling back {ChunkCount} orphaned chunks for {DocumentId}.", fileName, chunkTexts.Count, documentId);
+            try
+            {
+                await vectorStore.DeleteByDocumentAsync(documentId, cancellationToken);
+            }
+            catch (Exception cleanupEx) when (cleanupEx is not OperationCanceledException)
+            {
+                logger.LogError(cleanupEx, "Compensating chunk delete failed for {DocumentId}; its chunks may be orphaned.", documentId);
+            }
+            throw;
         }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);

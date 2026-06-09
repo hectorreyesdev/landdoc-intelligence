@@ -1,34 +1,93 @@
-import { type ReactElement } from 'react'
+import { useState, type ReactElement } from 'react'
 import { UploadPanel } from './ui/UploadPanel'
 import { AskPanel } from './ui/AskPanel'
 import { DocumentList } from './ui/DocumentList'
+import { DocumentsTable } from './ui/DocumentsTable'
+import { DocumentViewer } from './ui/DocumentViewer'
+import { Dashboard } from './ui/dashboard/Dashboard'
 import { ThemeToggle } from './ui/ThemeToggle'
+import { deleteDocument } from './api/client'
 import { useDocuments } from './ui/useDocuments'
+import { useDocumentTable } from './ui/useDocumentTable'
+
+type Tab = 'workspace' | 'dashboard'
 
 /**
- * The vertical slice (spec 0003): upload → fields, then ask → answer-with-citations. Two independent
- * columns — upload + the ingested-document grid on the left, ask + answer-with-citations on the right
- * — so a long citations list never pushes the document list down the page. The ask path knows only
- * whether *something* has been ingested; it never depends on the upload path.
+ * The vertical slice (spec 0003) + persisted library (spec 0006) + insights (spec 0007). A header tab
+ * switches between Workspace (upload · documents · ask) and Dashboard (analytics over the same
+ * GET /documents data). Clicking a citation, a table row's "View", or a dashboard item opens the
+ * source-document viewer. Both tabs share one document load (`useDocumentTable`), refreshed after upload.
  */
 export function App(): ReactElement {
   const { items, progress, hasReady, ingest } = useDocuments()
+  const table = useDocumentTable()
+  const [viewerId, setViewerId] = useState<string | null>(null)
+  const [tab, setTab] = useState<Tab>('workspace')
+
+  // After a batch lands, refresh the persisted table so newly ingested documents appear.
+  async function handleFiles(files: File[]): Promise<void> {
+    await ingest(files)
+    await table.reload()
+  }
+
+  // Delete each selected document from both stores, close the viewer if it showed one of them, then reload.
+  async function handleDeleteSelected(ids: readonly string[]): Promise<void> {
+    await Promise.all(ids.map((id) => deleteDocument(id)))
+    if (viewerId !== null && ids.includes(viewerId)) {
+      setViewerId(null)
+    }
+    await table.reload()
+  }
+
+  const canAsk = hasReady || table.documents.length > 0
 
   return (
     <main className="app">
       <header className="app-header">
         <h1>LandDoc Intelligence</h1>
+        <nav className="tabs" aria-label="Views">
+          <button
+            type="button"
+            className={tab === 'workspace' ? 'tab tab--active' : 'tab'}
+            aria-pressed={tab === 'workspace'}
+            onClick={() => setTab('workspace')}
+          >
+            Workspace
+          </button>
+          <button
+            type="button"
+            className={tab === 'dashboard' ? 'tab tab--active' : 'tab'}
+            aria-pressed={tab === 'dashboard'}
+            onClick={() => setTab('dashboard')}
+          >
+            Dashboard
+          </button>
+        </nav>
         <ThemeToggle />
       </header>
-      <div className="columns">
-        <div className="column">
-          <UploadPanel onFiles={ingest} progress={progress} />
-          <DocumentList items={items} />
+
+      {tab === 'workspace' ? (
+        <div className="columns">
+          <div className="column">
+            <UploadPanel onFiles={handleFiles} progress={progress} />
+            <DocumentList items={items} />
+            <DocumentsTable
+              documents={table.documents}
+              onOpenDocument={setViewerId}
+              onDeleteSelected={handleDeleteSelected}
+            />
+          </div>
+          <div className="column">
+            <AskPanel canAsk={canAsk} onOpenDocument={setViewerId} />
+          </div>
         </div>
-        <div className="column">
-          <AskPanel canAsk={hasReady} />
-        </div>
-      </div>
+      ) : (
+        <Dashboard documents={table.documents} status={table.status} onOpenDocument={setViewerId} />
+      )}
+
+      {viewerId !== null && (
+        <DocumentViewer documentId={viewerId} onClose={() => setViewerId(null)} />
+      )}
     </main>
   )
 }

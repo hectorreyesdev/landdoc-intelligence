@@ -12,6 +12,7 @@ sequenceDiagram
     participant API as Web API (Ingestion)
     participant E as IEmbeddingClient
     participant V as Vector store
+    participant D as Document store
     participant C as IChatClient
 
     A->>SPA: Upload document (PDF or text/markdown)
@@ -24,12 +25,15 @@ sequenceDiagram
     API->>E: Embed chunks (IEmbeddingClient)
     E-->>API: Vectors
     API->>V: Store chunks + vectors
+    API->>D: Save original file + metadata (IDocumentStore — required)
     API-->>SPA: documentId + fields + chunkCount
     SPA-->>A: Show extracted fields
 ```
 
-**State change:** ingest is the only write — chunks + vectors are added to the in-memory store, and
-the document's extracted fields are produced.
+**State change:** ingest is the only write on the ask path's data — chunks + vectors are added to the
+vector store, the original file + metadata + fields are persisted to the document store (spec 0006 /
+ADR-0018; required — a save failure fails ingest), and the document's extracted fields are produced.
+The viewer reads back via `GET /documents/{id}` + `GET /documents/{id}/file`.
 
 ## Ask — question with citations
 
@@ -59,6 +63,31 @@ sequenceDiagram
 **State change:** none — ask is read-only. The retrieved chunks become the answer's grounding, and
 the cited chunk IDs are returned so the UI can resolve each claim to its source text.
 
+## Delete — remove a document
+
+```mermaid
+sequenceDiagram
+    actor A as Analyst
+    participant SPA as React SPA
+    participant API as Web API (Documents)
+    participant V as Vector store
+    participant D as Document store
+
+    A->>SPA: Select documents → Delete selected (confirm)
+    loop one per selected id
+        SPA->>API: DELETE /documents/{id}
+        API->>V: DeleteByDocumentAsync(id) — drop the document's chunks
+        API->>D: DeleteAsync(id) — drop the file + metadata
+        API-->>SPA: 204 No Content (idempotent — unknown id is a no-op)
+    end
+    SPA->>API: GET /documents (reload the table)
+```
+
+**State change:** removes a document from **both** stores. Hard, best-effort, non-transactional — a
+mid-delete failure can orphan one side; the operation is **idempotent**, so re-issuing the same DELETE
+converges (see [ADR-0019](decisions/0019-hard-best-effort-non-transactional-document-deletion.md),
+[spec 0008](specs/0008-delete-documents-multi-select.md)).
+
 ## Notes
 - The same `IEmbeddingClient` embeds chunks at ingest and the query at ask — they must share a model
   (and thus dimension) for cosine similarity to be meaningful. Config-selected via
@@ -69,6 +98,9 @@ the cited chunk IDs are returned so the UI can resolve each claim to its source 
   [ADR-0009](decisions/0009-corpus-wide-ask-retrieval-scope.md)); each citation carries `documentId`.
   An answer is never returned without ≥1 citation; an empty store returns `409`
   ([spec 0002](specs/0002-rag-qa-with-citations.md)).
+- The **Dashboard** is read-only and adds no new server flow — it reads the same `GET /documents` list
+  and aggregates it **client-side** (KPIs, charts, needs-review, lease expirations); the documents-table
+  search + CSV export also operate on that already-fetched data ([spec 0007](specs/0007-insights-dashboard-and-document-search-export.md)).
 - Repeated document context sent to the chat model is intended to rely on **prompt caching** to cut
   cost/latency — an optimization **deferred** for the slice (not required by spec 0002).
 - The live slice default chat adapter is **Azure OpenAI GPT** (`AzureOpenAIChatClient`, OpenAI Chat

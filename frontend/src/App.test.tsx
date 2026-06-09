@@ -27,6 +27,9 @@ it('keeps upload + the document list working when /ask is unavailable (501)', as
     ok: false,
     error: { kind: 'not-implemented', status: 501, detail: null },
   })
+  // The persisted documents table loads on mount and after each upload; keep it empty here so the
+  // session card grid is the only place the uploaded document appears (unambiguous assertions below).
+  vi.mocked(client.listDocuments).mockResolvedValue({ ok: true, value: [] })
   render(<App />)
 
   await userEvent.upload(

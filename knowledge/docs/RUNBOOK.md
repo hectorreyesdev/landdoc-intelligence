@@ -90,20 +90,28 @@ Settings (non-secret, in `appsettings.json`):
 - `ModelClient:EmbeddingProvider` — `azureopenai` (live default) | `local` (offline/test)
 - `VectorStore:Provider` — `azuresearch` (live default) | `inmemory` (offline/test; tests pin this via
   `TestModuleInitializer` so CI without Search creds stays green). See [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md)
-- `AzureSearch:Endpoint` — Azure AI Search service URL (Free tier, eastus); index `landdoc-chunks` (created on startup)
+- `Search:Endpoint` / `Search:ApiKey` — Azure AI Search service URL (`.search.windows.net`) + admin key
+  (Free tier, eastus; key auth — no managed identity, ADR-0017); index `landdoc-chunks` (created on startup)
+- `DocumentStore:Provider` — `azureblob` (live default) | `inmemory` (offline/test; pinned by
+  `TestModuleInitializer`). See [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md)
+- `Blob:ServiceUri` — Blob endpoint (`https://stlanddochr01.blob.core.windows.net`); when set, auth is via
+  managed identity (`DefaultAzureCredential`). Else falls back to `Blob:ConnectionString`. `Blob:ContainerName`
+  defaults to `documents`. For local dev without Azure, set `DocumentStore:Provider=inmemory`.
 - `KeyVault:Uri` — when set, Key Vault is added as a config source via `DefaultAzureCredential`; secrets
-  named `AzureOpenAI--ApiKey` / `AzureOpenAI--Endpoint` / `Anthropic--ApiKey` / `AzureSearch--ApiKey` overlay
+  named `AzureOpenAI--ApiKey` / `AzureOpenAI--Endpoint` / `Anthropic--ApiKey` / `Search--Endpoint` /
+  `Search--ApiKey` / `Blob--ConnectionString` overlay
   the matching keys (`--` → `:`). Unset → vault is skipped (offline/test). See [ADR-0016](decisions/0016-single-container-azure-container-apps-keyvault-secrets.md).
 - `AzureOpenAI:Deployment` / `AzureOpenAI:EmbeddingDeployment` — Azure deployment names (e.g. `gpt-5.4-mini` / `text-embedding-3-small`)
 - `Anthropic:Model` — fallback chat model (default `claude-opus-4-8`)
 - `Embedding:Dimension` — embedding vector length, shared by both adapters (Azure honors it via the `dimensions` parameter; default 256)
 - `Chunking:MaxChars` / `Chunking:Overlap` — chunk window + overlap (default 800 / 150)
-- `Retrieval:TopK` — top-k chunks for `/ask` (default 5)
+- `Retrieval:TopK` — top-k chunks for `/ask` (default 8)
 
 Secrets (never commit values):
 - Azure OpenAI: `AzureOpenAI:Endpoint` + `AzureOpenAI:ApiKey` (one resource serves both chat and embeddings)
 - Anthropic: `Anthropic:ApiKey` (fallback chat)
-- Azure AI Search: `AzureSearch:ApiKey` (admin key; Free tier has no managed identity — ADR-0017)
+- Azure AI Search: `Search:Endpoint` + `Search:ApiKey` (admin key; Free tier has no managed identity — ADR-0017)
+- Azure Blob: `Blob:ConnectionString` (only if not using the managed-identity `Blob:ServiceUri` path — ADR-0018)
 
 ## Deploy
 - Provisioning cloud infra is out of scope for the slice — it runs locally only. But the app is now

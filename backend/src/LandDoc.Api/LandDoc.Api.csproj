@@ -19,6 +19,7 @@
     <PackageReference Include="Azure.Extensions.AspNetCore.Configuration.Secrets" Version="1.5.1" />
     <PackageReference Include="Azure.Identity" Version="1.21.0" />
     <PackageReference Include="Azure.Search.Documents" Version="11.6.0" />
+    <PackageReference Include="Azure.Storage.Blobs" Version="12.29.0" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="PdfPig" Version="0.1.14" />
   </ItemGroup>

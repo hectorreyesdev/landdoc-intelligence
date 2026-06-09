@@ -13,21 +13,27 @@ every session (see **Project docs** below).
   microservices.
 - **Model access** — split into TWO interfaces (chat and embeddings have different providers and
   fail over differently):
-  - **`IChatClient`** — chat/completions. `FoundryChatClient` (Microsoft Foundry gateway,
-    **primary**; may serve a Claude *or* a GPT model) + `AnthropicChatClient` (Anthropic API
-    direct, **fallback**, `Anthropic` NuGet SDK). Adapter is **config-only**
+  - **`IChatClient`** — chat/completions. `AzureOpenAIChatClient` (Azure OpenAI GPT, `gpt-5.4-mini`,
+    OpenAI Chat Completions — the **live default**, ADR-0012) + `AnthropicChatClient` (Anthropic API
+    direct, **config-swap fallback**, `Anthropic` NuGet SDK). Adapter is **config-only**
     (`ModelClient:ChatProvider`), never a code change.
-  - **`IEmbeddingClient`** — embeddings only. `LocalEmbeddingClient` (local in-memory model — the
-    **slice default**: no cloud dependency, self-contained, free) + `FoundryEmbeddingClient`
-    (Azure OpenAI `text-embedding-3-small` via the Foundry gateway, the **production path**).
+  - **`IEmbeddingClient`** — embeddings only. `AzureOpenAIEmbeddingClient` (Azure OpenAI
+    `text-embedding-3-small`, 256-d — the **live default**, ADR-0013) + `LocalEmbeddingClient`
+    (deterministic in-repo hashing — the **offline/test** provider: no cloud dependency, free).
     **No Anthropic embeddings adapter — Anthropic has no embeddings endpoint.** Adapter
     config-only (`ModelClient:EmbeddingProvider`).
-- **Frontend** — React + TypeScript SPA: upload control → extracted-fields view → question box
-  → answer-with-citations.
-- **RAG pipeline** — ingest PDF → extract structured fields → chunk → embed (`IEmbeddingClient`)
-  → **in-memory cosine similarity over `float[]`** → retrieve top-k → answer **with citations**.
-  Vector store is config-selected: **Azure AI Search Free tier** is the live store (ADR-0017);
-  in-memory cosine similarity is the offline/test provider.
+- **Storage** — two config-selected ports: **`IVectorStore`** for chunks (Azure AI Search Free tier
+  live / in-memory cosine offline — ADR-0017) and **`IDocumentStore`** for the original file + metadata
+  (Azure Blob Storage live / in-memory offline — ADR-0018). Swap via `VectorStore:Provider` /
+  `DocumentStore:Provider`, never a code change.
+- **Frontend** — React + TypeScript SPA with two tabs: **Workspace** (drag-drop upload →
+  extracted-fields → a persisted documents table with search / CSV export / multi-select delete ·
+  question box → answer-with-citations · a source-file viewer) and **Dashboard** (KPI tiles, charts,
+  needs-review, and lease expirations, aggregated from `GET /documents`).
+- **RAG pipeline** — ingest PDF/text/Markdown → extract structured fields → chunk → embed
+  (`IEmbeddingClient`) → store chunks (`IVectorStore`) + persist the original file/metadata
+  (`IDocumentStore`) → on ask, retrieve top-k by cosine → answer **with citations**. Stores are
+  config-selected: Azure AI Search + Azure Blob live; in-memory offline/test.
 
 ### Models & cost
 Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable

@@ -17,4 +17,7 @@ public interface IVectorStore
     /// similarity, highest first, with a deterministic tie-break.
     /// </summary>
     Task<IReadOnlyList<ScoredChunk>> TopKAsync(float[] query, int k, CancellationToken ct = default);
+
+    /// <summary>Removes every chunk belonging to <paramref name="documentId"/> (spec 0008). A no-op when none match.</summary>
+    Task DeleteByDocumentAsync(Guid documentId, CancellationToken ct = default);
 }
