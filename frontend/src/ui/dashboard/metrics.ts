@@ -44,7 +44,7 @@ export const STATE_RE = /\bstate\b/i
 const EXPIRATION_RE = /expir|term end|end date/i
 const DAY_MS = 86_400_000
 
-/** First non-empty value of a field whose name matches the pattern, or null. Shared with the map (geo.ts). */
+/** First non-empty value of a field whose name matches the pattern, or null. */
 export function fieldValue(doc: DocumentSummary, pattern: RegExp): string | null {
   for (const field of doc.fields) {
     if (pattern.test(field.name) && field.value.trim() !== '') {

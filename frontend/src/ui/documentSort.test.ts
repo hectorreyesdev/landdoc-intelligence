@@ -42,6 +42,19 @@ it('sorts by ingest time chronologically', () => {
   expect(ids(sortDocuments(docs, 'ingested', 'asc'))).toEqual(['a', 'c', 'b'])
 })
 
+it('sorts documents with an unparseable ingest date to the end in both directions', () => {
+  const withBad: readonly DocumentSummary[] = [
+    doc({ id: 'bad1', ingestedAt: 'not-a-date' }),
+    doc({ id: 'a', ingestedAt: '2026-06-09T01:00:00+00:00' }),
+    doc({ id: 'bad2', ingestedAt: '' }),
+    doc({ id: 'b', ingestedAt: '2026-06-09T02:00:00+00:00' }),
+  ]
+  // Ascending: valid dates first (oldest→newest), invalid ones last (stable order bad1 before bad2).
+  expect(ids(sortDocuments(withBad, 'ingested', 'asc'))).toEqual(['a', 'b', 'bad1', 'bad2'])
+  // Descending: valid dates first (newest→oldest), invalid ones STILL last.
+  expect(ids(sortDocuments(withBad, 'ingested', 'desc'))).toEqual(['b', 'a', 'bad1', 'bad2'])
+})
+
 it('sorts by status', () => {
   expect(ids(sortDocuments(docs, 'status', 'asc'))).toEqual(['a', 'b', 'c'])
 })

@@ -5,8 +5,8 @@ import type { FeatureCollection } from 'geojson'
 import type { StateCountyCount } from './metrics'
 
 // Geographic plumbing for the county bubble map. The pure pieces (`resolveMarkers`) are unit-tested with a
-// stub index; `buildCentroidIndex` is runtime glue over the us-atlas TopoJSON (d3-geo projection), untested
-// under jsdom — the same rationale spec 0007 applies to Recharts SVG.
+// stub index; `buildCentroidIndex` is runtime glue over the us-atlas TopoJSON (d3-geo projection), which
+// emits no DOM and so has nothing to assert under jsdom.
 
 /** [lon, lat] — geographic coordinates, before projection to screen space. */
 export type Centroid = readonly [number, number]
