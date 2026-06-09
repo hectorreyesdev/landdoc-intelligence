@@ -1,6 +1,8 @@
-import { useEffect, useMemo, useState, type ReactElement } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactElement } from 'react'
 import { geoAlbersUsa, geoPath, type GeoProjection } from 'd3-geo'
 import { feature } from 'topojson-client'
+import { select } from 'd3-selection'
+import { zoom, zoomIdentity, type D3ZoomEvent, type ZoomBehavior, type ZoomTransform } from 'd3-zoom'
 import type { Topology } from 'topojson-specification'
 import type { FeatureCollection } from 'geojson'
 import { buildCentroidIndex, resolveMarkers, type CentroidIndex } from './geo'
@@ -13,6 +15,7 @@ interface CountyMapProps {
 
 const WIDTH = 975
 const HEIGHT = 610
+const MAX_ZOOM = 12
 
 interface UsGeo {
   readonly statePaths: readonly string[]
@@ -28,13 +31,18 @@ function radius(count: number, max: number): number {
 }
 
 /**
- * A US map plotting documents-by-county as proportional bubbles at each county's centroid (spec 0007
- * amendment). The us-atlas TopoJSON (~600 KB) is dynamically imported so it stays out of the main bundle;
- * the SVG itself renders nothing testable under jsdom, so correctness lives in `geo.ts`'s pure functions.
+ * A US map plotting documents-by-county as proportional bubbles at each county's centroid. The us-atlas
+ * TopoJSON (~600 KB) is dynamically imported so it stays out of the main bundle. The map is zoom/pan-able
+ * (d3-zoom): the basemap scales with the transform, but bubble radii and strokes are counter-scaled by 1/k
+ * so the dots keep a constant screen size — zooming in pinpoints exactly which county a dot sits on. The SVG
+ * renders nothing testable under jsdom, so correctness lives in `geo.ts`'s pure functions.
  */
 export function CountyMap({ locations }: CountyMapProps): ReactElement {
   const [geo, setGeo] = useState<UsGeo | null>(null)
   const [failed, setFailed] = useState(false)
+  const svgRef = useRef<SVGSVGElement | null>(null)
+  const zoomRef = useRef<ZoomBehavior<SVGSVGElement, unknown> | null>(null)
+  const [transform, setTransform] = useState<ZoomTransform>(() => zoomIdentity)
 
   useEffect(() => {
     let cancelled = false
@@ -77,6 +85,33 @@ export function CountyMap({ locations }: CountyMapProps): ReactElement {
       .filter((m): m is NonNullable<typeof m> => m !== null)
   }, [geo, locations])
 
+  const showMap = !failed && geo !== null && markers.length > 0
+
+  // Attach d3-zoom once the SVG is in the DOM; it drives the transform that scales the basemap group.
+  useEffect(() => {
+    const node = svgRef.current
+    if (!showMap || node === null) {
+      return
+    }
+    const selection = select(node)
+    const behavior = zoom<SVGSVGElement, unknown>()
+      .scaleExtent([1, MAX_ZOOM])
+      .on('zoom', (event: D3ZoomEvent<SVGSVGElement, unknown>) => setTransform(event.transform))
+    selection.call(behavior)
+    zoomRef.current = behavior
+    return () => {
+      selection.on('.zoom', null)
+      zoomRef.current = null
+    }
+  }, [showMap])
+
+  function resetZoom(): void {
+    const node = svgRef.current
+    if (node !== null && zoomRef.current !== null) {
+      select(node).call(zoomRef.current.transform, zoomIdentity)
+    }
+  }
+
   if (failed) {
     return <p className="error" role="alert">Could not load the map.</p>
   }
@@ -96,6 +131,7 @@ export function CountyMap({ locations }: CountyMapProps): ReactElement {
   return (
     <div className="map-frame">
       <svg
+        ref={svgRef}
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         width="100%"
         height="100%"
@@ -103,19 +139,33 @@ export function CountyMap({ locations }: CountyMapProps): ReactElement {
         aria-label={`Documents by county across ${markers.length} ${markers.length === 1 ? 'county' : 'counties'}`}
         preserveAspectRatio="xMidYMid meet"
       >
-        <g className="map-states">
-          {geo.statePaths.map((d, i) => (
-            <path key={i} d={d} />
-          ))}
-        </g>
-        <g className="map-bubbles">
-          {markers.map((m) => (
-            <circle key={`${m.state}|${m.county}`} cx={m.x} cy={m.y} r={radius(m.count, maxCount)}>
-              <title>{`${m.county}, ${m.state}: ${m.count} document${m.count === 1 ? '' : 's'}`}</title>
-            </circle>
-          ))}
+        <g transform={transform.toString()}>
+          <g className="map-states">
+            {geo.statePaths.map((d, i) => (
+              <path key={i} d={d} vectorEffect="non-scaling-stroke" />
+            ))}
+          </g>
+          <g className="map-bubbles">
+            {markers.map((m) => (
+              <circle
+                key={`${m.state}|${m.county}`}
+                cx={m.x}
+                cy={m.y}
+                r={radius(m.count, maxCount) / transform.k}
+                vectorEffect="non-scaling-stroke"
+              >
+                <title>{`${m.county}, ${m.state}: ${m.count} document${m.count === 1 ? '' : 's'}`}</title>
+              </circle>
+            ))}
+          </g>
         </g>
       </svg>
+      {transform.k !== 1 && (
+        <button type="button" className="map-reset" onClick={resetZoom}>
+          Reset view
+        </button>
+      )}
+      <span className="map-hint" aria-hidden="true">scroll to zoom · drag to pan</span>
     </div>
   )
 }
