@@ -143,8 +143,12 @@ Secrets (never commit values):
 - App logging is minimal (console), and the **infra** observability stack (Log Analytics ingestion, App
   Insights traces, alerting) is out of scope.
 - The one in-scope exception is the **in-app LLM usage dashboard**: `GET /usage` reads free, read-only
-  **Azure Monitor platform metrics** for the Foundry resource (ADR-0020). It needs the **Monitoring Reader**
-  role + `Monitor:ResourceId` (DEPLOYMENT §1g); offline/CI pins `UsageSource:Provider=inmemory`.
+  **Azure Monitor platform metrics** for the Foundry resource (ADR-0020). In Azure it needs the **Monitoring
+  Reader** role + `Monitor:ResourceId` (DEPLOYMENT §1g; already wired — AZURE-CONFIG §6.5).
+- **Locally it does *not* just work with committed defaults** (`UsageSource:Provider=azuremonitor` + empty
+  `Monitor:ResourceId` → `/usage` 500s). Either pin `UsageSource__Provider=inmemory` for canned data (no
+  Azure, no creds), or set `Monitor__ResourceId` + `az login` (your identity already has metric-read). Full
+  walkthrough — how it works, keys, local modes: **[USAGE-DASHBOARD.md](USAGE-DASHBOARD.md)**.
 
 ## Teardown (cost-guarded)
 - The slice is **local and in-memory**: stop the `dotnet` and `npm` processes (or the container —

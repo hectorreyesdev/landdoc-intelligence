@@ -115,6 +115,7 @@ knowledge/docs/
   DEPLOYMENT.md    first-time deploy · redeploy · teardown for Azure Container Apps
   CICD.md          OIDC identity setup · role grants · GitHub secrets · CI/CD usage
   AZURE-CONFIG.md  Azure resource inventory · adapter wiring · model deployments · role grants
+  USAGE-DASHBOARD.md  LLM usage/cost Ops dashboard — how it works · config keys · local + Azure setup
   GLOSSARY.md      domain + project terms
   decisions/       ADRs (Nygard, NNNN-slug.md), immutable once Accepted — supersede convention below
   specs/           feature specs, one per file (NNNN-<slug>.md); design interface changes here

@@ -161,6 +161,11 @@ identity/role isn't wired (see 1c–1d); a `500` on `/documents` means the blob 
 
 `GET /usage` (the Ops / Usage tab) reads **Azure Monitor platform metrics** for the Foundry resource via the
 app's managed identity. No secret is involved — just one read-only role grant and two non-secret config keys.
+Full guide (how it works · keys · local dev): [USAGE-DASHBOARD.md](USAGE-DASHBOARD.md).
+
+> **Already applied to the live env (2026-06-09):** the grant + `Monitor__ResourceId` below are in place
+> (AZURE-CONFIG §6.5/§9). The steps are idempotent — re-running is safe. The `/usage` endpoint itself goes
+> live when the feature merges to `main` and CI/CD redeploys.
 
 **Step 1 — grant the app's managed identity read access to the Foundry resource's metrics** (read-only,
 least privilege):
@@ -296,8 +301,10 @@ az account set --subscription "$SUBSCRIPTION"
 PRINCIPAL_ID=$(az containerapp show -n "$APP" -g "$RG" --query "identity.principalId" -o tsv)
 VAULT_ID=$(az keyvault show --name "$VAULT" --query id -o tsv)
 STORAGE_ID=$(az storage account show -n stlanddochr01 -g "$RG" --query id -o tsv)
+FOUNDRY_ID=$(az cognitiveservices account show -n landdoc-rag-resource -g "$RG" --query id -o tsv)
 az role assignment delete --assignee "$PRINCIPAL_ID" --role "Key Vault Secrets User" --scope "$VAULT_ID"
 az role assignment delete --assignee "$PRINCIPAL_ID" --role "Storage Blob Data Contributor" --scope "$STORAGE_ID"
+az role assignment delete --assignee "$PRINCIPAL_ID" --role "Monitoring Reader" --scope "$FOUNDRY_ID"  # usage dashboard (§1g)
 
 az containerapp delete  -n "$APP" -g "$RG" --yes        # the app (all revisions)
 az containerapp env delete -n "$ENV" -g "$RG" --yes     # the environment

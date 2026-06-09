@@ -70,7 +70,7 @@ a fake, `VectorStore__Provider=inmemory`, `DocumentStore__Provider=inmemory`. Se
 - `frontend/` — React/TS SPA (upload → fields → documents table → ask → answer-with-citations → source viewer)
 - [`knowledge/`](knowledge/README.md) — living docs, evergreen notes, committed session logs, lessons
   - **Design:** [PRD](knowledge/docs/PRD.md) · [Stack](knowledge/docs/STACK.md) · [Architecture](knowledge/docs/ARCHITECTURE.md) · [Data model](knowledge/docs/DATA-MODEL.md) · [Data flow](knowledge/docs/DATA-FLOW.md) · [API](knowledge/docs/API.md) · [Glossary](knowledge/docs/GLOSSARY.md)
-  - **Operate:** [Runbook](knowledge/docs/RUNBOOK.md) · [Deployment](knowledge/docs/DEPLOYMENT.md) · [CI/CD](knowledge/docs/CICD.md) · [Azure config](knowledge/docs/AZURE-CONFIG.md)
+  - **Operate:** [Runbook](knowledge/docs/RUNBOOK.md) · [Deployment](knowledge/docs/DEPLOYMENT.md) · [CI/CD](knowledge/docs/CICD.md) · [Azure config](knowledge/docs/AZURE-CONFIG.md) · [Usage dashboard](knowledge/docs/USAGE-DASHBOARD.md)
   - **Decide:** [ADRs](knowledge/docs/decisions/) · [Specs](knowledge/docs/specs/README.md) · [Lessons](knowledge/lessons.md)
 
 > Docs are authored as **design intent** before code; once code lands, `/wrap` keeps them current.
