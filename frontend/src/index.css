@@ -848,6 +848,33 @@ button:disabled {
     flex: none;
     height: 60vh;
   }
+
+  /* Tighter page gutters on small screens. */
+  .app {
+    padding: 1.25rem 0.85rem 3rem;
+  }
+
+  /* Header: title + theme toggle on top; tabs become a full-width, swipeable strip below. */
+  .app-header {
+    flex-wrap: wrap;
+    row-gap: 0.5rem;
+  }
+
+  .app-header h1 {
+    font-size: 1.3rem;
+  }
+
+  /* Wide tables scroll horizontally instead of overflowing the layout. */
+  .doc-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .eval-table-frame {
+    overflow-x: auto;
+  }
 }
 
 /* ── Tabs (Workspace / Dashboard, spec 0007) ──────────────────────────────── */
@@ -878,6 +905,29 @@ button:disabled {
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-fg);
+}
+
+/* Mobile: tabs become a full-width, swipeable strip. Declared AFTER the base .tabs rule so these
+   same-specificity overrides win on source order (media queries don't add specificity). */
+@media (max-width: 720px) {
+  .tabs {
+    order: 3;
+    width: 100%;
+    margin: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
 }
 
 /* ── Dashboard (spec 0007) ────────────────────────────────────────────────── */
