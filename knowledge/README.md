@@ -12,8 +12,10 @@ lands. Conventions live in [`CLAUDE.md`](../CLAUDE.md) and the
 - [Data model](docs/DATA-MODEL.md) — domain types + ER diagram
 - [Data flow](docs/DATA-FLOW.md) — ingest → answer-with-citations sequence
 - [API](docs/API.md) — endpoints · request/response · error model
-- [Runbook](docs/RUNBOOK.md) — install · run · test · build · secrets · teardown
-- [Deployment](docs/DEPLOYMENT.md) — Azure Container Apps: first-time deploy · redeploy · teardown
+- [Runbook (index)](docs/RUNBOOK.md) — entry point + canonical config/secrets reference
+- [Runbook — local](docs/RUNBOOK-LOCAL.md) — run & debug on your machine (dev · container · tests)
+- [Runbook — production](docs/RUNBOOK-PROD.md) — operate the live env (deploy · logs · rollback · scale)
+- [Deployment](docs/DEPLOYMENT.md) — Azure Container Apps: first-time deploy · redeploy · custom domain · teardown
 - [CI/CD](docs/CICD.md) — auto-deploy on merge to main (GitHub Actions + OIDC)
 - [Azure config](docs/AZURE-CONFIG.md) — Azure resource inventory · adapter wiring · role grants
 - [Usage dashboard](docs/USAGE-DASHBOARD.md) — LLM usage/cost Ops dashboard: how it works · keys · local + Azure config
