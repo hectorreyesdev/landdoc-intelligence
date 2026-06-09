@@ -13,7 +13,8 @@ namespace LandDoc.Api.Ingestion;
 /// fields) in <see cref="IDocumentStore"/>. Returns the new document id, its extracted fields, and the
 /// number of chunks stored. Field extraction is **best-effort** (spec 0001 amendment): a failing
 /// <see cref="IChatClient"/> provider degrades to empty fields, it never fails the write path. Document
-/// persistence, by contrast, is **required** (ADR-0018): a store failure fails the write path.
+/// persistence, by contrast, is **required** (ADR-0018): a store failure fails the write path and the
+/// just-written chunks are rolled back (compensated) so no orphan chunks survive a failed ingest.
 /// </summary>
 public sealed class DocumentIngestionService(
     PdfTextExtractor pdfTextExtractor,
@@ -64,9 +65,29 @@ public sealed class DocumentIngestionService(
 
         // Persist the document (original bytes + metadata + extracted fields) so it can be listed and the
         // source file viewed (ADR-0018). Unlike best-effort extraction this is *required*: if we can't store
-        // the document, the "view source" feature is broken — so a store failure fails the write path.
+        // the document, the "view source" feature is broken — so a store failure fails the write path. But
+        // the chunks are already committed at this point, so on failure we compensate by deleting them
+        // before rethrowing — otherwise /ask would retrieve orphan chunks with no viewable source, and a
+        // retried upload (new documentId) would silently accumulate duplicates. The compensation is
+        // best-effort: a cleanup failure is logged but must not mask the original store error.
         var metadata = new DocumentMetadata(documentId, fileName, "ready", contentType, chunkTexts.Count, fields, DateTimeOffset.UtcNow);
-        await documentStore.SaveAsync(metadata, content, cancellationToken);
+        try
+        {
+            await documentStore.SaveAsync(metadata, content, cancellationToken);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "Document store failed for {FileName}; rolling back {ChunkCount} orphaned chunks for {DocumentId}.", fileName, chunkTexts.Count, documentId);
+            try
+            {
+                await vectorStore.DeleteByDocumentAsync(documentId, cancellationToken);
+            }
+            catch (Exception cleanupEx) when (cleanupEx is not OperationCanceledException)
+            {
+                logger.LogError(cleanupEx, "Compensating chunk delete failed for {DocumentId}; its chunks may be orphaned.", documentId);
+            }
+            throw;
+        }
 
         return new IngestDocumentResponse(documentId, fileName, "ready", fields, chunkTexts.Count);
     }
