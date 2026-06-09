@@ -60,8 +60,8 @@ value from **Foundry → the resource → Keys & Endpoint** and store it as the 
 | `AzureOpenAI--ApiKey` | `AzureOpenAI:ApiKey` | AOAI key 🔒 *(prefer managed identity in hosting; key for local/dev)* |
 | `DocIntelligence--Endpoint` | `DocIntelligence:Endpoint` | Document Intelligence endpoint (provisioned, unused) |
 | `DocIntelligence--ApiKey` | `DocIntelligence:ApiKey` | Document Intelligence key 🔒 (provisioned, unused) |
-| `Search--Endpoint` | `Search:Endpoint` | Azure AI Search endpoint (`.search.windows.net`) ‹confirm secret exists in KV — ADR-0017› |
-| `Search--ApiKey` | `Search:ApiKey` | Azure AI Search admin key 🔒 (Free tier = key auth, no MI — ADR-0017) ‹confirm› |
+| `Search--Endpoint` | `Search:Endpoint` | Azure AI Search endpoint (`.search.windows.net`). Code binds the `Search` section (ADR-0017); supply via KV `Search--*` or env `Search__*` |
+| `Search--ApiKey` | `Search:ApiKey` | Azure AI Search admin key 🔒 (Free tier = key auth, no MI — ADR-0017) |
 | `Blob--ConnectionString` | `Blob:ConnectionString` | Storage account connection string 🔒 (fallback when `Blob:ServiceUri`/MI not used) |
 | `Anthropic--ApiKey` | `Anthropic:ApiKey` | Anthropic-direct fallback key 🔒 ‹confirm this 6th secret exists — build log says 6, provision note lists 5› |
 
@@ -133,9 +133,9 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 
 - [ ] Exact **AOAI endpoint form** (`.openai.azure.com` vs `.services.ai.azure.com`) + `api-version` (§4).
 - [x] **Deployment names** for chat + embeddings — `gpt-5.4-mini` / `text-embedding-3-small` (in `appsettings.json`) (§3).
-- [ ] **Secret count/names** in `kv-landdoc-hr01` — confirm the Anthropic fallback secret + the **`Search--Endpoint` / `Search--ApiKey`** secrets (§5).
+- [x] **Secret/config key names** — fixed by the code: `Search:Endpoint` / `Search:ApiKey` (KV `Search--*` or env `Search__*`), confirmed live (§5).
 - [x] API host's **managed identity** granted *Key Vault Secrets User* on the vault — deployed (§7).
-- [ ] Record the **Azure AI Search service name/endpoint** (§2/§7) — not captured during the ADR-0017 build.
+- [ ] Record the **Azure AI Search service name + endpoint VALUE** (§2/§7) — the key *names* are known from code; the endpoint value is runtime config, not in the repo.
 - [ ] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4)
   and Container App env set: `Blob__ServiceUri=https://stlanddochr01.blob.core.windows.net`,
   `DocumentStore__Provider=azureblob`. (Local dev: `DocumentStore__Provider=inmemory`, or Azurite via
