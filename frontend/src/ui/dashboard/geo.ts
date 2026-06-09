@@ -20,6 +20,7 @@ export interface CountyMarker {
   readonly count: number
   readonly lon: number
   readonly lat: number
+  readonly documentIds: readonly string[]
 }
 
 // The extractor emits county values inconsistently — some bare ("Reeves"), some suffixed ("Eddy County") —
@@ -44,7 +45,14 @@ export function resolveMarkers(
   for (const loc of locations) {
     const centroid = index.get(indexKey(loc.state, loc.county))
     if (centroid !== undefined) {
-      markers.push({ state: loc.state, county: loc.county, count: loc.count, lon: centroid[0], lat: centroid[1] })
+      markers.push({
+        state: loc.state,
+        county: loc.county,
+        count: loc.count,
+        lon: centroid[0],
+        lat: centroid[1],
+        documentIds: loc.documentIds,
+      })
     }
   }
   return markers.sort((a, b) => b.count - a.count)

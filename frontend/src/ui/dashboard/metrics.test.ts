@@ -109,15 +109,15 @@ describe('ingestByHour', () => {
 describe('documentsByStateCounty', () => {
   it('counts documents per (state, county), skipping those missing either field', () => {
     const docs = [
-      doc({ fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
-      doc({ fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
-      doc({ fields: [field('State', 'New Mexico'), field('County', 'Lea')] }),
-      doc({ fields: [field('County', 'Orphan')] }), // no state — skipped
-      doc({ fields: [] }), // nothing — skipped
+      doc({ id: 'tx1', fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
+      doc({ id: 'tx2', fields: [field('State', 'Texas'), field('County', 'Reeves')] }),
+      doc({ id: 'nm1', fields: [field('State', 'New Mexico'), field('County', 'Lea')] }),
+      doc({ id: 'o1', fields: [field('County', 'Orphan')] }), // no state — skipped
+      doc({ id: 'e1', fields: [] }), // nothing — skipped
     ]
     expect(documentsByStateCounty(docs)).toEqual([
-      { state: 'Texas', county: 'Reeves', count: 2 },
-      { state: 'New Mexico', county: 'Lea', count: 1 },
+      { state: 'Texas', county: 'Reeves', count: 2, documentIds: ['tx1', 'tx2'] },
+      { state: 'New Mexico', county: 'Lea', count: 1, documentIds: ['nm1'] },
     ])
   })
 })

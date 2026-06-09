@@ -35,7 +35,7 @@ flowchart TD
 ```
 
 ## Containers & components
-- **SPA** (React/TS) — four tabs (**Workspace** | **Documents** | **Dashboard** | **Ops / Usage**), light/dark
+- **SPA** (React/TS) — five tabs (**Workspace** | **Documents** | **Dashboard** | **Eval** | **Ops / Usage**), light/dark
   **theme toggle**, one typed API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload
   control (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
   question box + **answer-with-citations** (each citation links to its source document), and a
@@ -43,9 +43,11 @@ flowchart TD
   is rendered formatted**, PDF/plain-text embed inline).
   *Documents:* the full-width **persisted documents table** (**sortable** columns · search · CSV export ·
   multi-select **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI
-  tiles, documents-by-location and **ingest-by-hour** charts (Recharts), a **county bubble map** (d3-geo
-  Albers-USA + d3-zoom, zoom/pan with constant-size dots; us-atlas TopoJSON lazy-imported), a needs-review
-  list, and a lease-expiration widget — all aggregated client-side from `GET /documents`. *Ops / Usage:* an
+  tiles, documents-by-location and **ingest-by-hour** charts (Recharts), a **clickable county bubble map**
+  (d3-geo Albers-USA + d3-zoom, zoom/pan with constant-size dots; bubble opens that county's doc), a
+  full-width **lease primary-term widget** (Table / Gantt Timeline / Runway / Heatmap views), and a
+  needs-review list — all aggregated client-side from `GET /documents`. *Eval:* the **answer-quality eval
+  scorecard** (spec 0011, committed snapshot — independent of the user's corpus). *Ops / Usage:* an
   **operator-facing** read-out (totals · per-deployment table · request-health + latency cards, with a
   range selector) over `GET /usage` (spec 0009) — distinct audience from the analyst Dashboard. React over
   Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).

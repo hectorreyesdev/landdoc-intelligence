@@ -11,6 +11,8 @@ import type { StateCountyCount } from './metrics'
 interface CountyMapProps {
   /** Pre-aggregated (state, county) counts — same data feeding the "Documents by county" bar chart. */
   locations: readonly StateCountyCount[]
+  /** Open a document — clicking a county bubble opens that county's first document. */
+  onOpenDocument: (documentId: string) => void
 }
 
 const WIDTH = 975
@@ -37,7 +39,7 @@ function radius(count: number, max: number): number {
  * so the dots keep a constant screen size — zooming in pinpoints exactly which county a dot sits on. The SVG
  * renders nothing testable under jsdom, so correctness lives in `geo.ts`'s pure functions.
  */
-export function CountyMap({ locations }: CountyMapProps): ReactElement {
+export function CountyMap({ locations, onOpenDocument }: CountyMapProps): ReactElement {
   const [geo, setGeo] = useState<UsGeo | null>(null)
   const [failed, setFailed] = useState(false)
   const svgRef = useRef<SVGSVGElement | null>(null)
@@ -146,17 +148,24 @@ export function CountyMap({ locations }: CountyMapProps): ReactElement {
             ))}
           </g>
           <g className="map-bubbles">
-            {markers.map((m) => (
-              <circle
-                key={`${m.state}|${m.county}`}
-                cx={m.x}
-                cy={m.y}
-                r={radius(m.count, maxCount) / transform.k}
-                vectorEffect="non-scaling-stroke"
-              >
-                <title>{`${m.county}, ${m.state}: ${m.count} document${m.count === 1 ? '' : 's'}`}</title>
-              </circle>
-            ))}
+            {markers.map((m) => {
+              const firstDoc = m.documentIds[0]
+              return (
+                <circle
+                  key={`${m.state}|${m.county}`}
+                  cx={m.x}
+                  cy={m.y}
+                  r={radius(m.count, maxCount) / transform.k}
+                  vectorEffect="non-scaling-stroke"
+                  className={firstDoc !== undefined ? 'map-bubble--clickable' : undefined}
+                  role={firstDoc !== undefined ? 'button' : undefined}
+                  aria-label={firstDoc !== undefined ? `Open a document from ${m.county}, ${m.state}` : undefined}
+                  onClick={firstDoc !== undefined ? () => onOpenDocument(firstDoc) : undefined}
+                >
+                  <title>{`${m.county}, ${m.state}: ${m.count} document${m.count === 1 ? '' : 's'}${firstDoc !== undefined ? ' — click to open' : ''}`}</title>
+                </circle>
+              )
+            })}
           </g>
         </g>
       </svg>
