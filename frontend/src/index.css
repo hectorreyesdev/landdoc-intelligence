@@ -938,11 +938,22 @@ button:disabled {
 
 /* County bubble map (spec 0007 amendment). */
 .map-frame {
+  position: relative;
   width: 100%;
   height: 240px;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+}
+
+.map-frame svg {
+  cursor: grab;
+  touch-action: none;
+}
+
+.map-frame svg:active {
+  cursor: grabbing;
 }
 
 .map-states path {
@@ -956,6 +967,23 @@ button:disabled {
   fill-opacity: 0.55;
   stroke: var(--accent);
   stroke-width: 1;
+}
+
+.map-reset {
+  position: absolute;
+  top: 0.4rem;
+  right: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  font-size: 0.75rem;
+}
+
+.map-hint {
+  position: absolute;
+  bottom: 0.3rem;
+  left: 0.5rem;
+  font-size: 0.7rem;
+  color: var(--muted);
+  pointer-events: none;
 }
 
 .review-list {
