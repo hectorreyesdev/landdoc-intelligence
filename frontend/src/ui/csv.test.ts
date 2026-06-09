@@ -35,4 +35,22 @@ describe('documentsToCsv', () => {
   it('emits just the header for an empty corpus', () => {
     expect(documentsToCsv([])).toBe('fileName,status,chunkCount,ingestedAt')
   })
+
+  it('neutralizes spreadsheet formula injection in extracted field values', () => {
+    // A crafted upload could make the LLM extract a value that Excel/Sheets treats as a formula.
+    const docs = [doc('evil.pdf', [['Lessee', '=HYPERLINK("http://evil","click")']])]
+    const cell = documentsToCsv(docs).split('\n')[1].split(',').slice(4).join(',')
+    // Leading quote forces literal text; the whole cell is RFC-4180-quoted because it contains quotes.
+    expect(cell).toBe('"\'=HYPERLINK(""http://evil"",""click"")"')
+  })
+
+  it('prefixes every formula trigger character with a single quote', () => {
+    for (const trigger of ['=cmd', '+1', '-1', '@SUM', '\tx', '\rx']) {
+      const csv = documentsToCsv([doc('x.pdf', [['F', trigger]])])
+      const cell = csv.split('\n')[1].split(',').slice(4).join(',')
+      // A bare trigger with no CSV-special chars stays unquoted but gains the literal-text prefix;
+      // the tab/CR variants additionally get RFC-4180-quoted.
+      expect(cell.startsWith("'") || cell.startsWith('"\'')).toBe(true)
+    }
+  })
 })

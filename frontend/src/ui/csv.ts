@@ -6,7 +6,12 @@ import type { DocumentSummary } from '../api/types'
 const BASE_COLUMNS = ['fileName', 'status', 'chunkCount', 'ingestedAt'] as const
 
 function escapeCsv(value: string): string {
-  return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value
+  // Neutralize spreadsheet formula injection before RFC-4180 quoting: a cell starting with =, +, -, @,
+  // tab, or CR is interpreted as a formula by Excel/Sheets. Field values are LLM-extracted from arbitrary
+  // uploaded documents, so a crafted doc could yield e.g. =HYPERLINK(...) that executes on export open.
+  // Prefix such cells with a single quote to force literal text (OWASP CSV-injection guidance).
+  const guarded = /^[=+\-@\t\r]/.test(value) ? `'${value}` : value
+  return /[",\n\r]/.test(guarded) ? `"${guarded.replace(/"/g, '""')}"` : guarded
 }
 
 export function documentsToCsv(docs: readonly DocumentSummary[]): string {
