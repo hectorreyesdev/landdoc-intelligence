@@ -91,8 +91,9 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    files + metadata in container `documents` (two blobs per doc: bytes + metadata JSON); managed-identity-
    preferred auth (`Blob:ServiceUri` + `DefaultAzureCredential`, connection-string fallback);
    `DocumentStore:Provider` switch (`azureblob` live / `inmemory` offline). Backs the document table +
-   source-file viewer. **New role grant required:** the Container App's MI needs *Storage Blob Data
-   Contributor* on `stlanddochr01` (for the passwordless `ServiceUri` path).
+   source-file viewer. **Role grant done:** the Container App's MI (`landdoc`) holds *Storage Blob Data
+   Contributor* on `stlanddochr01` (the passwordless `ServiceUri` path); endpoint supplied via the
+   `Blob--ServiceUri` Key Vault secret (§5).
 
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).
@@ -137,7 +138,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 - [x] **Secret/config key names** — fixed by the code: `Search:Endpoint` / `Search:ApiKey` (KV `Search--*` or env `Search__*`), confirmed live (§5).
 - [x] API host's **managed identity** granted *Key Vault Secrets User* on the vault — deployed (§7).
 - [ ] Record the **Azure AI Search service name + endpoint VALUE** (§2/§7) — the key *names* are known from code; the endpoint value is runtime config, not in the repo.
-- [ ] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4)
-  and Container App env set: `Blob__ServiceUri=https://stlanddochr01.blob.core.windows.net`,
-  `DocumentStore__Provider=azureblob`. (Local dev: `DocumentStore__Provider=inmemory`, or Azurite via
-  `Blob__ConnectionString`.)
+- [x] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4),
+  and the blob endpoint supplied via the `Blob--ServiceUri` Key Vault secret (§5) — `DocumentStore:Provider`
+  is the committed `appsettings.json` default (`azureblob`), so no env var is needed. (Local dev:
+  `DocumentStore__Provider=inmemory`, or Azurite via `Blob__ConnectionString`.)
