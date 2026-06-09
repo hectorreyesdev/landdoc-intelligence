@@ -1,8 +1,10 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { DocumentsTable } from './DocumentsTable'
 import type { DocumentSummary } from '../api/types'
+
+afterEach(() => vi.unstubAllGlobals())
 
 const docs: readonly DocumentSummary[] = [
   {
@@ -49,4 +51,28 @@ it('shows an empty state when there are no documents', () => {
 
   expect(screen.getByText(/no documents ingested yet/i)).toBeInTheDocument()
   expect(screen.queryByRole('button', { name: /view/i })).not.toBeInTheDocument()
+})
+
+it('filters rows by the search query (file name or fields)', async () => {
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} />)
+
+  await userEvent.type(screen.getByRole('searchbox', { name: /search documents/i }), 'lease-b')
+
+  expect(screen.queryByText('lease-a.pdf')).not.toBeInTheDocument()
+  expect(screen.getByText('lease-b.md')).toBeInTheDocument()
+})
+
+it('exports the shown documents to CSV', async () => {
+  const createObjectURL = vi.fn(() => 'blob:fake')
+  const revokeObjectURL = vi.fn()
+  vi.stubGlobal('URL', { createObjectURL, revokeObjectURL })
+  const clickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {})
+
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} />)
+  await userEvent.click(screen.getByRole('button', { name: /export csv/i }))
+
+  expect(createObjectURL).toHaveBeenCalledOnce()
+  expect(clickSpy).toHaveBeenCalledOnce()
+
+  clickSpy.mockRestore()
 })
