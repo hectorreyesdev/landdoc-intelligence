@@ -23,7 +23,7 @@ const summary: DocumentSummary = {
   ingestedAt: '2026-06-08T12:00:00+00:00',
 }
 
-it('loads the document and embeds the original file in an iframe', async () => {
+it('loads a PDF document and embeds the original file in an iframe', async () => {
   vi.mocked(client.getDocument).mockResolvedValue({ ok: true, value: summary })
 
   render(<DocumentViewer documentId="d1" onClose={() => {}} />)
@@ -33,6 +33,42 @@ it('loads the document and embeds the original file in an iframe', async () => {
   // …and the original file is embedded via its same-origin URL.
   const frame = screen.getByTitle(/source file: lease-a\.pdf/i)
   expect(frame).toHaveAttribute('src', '/documents/d1/file')
+  // No text fetch for a PDF — the browser renders the bytes.
+  expect(client.getDocumentFileText).not.toHaveBeenCalled()
+})
+
+it('renders a markdown document FORMATTED instead of as raw text', async () => {
+  const md: DocumentSummary = {
+    ...summary,
+    fileName: '05-ogl-mckenzie-nd.md',
+    contentType: 'text/markdown',
+  }
+  vi.mocked(client.getDocument).mockResolvedValue({ ok: true, value: md })
+  vi.mocked(client.getDocumentFileText).mockResolvedValue({
+    ok: true,
+    value: '# Paid-Up Oil and Gas Lease\n\n## Royalty\n\n18.75% (3/16) of production.',
+  })
+
+  render(<DocumentViewer documentId="d1" onClose={() => {}} />)
+
+  // The markdown is parsed into real headings, not shown as literal "# …" text.
+  expect(await screen.findByRole('heading', { name: 'Paid-Up Oil and Gas Lease' })).toBeInTheDocument()
+  expect(screen.getByRole('heading', { name: 'Royalty' })).toBeInTheDocument()
+  // No iframe for markdown — it's rendered in-page.
+  expect(screen.queryByTitle(/source file:/i)).not.toBeInTheDocument()
+})
+
+it('falls back to an error message when the markdown file text cannot be loaded', async () => {
+  const md: DocumentSummary = { ...summary, fileName: 'broken.md', contentType: 'text/markdown' }
+  vi.mocked(client.getDocument).mockResolvedValue({ ok: true, value: md })
+  vi.mocked(client.getDocumentFileText).mockResolvedValue({
+    ok: false,
+    error: { kind: 'server', status: 500, detail: null },
+  })
+
+  render(<DocumentViewer documentId="d1" onClose={() => {}} />)
+
+  expect(await screen.findByText(/could not load the file contents/i)).toBeInTheDocument()
 })
 
 it('shows an error state when the document cannot be loaded', async () => {

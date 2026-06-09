@@ -160,3 +160,23 @@ export async function deleteDocument(id: string): Promise<ApiResult<void>> {
 export function documentFileUrl(id: string): string {
   return `/documents/${encodeURIComponent(id)}/file`
 }
+
+/**
+ * Fetch a document's original file as text (spec 0006 amendment — formatted markdown rendering in the
+ * viewer). Used only for text-based formats (`text/markdown`, `text/plain`) so the viewer can render the
+ * content itself instead of embedding raw bytes in an `<iframe>`. PDFs still use {@link documentFileUrl}.
+ * Routed through the typed client so the single-fetch invariant holds.
+ */
+export async function getDocumentFileText(id: string): Promise<ApiResult<string>> {
+  let response: Response
+  try {
+    response = await fetch(`/documents/${encodeURIComponent(id)}/file`)
+  } catch {
+    return { ok: false, error: NETWORK_ERROR }
+  }
+
+  if (response.ok) {
+    return { ok: true, value: await response.text() }
+  }
+  return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}

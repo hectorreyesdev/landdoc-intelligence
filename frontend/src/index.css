@@ -689,6 +689,115 @@ button:disabled {
   background: var(--surface-2);
 }
 
+/* Formatted markdown render (spec 0006 amendment) — same box as the iframe, internally scrollable. */
+.viewer-markdown {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--fg);
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+}
+
+.viewer-markdown > :first-child {
+  margin-top: 0;
+}
+
+.viewer-markdown h1,
+.viewer-markdown h2,
+.viewer-markdown h3,
+.viewer-markdown h4 {
+  color: var(--heading);
+  line-height: 1.25;
+  margin: 1.4em 0 0.5em;
+}
+
+.viewer-markdown h1 {
+  font-size: 1.5rem;
+}
+.viewer-markdown h2 {
+  font-size: 1.25rem;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+.viewer-markdown h3 {
+  font-size: 1.08rem;
+}
+
+.viewer-markdown p,
+.viewer-markdown ul,
+.viewer-markdown ol,
+.viewer-markdown blockquote,
+.viewer-markdown table {
+  margin: 0.6em 0;
+}
+
+.viewer-markdown ul,
+.viewer-markdown ol {
+  padding-left: 1.4rem;
+}
+
+.viewer-markdown li {
+  margin: 0.2em 0;
+}
+
+.viewer-markdown a {
+  color: var(--accent);
+}
+
+.viewer-markdown blockquote {
+  margin-left: 0;
+  padding: 0.2rem 0 0.2rem 0.9rem;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.viewer-markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.88em;
+  background: var(--surface-2);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+}
+
+.viewer-markdown pre {
+  background: var(--surface-2);
+  padding: 0.8rem 1rem;
+  border-radius: 8px;
+  overflow-x: auto;
+}
+
+.viewer-markdown pre code {
+  background: none;
+  padding: 0;
+}
+
+.viewer-markdown table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.viewer-markdown th,
+.viewer-markdown td {
+  border: 1px solid var(--border);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+
+.viewer-markdown th {
+  background: var(--surface-2);
+}
+
+.viewer-markdown hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 1.2em 0;
+}
+
 /* Narrow screens: stack fields above the document. */
 @media (max-width: 720px) {
   .viewer-body {
@@ -700,7 +809,8 @@ button:disabled {
     flex: 0 0 auto;
   }
 
-  .viewer-frame {
+  .viewer-frame,
+  .viewer-markdown {
     flex: none;
     height: 60vh;
   }

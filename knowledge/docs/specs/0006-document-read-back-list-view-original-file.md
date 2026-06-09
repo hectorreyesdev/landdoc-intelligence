@@ -106,3 +106,17 @@ Give the slice a **persisted document library** on top of the chunk store, reali
 The source-file viewer is a **side-by-side** modal: extracted fields on the left (scrollable), the original
 file filling the right at full height (stacks vertically on narrow screens). This supersedes the original
 stacked fields-over-iframe layout — same data and read path, a visual refinement only.
+
+## Amendment — 2026-06-09 (formatted markdown rendering)
+**Markdown** uploads (`text/markdown`, or a `.md`/`.markdown` file name) now render **formatted** in the
+viewer's right pane — headings, lists, tables (GFM), code, blockquotes — instead of the raw monospace text
+the browser showed for an inline `text/markdown` iframe. This **reverses** the original "no markdown
+rendering in the viewer" out-of-scope item, for markdown only. PDFs and plain text are unchanged (still
+embedded in the `<iframe>`).
+- Rendering uses **`react-markdown`** + **`remark-gfm`** (frontend deps). Raw HTML embedded in a document is
+  **not** rendered (react-markdown's safe default), so an uploaded file cannot inject markup.
+- The viewer reads the file **as text** through a new typed-client method `getDocumentFileText(id)`
+  (`GET /documents/{id}/file`, returns `ApiResult<string>`) — so the single-fetch invariant (ADR-0006,
+  `fetch-discipline.test.ts`) still holds. `documentFileUrl(id)` is retained for the PDF/plain-text iframe.
+- **No backend or contract change** — same `GET /documents/{id}/file` endpoint and bytes; this is a
+  client-side presentation change.
