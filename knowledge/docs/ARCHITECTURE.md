@@ -19,7 +19,7 @@ flowchart TD
       api --> extraction["Extraction"]
       api --> retrieval["Retrieval"]
       api --> qa["Qa"]
-      retrieval --> vstore[("In-memory vector store")]
+      retrieval --> vstore[("Vector store (Azure AI Search live / in-memory offline)")]
       qa --> vstore
     end
 
@@ -86,6 +86,15 @@ flowchart TD
   future App Insights OTel upgrade behind the same port. See
   [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md) /
   [spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md).
+- **Eval harness** (non-prod, `backend/eval/LandDoc.Evals`) — an on-demand RAG answer-quality harness that
+  runs the **real** pipeline over a curated `samples/` subset and scores recall@k (deterministic) +
+  groundedness + correctness (Claude Sonnet 4.6 judge wired as a *separate* MEAI `IChatClient`, distinct
+  from the project's `IChatClient` port). **Deliberately excluded from `LandDoc.slnx` / CI** — it needs
+  real keys, costs money, and is non-deterministic; only the deterministic recall@k + dataset loader
+  (`LandDoc.Evals.Core`) are in the solution and unit-tested in the green suite. Report-only by default
+  (opt-in threshold floor); the **Eval** tab's scorecard renders a committed snapshot of its output. See
+  [spec 0012](specs/0012-rag-answer-quality-eval-harness.md) /
+  [ADR-0021](decisions/0021-llm-eval-harness-and-judge-model.md) and [EVAL-HARNESS.md](EVAL-HARNESS.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.

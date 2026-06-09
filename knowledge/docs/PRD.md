@@ -51,8 +51,11 @@ across Workspace / Documents / Dashboard / Ops · Usage tabs.
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.
 - Every answer carries at least one citation resolvable to a source chunk.
 - Swapping `ModelClient:ChatProvider` between Azure OpenAI and Anthropic requires **no code change**.
-> TODO: extracted-field set is fixed (lessor, lessee, legal description, royalty, key dates — spec
-> 0001); still open: an acceptable retrieval-quality bar for the demo.
+- Answer quality is **measured, not vibed** — the on-demand eval harness scores **recall@k · groundedness
+  · correctness** over a curated `samples/` set ([spec 0012](specs/0012-rag-answer-quality-eval-harness.md));
+  **report-only** today, with an opt-in per-metric threshold floor that becomes a gate once a bar is agreed.
+  *(assumption: no numeric bar is locked yet — current scores live in [EVAL-HARNESS.md](EVAL-HARNESS.md),
+  not pinned here.)*
 
 ## Open questions
 Resolved by the accepted slice specs:
@@ -71,7 +74,11 @@ Resolved by the accepted slice specs:
   ([spec 0001](specs/0001-document-ingestion-write-path.md),
   [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md),
   superseding [ADR-0008](decisions/0008-deterministic-hashing-embeddings-for-slice.md)).
+- **Retrieval / answer-quality bar** — now **measurable**: an on-demand eval harness scores recall@k /
+  groundedness / correctness over a curated set ([spec 0012](specs/0012-rag-answer-quality-eval-harness.md),
+  [ADR-0021](decisions/0021-llm-eval-harness-and-judge-model.md)); report-only with an opt-in threshold
+  floor. *(assumption: the measurement mechanism is settled; a specific numeric bar is intentionally not
+  locked yet.)*
 
 Still open:
 - Primary persona + the 2–3 questions they most need answered (see Users / personas).
-- An acceptable retrieval-quality bar for the demo.

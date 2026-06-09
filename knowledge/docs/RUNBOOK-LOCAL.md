@@ -111,6 +111,16 @@ npm test -- src/ui/documentSort.test.ts          # one file
 npm test -- -t "sorts chunk count"               # by test name
 ```
 
+## Eval harness (answer quality) — optional, needs keys
+The on-demand RAG answer-quality eval (`backend/eval/LandDoc.Evals`) is **not** part of the green suite
+above (it's excluded from `LandDoc.slnx` — it runs the real stack, costs money, and is non-deterministic).
+Running it locally needs real Azure + Anthropic secrets plus two data-plane role grants (Key Vault Secrets
+User + Storage Blob Data Contributor); full setup + the results/report flow live in
+**[EVAL-HARNESS.md](EVAL-HARNESS.md)**. The short version, after `az login`:
+```bash
+KeyVault__Uri=https://kv-landdoc-hr01.vault.azure.net/ dotnet test backend/eval/LandDoc.Evals
+```
+
 ## Debugging
 - **Backend (breakpoints):** open the repo in VS / VS Code (C# Dev Kit) / Rider and launch
   `src/LandDoc.Api` with the **http** profile, or `dotnet run` and attach to the process. Logs go to the
