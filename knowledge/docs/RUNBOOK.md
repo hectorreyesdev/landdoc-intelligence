@@ -97,6 +97,13 @@ Settings (non-secret, in `appsettings.json`):
 - `Blob:ServiceUri` — Blob endpoint (`https://stlanddochr01.blob.core.windows.net`); when set, auth is via
   managed identity (`DefaultAzureCredential`). Else falls back to `Blob:ConnectionString`. `Blob:ContainerName`
   defaults to `documents`. For local dev without Azure, set `DocumentStore:Provider=inmemory`.
+- `UsageSource:Provider` — `azuremonitor` (live default — Azure Monitor platform metrics for the LLM
+  usage/cost dashboard) | `inmemory` (offline/test; pinned by `TestModuleInitializer`). See [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md)
+- `Monitor:ResourceId` — the Foundry resource id read for usage metrics (managed-identity auth; **non-secret**,
+  not a Key Vault entry). Required when `UsageSource:Provider=azuremonitor` — the adapter throws fast if unset.
+  Needs the **Monitoring Reader** role on that resource (see [DEPLOYMENT.md §1g](DEPLOYMENT.md)).
+- `Pricing:<deployment>:InputPer1K` / `Pricing:<deployment>:OutputPer1K` — **non-secret** per-deployment price
+  table (USD per 1K tokens) used to **compute** estimated cost; a deployment with no entry contributes $0.
 - `KeyVault:Uri` — when set, Key Vault is added as a config source via `DefaultAzureCredential`; secrets
   named `AzureOpenAI--ApiKey` / `AzureOpenAI--Endpoint` / `Anthropic--ApiKey` / `Search--Endpoint` /
   `Search--ApiKey` / `Blob--ConnectionString` overlay
@@ -133,7 +140,11 @@ Secrets (never commit values):
      Container App. Restart if the role was granted after first boot.
 
 ## Observability
-- Minimal (console logging). The observability stack is explicitly out of scope.
+- App logging is minimal (console), and the **infra** observability stack (Log Analytics ingestion, App
+  Insights traces, alerting) is out of scope.
+- The one in-scope exception is the **in-app LLM usage dashboard**: `GET /usage` reads free, read-only
+  **Azure Monitor platform metrics** for the Foundry resource (ADR-0020). It needs the **Monitoring Reader**
+  role + `Monitor:ResourceId` (DEPLOYMENT §1g); offline/CI pins `UsageSource:Provider=inmemory`.
 
 ## Teardown (cost-guarded)
 - The slice is **local and in-memory**: stop the `dotnet` and `npm` processes (or the container —

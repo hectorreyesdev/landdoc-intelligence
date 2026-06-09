@@ -15,8 +15,8 @@ The ubiquitous language for LandDoc Intelligence — domain terms and project/ar
 
 ## Project & architecture
 - **RAG** — retrieval-augmented generation: ground answers in retrieved source text.
-- **Ingestion / Extraction / Retrieval / Qa** — the four backend modules (PDF→store / fields /
-  top-k / cited answer).
+- **Ingestion / Extraction / Retrieval / Qa / Usage** — the five backend modules (PDF→store / fields /
+  top-k / cited answer / LLM usage telemetry).
 - **Chunk** — a contiguous slice of document text that gets embedded and retrieved.
 - **Embedding** — a `float[]` vector representation of a chunk or query.
 - **Vector store** — collection of chunks+vectors; Azure AI Search Free tier is the live store, in-memory cosine the offline/test provider; see [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md) (realizes [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
@@ -25,6 +25,9 @@ The ubiquitous language for LandDoc Intelligence — domain terms and project/ar
 - **Citation** — a pointer from an answer/field back to the source chunk that supports it; carries the source document's file name so the UI can link to it.
 - **Dashboard** — the read-only analytics view over the ingested corpus (KPI tiles, documents-by-location and ingest-over-time charts, a needs-review list, and lease expirations), aggregated client-side from `GET /documents`; see [spec 0007](specs/0007-insights-dashboard-and-document-search-export.md).
 - **Lease expiration** — a document's term/expiration (end) date; surfaced (when extracted) in the dashboard's expirations widget, bucketed by how soon it's due.
+- **Ops / Usage** — the operator-facing dashboard (distinct from the analyst Dashboard) showing LLM token usage, estimated cost, request health, and latency over `GET /usage`; see [spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md).
+- **Usage source** — the read-only `IUsageSource` port behind the usage dashboard: Azure Monitor platform metrics live, in-memory offline/test, config-selected via `UsageSource:Provider`; cost is computed from a price table, not measured; see [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md).
+- **Azure Monitor (platform metrics)** — the free, ~93-day, 1-minute-grain metrics every Azure resource emits automatically; the usage dashboard reads the Foundry resource's token/request/latency metrics via the `Azure.Monitor.Query` SDK (Monitoring Reader role, managed identity) — ADR-0020.
 - **`IChatClient` / `IEmbeddingClient`** — the two model-access ports.
 - **Adapter / Port** — hexagonal terms: port = interface, adapter = provider implementation.
 - **Foundry** — Microsoft Foundry / Azure AI Services, the Azure model gateway. Hosts the live Azure OpenAI GPT chat deployment and the live embedding model (`text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)); the Foundry-serves-Claude chat primary was retired (needs Enterprise/MCA-E) — see [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md).

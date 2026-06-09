@@ -157,6 +157,38 @@ either proves the vault-supplied key reached the model. A `500` on `/ask` means 
 identity/role isn't wired (see 1c–1d); a `500` on `/documents` means the blob identity/role isn't wired
 (see 1e).
 
+### 1g. Configure the LLM usage dashboard (spec 0009 / ADR-0020)
+
+`GET /usage` (the Ops / Usage tab) reads **Azure Monitor platform metrics** for the Foundry resource via the
+app's managed identity. No secret is involved — just one read-only role grant and two non-secret config keys.
+
+**Step 1 — grant the app's managed identity read access to the Foundry resource's metrics** (read-only,
+least privilege):
+
+```bash
+FOUNDRY_ID=$(az cognitiveservices account show -n landdoc-rag-resource -g "$RG" --query id -o tsv)
+az role assignment create \
+  --role "Monitoring Reader" \
+  --assignee-object-id "$PRINCIPAL_ID" \
+  --assignee-principal-type ServicePrincipal \
+  --scope "$FOUNDRY_ID"
+```
+
+**Step 2 — point the app at the resource + set prices** (both **non-secret** — env vars, not Key Vault).
+`UsageSource:Provider=azuremonitor` is the committed `appsettings.json` default; the adapter throws fast if
+`Monitor:ResourceId` is unset, so supply it (and optionally override the example price table):
+
+```bash
+az containerapp update -n "$APP" -g "$RG" \
+  --set-env-vars "Monitor__ResourceId=$FOUNDRY_ID"
+# Prices ship as example rates in appsettings.json; override per deployment if needed, e.g.:
+#   Pricing__gpt-5.4-mini__InputPer1K=0.00015  Pricing__gpt-5.4-mini__OutputPer1K=0.0006
+```
+
+> Verify: `curl -s -o /dev/null -w "%{http_code}\n" "https://$FQDN/usage"` → `200` (zeros until there's
+> metric data; **never** `500`). A `500` on `/usage` means the Monitoring Reader grant or `Monitor__ResourceId`
+> isn't wired. For **local dev / CI** with no Azure Monitor, set `UsageSource__Provider=inmemory`.
+
 ---
 
 ## 2. Redeploy after code changes

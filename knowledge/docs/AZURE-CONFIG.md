@@ -94,14 +94,18 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    source-file viewer. **Role grant done:** the Container App's MI (`landdoc`) holds *Storage Blob Data
    Contributor* on `stlanddochr01` (the passwordless `ServiceUri` path); endpoint supplied via the
    `Blob--ServiceUri` Key Vault secret (§5).
-5. **Planned (spec 0009 / ADR-0020).** **`AzureMonitorUsageSource : IUsageSource`** — reads **Azure Monitor
-   platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query`) for the Foundry resource
-   `landdoc-rag-resource` to feed the LLM usage/cost dashboard; managed-identity auth (no new secret);
-   `UsageSource:Provider` switch (`azuremonitor` live / `inmemory` offline). **Role grant required (not yet
-   done):** grant the Container App's MI (`landdoc`) **Monitoring Reader** on `landdoc-rag-resource`
-   (read-only, least privilege). The Foundry resource id and the per-1K price table are **non-secret**
-   config (no Key Vault entry). Cost is computed (tokens × price table), an estimate — Azure Cost
-   Management is the future billing-grade cross-check.
+5. ✅ **Built in code (spec 0009 / ADR-0020); live wiring pending.** **`AzureMonitorUsageSource : IUsageSource`**
+   — reads **Azure Monitor platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query` 1.7.1) for the
+   Foundry resource `landdoc-rag-resource` to back `GET /usage`; managed-identity auth (no new secret);
+   `UsageSource:Provider` switch (`azuremonitor` live default in `appsettings.json` / `inmemory` offline-test).
+   Two deploy-time steps remain (neither is a secret):
+   - **Role grant (not yet done):** grant the Container App's MI (`landdoc`) **Monitoring Reader** on
+     `landdoc-rag-resource` (read-only, least privilege) — see [DEPLOYMENT.md §1g](DEPLOYMENT.md).
+   - **Config keys (non-secret, no Key Vault entry):** `Monitor:ResourceId` (the Foundry resource id; empty
+     in committed `appsettings.json`, supply via `Monitor__ResourceId` at deploy — the live adapter throws
+     fast if unset) and the `Pricing:<deployment>` table (`InputPer1K` / `OutputPer1K`, USD per 1K tokens;
+     committed example rates in `appsettings.json`). Cost is computed (tokens × price table), an estimate —
+     Azure Cost Management is the future billing-grade cross-check.
 
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).

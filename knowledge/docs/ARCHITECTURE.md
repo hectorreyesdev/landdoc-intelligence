@@ -35,8 +35,8 @@ flowchart TD
 ```
 
 ## Containers & components
-- **SPA** (React/TS) — three tabs (**Workspace** | **Documents** | **Dashboard**), light/dark **theme
-  toggle**, one typed API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload
+- **SPA** (React/TS) — four tabs (**Workspace** | **Documents** | **Dashboard** | **Ops / Usage**), light/dark
+  **theme toggle**, one typed API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload
   control (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
   question box + **answer-with-citations** (each citation links to its source document), and a
   **source-file viewer** (a modal showing the extracted fields **beside** the original file — **markdown
@@ -44,8 +44,10 @@ flowchart TD
   *Documents:* the full-width **persisted documents table** (search · CSV export · multi-select
   **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI tiles,
   documents-by-location and ingest-over-time charts (Recharts), a needs-review list, and a
-  lease-expiration widget — all aggregated client-side from `GET /documents`. React over Blazor — see
-  [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
+  lease-expiration widget — all aggregated client-side from `GET /documents`. *Ops / Usage:* an
+  **operator-facing** read-out (totals · per-deployment table · request-health + latency cards, with a
+  range selector) over `GET /usage` (spec 0009) — distinct audience from the analyst Dashboard. React over
+  Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
 - **Web API** (ASP.NET Core) — thin HTTP surface; delegates to modules.
 - **Modules** (namespaces in one process):
   - `Ingestion` — PDF **or** text/Markdown (dispatched by file extension) → text → chunks → embeddings → vector store.
@@ -70,14 +72,17 @@ flowchart TD
   provider. Object storage, not a similarity index — kept distinct from the vector store so PDF bytes never
   enter the search index. Backs `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec
   0006). See [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md).
-- **Usage source** *(planned — spec 0009)* — a config-selected port `IUsageSource` (`UsageSource:Provider`)
-  feeding the LLM usage/cost dashboard. Live default **`AzureMonitorUsageSource`** reads **Azure Monitor
+- **Usage source** (spec 0009) — a config-selected port `IUsageSource` (`UsageSource:Provider`) backing the
+  **Ops / Usage** view via `GET /usage`. Live default **`AzureMonitorUsageSource`** reads **Azure Monitor
   platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query`) for the Foundry resource via managed
-  identity (Monitoring Reader) — tokens / requests / latency split by `ModelDeploymentName`, with cost
-  **computed** from a configured price table; `InMemoryUsageSource` is the offline/test provider. Read-only,
-  $0, no new secret. Platform metrics can split by *deployment* but not by *our* feature (`/ask` vs.
-  extraction vs. embedding) — per-feature attribution is a future App Insights OTel upgrade behind the same
-  port. See [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md).
+  identity (Monitoring Reader) — tokens / requests / latency split by `ModelDeploymentName`; the port returns
+  **raw** aggregates and a pure `UsageCostCalculator` layers on **computed** cost from a configured price
+  table (so cost is provider-independent and unit-tested). `InMemoryUsageSource` is the offline/test provider
+  (pinned by `TestModuleInitializer`). Read-only, $0, no new secret. Platform metrics can split by
+  *deployment* but not by *our* feature (`/ask` vs. extraction vs. embedding) — per-feature attribution is a
+  future App Insights OTel upgrade behind the same port. See
+  [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md) /
+  [spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.
