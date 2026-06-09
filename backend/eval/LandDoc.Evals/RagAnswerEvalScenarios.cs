@@ -82,6 +82,9 @@ public sealed class RagAnswerEvalScenarios : IClassFixture<EvalPipelineFixture>
             "The answer is not found in the document(s)", StringComparison.OrdinalIgnoreCase);
         _fixture.Record(new EvalCaseSummary(
             evalCase.Id,
+            evalCase.Question,
+            evalCase.ExpectedAnswer,
+            evalCase.ExpectedSources,
             Metric(RecallAtKEvaluator.MetricName),
             Metric("Groundedness"),
             Metric("Equivalence"),
