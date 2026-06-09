@@ -1,4 +1,4 @@
-# 0006 — RAG Answer-Quality Eval Harness
+# 0009 — RAG Answer-Quality Eval Harness
 
 **Status:** Accepted
 
@@ -114,7 +114,7 @@ live Azure AI Search index.
   harness, and uploads the HTML report artifact; the **live** Search index is untouched throughout.
 
 ## Links
-- **Depends on (decision):** [[knowledge/docs/decisions/0018-llm-eval-harness-and-judge-model]] —
+- **Depends on (decision):** [[knowledge/docs/decisions/0020-llm-eval-harness-and-judge-model]] —
   records the choice of `Microsoft.Extensions.AI.Evaluation` as the eval framework and Claude Sonnet
   4.6 as the judge model. _To be recorded via `/adr` alongside this spec (spec + ADR first)._
 - **Exercises (specs):** [[knowledge/docs/specs/0001-document-ingestion-write-path]] (the `/documents`

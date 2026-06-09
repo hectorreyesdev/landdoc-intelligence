@@ -1,7 +1,7 @@
 namespace LandDoc.Evals.Core;
 
 /// <summary>
-/// Deterministic retrieval recall@k scoring (spec 0006) — the share of expected items that appear in
+/// Deterministic retrieval recall@k scoring (spec 0009) — the share of expected items that appear in
 /// the retrieved set. Pure and framework-free: the eval runner wraps this in a
 /// <c>Microsoft.Extensions.AI.Evaluation.IEvaluator</c>, but the math is unit-tested here in the green
 /// suite with no model call. Generic over the item type so it can score document ids (the real harness)

@@ -4,7 +4,7 @@ using System.Text.Json.Serialization;
 namespace LandDoc.Evals.Core;
 
 /// <summary>
-/// Loads the eval question set (spec 0006) from a <c>questions.json</c> file. The dataset is pure data —
+/// Loads the eval question set (spec 0009) from a <c>questions.json</c> file. The dataset is pure data —
 /// no model calls — so this loader lives in the dependency-free core and is unit-tested in the green
 /// suite. Validates each case (non-blank question/answer, ≥1 expected source) and throws early on bad
 /// input, matching the repo's validate-and-throw convention.
