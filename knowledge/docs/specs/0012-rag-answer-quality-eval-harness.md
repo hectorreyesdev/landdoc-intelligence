@@ -2,6 +2,11 @@
 
 **Status:** Accepted
 
+> **Amended 2026-06-09:** the curated corpus was broadened from the original ~15-doc focused subset to a
+> **type-diverse 32-doc / 37-case** set (a few of each of ~16 instrument types), and the Whitaker tract was
+> **reclassified from a multi-document cross-set to a precision distractor pair** (amendment vs. ratification)
+> — see [EVAL-HARNESS.md §11](../EVAL-HARNESS.md).
+
 ## What to build
 An **on-demand evaluation harness** that measures the *quality of real answers to real questions* —
 the thing the offline test suite deliberately can't. The existing `backend/tests/LandDoc.Tests`
@@ -19,10 +24,12 @@ of questions through the real `/ask` path, grades the answers, and emits a **sco
 **opt-in floor** that turns on hard per-metric threshold assertions when a quality gate is wanted.
 
 Ground truth comes from `samples/` — `manifest.json` is the answer key (per-document ground-truth
-fields), and the curated **cross-linked sets** (Henderson estate — Loving Co, TX; Whitaker tract —
-Lea Co, NM; McKenzie Co, ND section) drive **multi-document** retrieval cases where one question's
-answer spans several documents. Single-document field questions (royalty, bonus, lessor/grantor,
-legal description, …) are graded directly against the manifest fields. This is a **read-and-measure**
+fields), and the curated **cross-linked sets** (Henderson estate — Loving Co, TX; McKenzie Co, ND section;
+Pecos Valley — Eddy Co, NM) drive **multi-document** retrieval cases where one question's answer spans
+several documents; the **Whitaker tract** (Lea Co, NM) appears as a **precision distractor** — the amendment
+(Sec 33: W/2, ¼) vs. the ratification (Sec 16: SE/4, 3⁄16), testing that two same-family tracts stay apart.
+Single-document field questions (royalty, bonus, lessor/grantor, legal description, …) are graded directly
+against the manifest fields. This is a **read-and-measure**
 harness: it never changes the application's behavior or its public ports, and it never touches the
 live Azure AI Search index.
 
@@ -60,12 +67,16 @@ live Azure AI Search index.
   **local runs clean up too**. The live index is **never** read or written. *(assumption: cleanup is
   best-effort with a logged warning if the delete fails — a leaked `landdoc-eval-*` index is harmless
   and uniquely named.)*
-- **Corpus:** a **focused curated subset (~15–25 docs)** of `samples/leases/*.pdf` — the three
-  cross-linked sets (~9 docs: `22/27/28` Henderson, `03/24/35` Whitaker, `05/30/36` McKenzie) plus
-  ~10 single-document field cases that double as retrieval distractors. The subset, the question set,
-  and the golden answers live in the eval project's dataset (`Dataset/`), referencing the `samples/`
-  PDFs by path and deriving golden values from `manifest.json`. *(assumption: ~15–20 questions total,
-  mixing single-doc field lookups and multi-doc cross-set questions.)*
+- **Corpus:** a **type-diverse curated subset (32 docs)** of `samples/leases/*.pdf` — **a few of each of
+  ~16 instrument types** (oil & gas leases, memoranda, mineral/royalty/warranty/quitclaim deeds, surface-use
+  & easement agreements, title opinions, grazing leases, amendments, division orders, affidavits, probate
+  orders, assignments, JOAs, farmouts, AMIs, pooling orders, releases, ratifications, AFEs), keeping the
+  cross-linked clusters that drive **multi-document** recall (`22/27/28/34` Henderson — Loving Co, TX;
+  `30/36` McKenzie — ND; `04/31` Pecos Valley — Eddy Co, NM) plus a precision **distractor pair** (`24`
+  Whitaker amendment vs. `35` ratification). **37 cases** — per-type single-document field lookups, 5
+  multi-document/corpus-wide cases, the distractor pair, and 3 abstention cases — live with their golden
+  answers in the eval project's dataset (`Dataset/questions.json`), referencing the `samples/` PDFs by path
+  and deriving golden values from `manifest.json`.
 - **Invocation (both):**
   - **Local** — `dotnet test backend/eval/LandDoc.Evals` (or the project's run entry), with real
     secrets from `dotnet user-secrets` / environment variables.

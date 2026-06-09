@@ -60,7 +60,7 @@ flowchart TD
 > port — the two never mix.
 
 > ⚠️ **Blob is the one non-isolated dependency.** While a run is in flight (and until teardown finishes)
-> the 11 eval docs are real entries in the shared `documents` container, so they appear in the live app's
+> the 32 eval docs are real entries in the shared `documents` container, so they appear in the live app's
 > Documents tab / `GET /documents`. They do **not** pollute `/ask` answers (chunks live in the separate
 > eval index). A clean run removes them; a crashed run can leave them — see [§7](#7-teardown--isolation).
 
@@ -121,8 +121,8 @@ KeyVault__Uri=https://kv-landdoc-hr01.vault.azure.net/ \
 - Alternative without Key Vault: set each secret directly as `AzureOpenAI__ApiKey`, `AzureOpenAI__Endpoint`,
   `Search__ApiKey`, `Search__Endpoint`, `Anthropic__ApiKey`, and (to skip the blob role grant)
   `Blob__ConnectionString` with `Blob__ServiceUri` unset. The vault path is preferred.
-- **Runtime:** ~2.5 min with the judge active (≈ 18 `/ask` + 36 judge calls). If a run finishes in ~25 s,
-  the judge silently errored — see [§6](#6-troubleshooting).
+- **Runtime:** ~4–5 min with the judge active (≈ 37 `/ask` + ~74 judge calls). If a run finishes in well
+  under a minute, the judge silently errored — see [§6](#6-troubleshooting).
 
 ### Config knobs (`appsettings.eval.json` + env overrides)
 
@@ -193,8 +193,8 @@ To make the blob side airtight, a future change could point the eval at a per-ru
 
 ## 8. Cost
 
-Per run ≈ 18 `/ask` (each: 1 embedding + 1 `gpt-5.4-mini` completion) + 36 Sonnet 4.6 judge calls
-(grounding + correctness × 18) + 11 ingest embedding batches — cents per run on the curated subset, but
+Per run ≈ 37 `/ask` (each: 1 embedding + 1 `gpt-5.4-mini` completion) + ~74 Sonnet 4.6 judge calls
+(grounding + correctness × 37) + 32 ingest embedding batches — cents per run on the curated subset, but
 real and non-deterministic. That, plus the RG budget (`landdoc-budget`, $25), is why it stays off CI and
 report-only by default.
 
@@ -251,3 +251,18 @@ The two **depth** misses (`henderson-acres-multi`, `mckenzie-tract-multi`) clear
 chunks so each value clause stays with its identifying context. Scores are now strong enough to set floors
 and flip `Eval:Thresholds:Enabled=true` if you want a hard gate. (Note: the chunking change re-chunks the
 **live** index on next deploy — existing `landdoc-chunks` content was embedded at 800/150 until re-ingested.)
+
+### Expanded golden set (2026-06-09, 37 cases)
+The corpus and question set were broadened from the original OGL-heavy 11-doc/18-case subset to a
+**type-diverse 32-doc / 37-case** set — a few of each of ~16 instrument types (oil & gas leases, memoranda,
+mineral/royalty/warranty/quitclaim deeds, surface-use & easement agreements, title opinions, grazing
+leases, amendments, division orders, affidavits, probate orders, assignments, JOAs, farmouts, AMIs, pooling
+orders, releases, ratifications, AFEs) — keeping the Henderson/Loving, Bakken/McKenzie, and Pecos
+Valley/Eddy cross-linked clusters that drive multi-document recall. The cases group into single-document
+field lookups, multi-document/corpus-wide retrieval, a distractor pair (Whitaker amendment vs. ratification
+— precision), and abstention/no-hallucination.
+
+Live run, report-only: **37/37**, recall@k mean **1.00**, groundedness **5.0/5**, correctness **4.89/5**;
+3/3 absent cases abstained correctly. One case (`midland-royalty`) returned an **inconclusive** groundedness
+(the judge gave a correct rationale but no parseable score — `failed:false`); it's excluded from the mean,
+not counted as a miss. Snapshot promoted to the SPA Eval tab (`frontend/src/ui/dashboard/eval-summary.json`).

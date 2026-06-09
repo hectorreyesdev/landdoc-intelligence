@@ -47,7 +47,9 @@ flowchart TD
   (d3-geo Albers-USA + d3-zoom, zoom/pan with constant-size dots; bubble opens that county's doc), a
   full-width **lease primary-term widget** (Table / Gantt Timeline / Runway / Heatmap views), and a
   needs-review list — all aggregated client-side from `GET /documents`. *Eval:* the **answer-quality eval
-  scorecard** (spec 0011, committed snapshot — independent of the user's corpus). *Ops / Usage:* an
+  scorecard** (spec 0011, committed snapshot — independent of the user's corpus): KPI means + a per-case
+  table **grouped by what each case tests**, each row expandable to its question / expected answer / source
+  docs. *Ops / Usage:* an
   **operator-facing** read-out (totals · per-deployment table · request-health + latency cards, with a
   range selector) over `GET /usage` (spec 0009) — distinct audience from the analyst Dashboard. React over
   Blazor — see [ADR-0006](decisions/0006-react-typescript-frontend-over-blazor.md).
@@ -87,7 +89,8 @@ flowchart TD
   [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md) /
   [spec 0009](specs/0009-llm-usage-and-cost-ops-dashboard.md).
 - **Eval harness** (non-prod, `backend/eval/LandDoc.Evals`) — an on-demand RAG answer-quality harness that
-  runs the **real** pipeline over a curated `samples/` subset and scores recall@k (deterministic) +
+  runs the **real** pipeline over a **type-diverse** curated `samples/` subset (a few of each instrument
+  type; 32 docs / 37 cases) and scores recall@k (deterministic) +
   groundedness + correctness (Claude Sonnet 4.6 judge wired as a *separate* MEAI `IChatClient`, distinct
   from the project's `IChatClient` port). **Deliberately excluded from `LandDoc.slnx` / CI** — it needs
   real keys, costs money, and is non-deterministic; only the deterministic recall@k + dataset loader
