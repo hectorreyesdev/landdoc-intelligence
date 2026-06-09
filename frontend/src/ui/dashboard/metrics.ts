@@ -17,8 +17,14 @@ export interface LabeledCount {
   readonly count: number
 }
 
-export interface DayCount {
-  readonly date: string // YYYY-MM-DD
+export interface HourCount {
+  readonly hour: string // YYYY-MM-DDTHH:00 (UTC)
+  readonly count: number
+}
+
+export interface StateCountyCount {
+  readonly state: string
+  readonly county: string
   readonly count: number
 }
 
@@ -33,13 +39,13 @@ export interface UpcomingExpiration {
 
 const PARTY_RE = /lessee|lessor|grantor|grantee|party|buyer|seller/i
 const DATE_RE = /date/i
-const COUNTY_RE = /county/i
-const STATE_RE = /\bstate\b/i
+export const COUNTY_RE = /county/i
+export const STATE_RE = /\bstate\b/i
 const EXPIRATION_RE = /expir|term end|end date/i
 const DAY_MS = 86_400_000
 
-/** First non-empty value of a field whose name matches the pattern, or null. */
-function fieldValue(doc: DocumentSummary, pattern: RegExp): string | null {
+/** First non-empty value of a field whose name matches the pattern, or null. Shared with the map (geo.ts). */
+export function fieldValue(doc: DocumentSummary, pattern: RegExp): string | null {
   for (const field of doc.fields) {
     if (pattern.test(field.name) && field.value.trim() !== '') {
       return field.value.trim()
@@ -118,19 +124,36 @@ export function documentsByCounty(docs: readonly DocumentSummary[]): readonly La
   return documentsByField(docs, COUNTY_RE)
 }
 
-export function ingestByDay(docs: readonly DocumentSummary[]): readonly DayCount[] {
+export function ingestByHour(docs: readonly DocumentSummary[]): readonly HourCount[] {
   const counts = new Map<string, number>()
   for (const doc of docs) {
     const ingested = new Date(doc.ingestedAt)
     if (Number.isNaN(ingested.getTime())) {
       continue
     }
-    const day = ingested.toISOString().slice(0, 10)
-    counts.set(day, (counts.get(day) ?? 0) + 1)
+    // YYYY-MM-DDTHH from the ISO string, pinned to ":00" — UTC keeps bucketing deterministic across machines.
+    const hour = `${ingested.toISOString().slice(0, 13)}:00`
+    counts.set(hour, (counts.get(hour) ?? 0) + 1)
   }
   return [...counts.entries()]
-    .map(([date, count]) => ({ date, count }))
-    .sort((a, b) => a.date.localeCompare(b.date))
+    .map(([hour, count]) => ({ hour, count }))
+    .sort((a, b) => a.hour.localeCompare(b.hour))
+}
+
+/** Count documents grouped by their (state, county) pair; documents missing either field are skipped. */
+export function documentsByStateCounty(docs: readonly DocumentSummary[]): readonly StateCountyCount[] {
+  const counts = new Map<string, StateCountyCount>()
+  for (const doc of docs) {
+    const state = fieldValue(doc, STATE_RE)
+    const county = fieldValue(doc, COUNTY_RE)
+    if (state === null || county === null) {
+      continue
+    }
+    const key = `${state.toLowerCase()}|${county.toLowerCase()}`
+    const existing = counts.get(key)
+    counts.set(key, { state, county, count: (existing?.count ?? 0) + 1 })
+  }
+  return [...counts.values()].sort((a, b) => b.count - a.count || a.state.localeCompare(b.state))
 }
 
 /** Parse a document's lease term/expiration date from a date-like field, or null if none parses. */
