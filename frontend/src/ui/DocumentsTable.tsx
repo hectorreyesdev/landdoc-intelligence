@@ -6,6 +6,8 @@ interface DocumentsTableProps {
   documents: readonly DocumentSummary[]
   /** Open the source-document viewer for a row (spec 0006). */
   onOpenDocument: (documentId: string) => void
+  /** Delete the given document ids — called after the user confirms (spec 0008). Defaults to a no-op. */
+  onDeleteSelected?: (ids: readonly string[]) => void | Promise<void>
 }
 
 function formatIngested(iso: string): string {
@@ -38,13 +40,57 @@ function downloadCsv(docs: readonly DocumentSummary[]): void {
 }
 
 /**
- * The persisted documents table (spec 0006): every ingested document with its extracted fields, shown
- * alongside the session upload grid and surviving reload. A "View" opens the original file. Spec 0007 adds
- * a search filter (file name + field name/value) and CSV export of the currently-shown rows.
+ * The persisted documents table (spec 0006): every ingested document with its extracted fields, surviving
+ * reload. A "View" opens the original file. Spec 0007 adds search + CSV export; spec 0008 adds row/select-all
+ * checkboxes and a confirmed "Delete selected" that removes each document from both stores.
  */
-export function DocumentsTable({ documents, onOpenDocument }: DocumentsTableProps): ReactElement {
+export function DocumentsTable({
+  documents,
+  onOpenDocument,
+  onDeleteSelected = () => {},
+}: DocumentsTableProps): ReactElement {
   const [query, setQuery] = useState('')
+  const [selected, setSelected] = useState<ReadonlySet<string>>(new Set())
+
   const filtered = useMemo(() => documents.filter((doc) => matchesQuery(doc, query)), [documents, query])
+  const allShownSelected = filtered.length > 0 && filtered.every((doc) => selected.has(doc.id))
+
+  function toggle(id: string): void {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  function toggleAllShown(): void {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allShownSelected) {
+        filtered.forEach((doc) => next.delete(doc.id))
+      } else {
+        filtered.forEach((doc) => next.add(doc.id))
+      }
+      return next
+    })
+  }
+
+  async function handleDelete(): Promise<void> {
+    const ids = [...selected]
+    if (ids.length === 0) {
+      return
+    }
+    const noun = ids.length === 1 ? 'document' : 'documents'
+    if (!window.confirm(`Delete ${ids.length} ${noun}? This removes the file and its chunks and can't be undone.`)) {
+      return
+    }
+    await onDeleteSelected(ids)
+    setSelected(new Set())
+  }
 
   return (
     <section className="panel doc-table-panel" aria-labelledby="doc-table-heading">
@@ -59,6 +105,14 @@ export function DocumentsTable({ documents, onOpenDocument }: DocumentsTableProp
               value={query}
               onChange={(event) => setQuery(event.target.value)}
             />
+            <button
+              type="button"
+              className="doc-delete-button"
+              onClick={handleDelete}
+              disabled={selected.size === 0}
+            >
+              Delete selected ({selected.size})
+            </button>
             <button
               type="button"
               className="doc-export-button"
@@ -79,6 +133,14 @@ export function DocumentsTable({ documents, onOpenDocument }: DocumentsTableProp
         <table className="doc-table">
           <thead>
             <tr>
+              <th scope="col" className="doc-select-col">
+                <input
+                  type="checkbox"
+                  aria-label="Select all documents"
+                  checked={allShownSelected}
+                  onChange={toggleAllShown}
+                />
+              </th>
               <th scope="col">File</th>
               <th scope="col">Status</th>
               <th scope="col">Chunks</th>
@@ -89,7 +151,15 @@ export function DocumentsTable({ documents, onOpenDocument }: DocumentsTableProp
           </thead>
           <tbody>
             {filtered.map((doc) => (
-              <tr key={doc.id}>
+              <tr key={doc.id} className={selected.has(doc.id) ? 'doc-row--selected' : undefined}>
+                <td className="doc-select-col">
+                  <input
+                    type="checkbox"
+                    aria-label={`Select ${doc.fileName}`}
+                    checked={selected.has(doc.id)}
+                    onChange={() => toggle(doc.id)}
+                  />
+                </td>
                 <td className="doc-table-file" title={doc.fileName}>
                   {doc.fileName}
                 </td>

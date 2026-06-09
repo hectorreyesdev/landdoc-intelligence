@@ -22,4 +22,7 @@ public interface IDocumentStore
 
     /// <summary>Returns one document's original bytes + content type, or <c>null</c> if unknown (→ 404).</summary>
     Task<DocumentFile?> GetFileAsync(Guid id, CancellationToken ct = default);
+
+    /// <summary>Removes a document's bytes + metadata (spec 0008). A no-op when the id is unknown.</summary>
+    Task DeleteAsync(Guid id, CancellationToken ct = default);
 }

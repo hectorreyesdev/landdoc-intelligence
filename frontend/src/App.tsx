@@ -6,6 +6,7 @@ import { DocumentsTable } from './ui/DocumentsTable'
 import { DocumentViewer } from './ui/DocumentViewer'
 import { Dashboard } from './ui/dashboard/Dashboard'
 import { ThemeToggle } from './ui/ThemeToggle'
+import { deleteDocument } from './api/client'
 import { useDocuments } from './ui/useDocuments'
 import { useDocumentTable } from './ui/useDocumentTable'
 
@@ -26,6 +27,15 @@ export function App(): ReactElement {
   // After a batch lands, refresh the persisted table so newly ingested documents appear.
   async function handleFiles(files: File[]): Promise<void> {
     await ingest(files)
+    await table.reload()
+  }
+
+  // Delete each selected document from both stores, close the viewer if it showed one of them, then reload.
+  async function handleDeleteSelected(ids: readonly string[]): Promise<void> {
+    await Promise.all(ids.map((id) => deleteDocument(id)))
+    if (viewerId !== null && ids.includes(viewerId)) {
+      setViewerId(null)
+    }
     await table.reload()
   }
 
@@ -61,7 +71,11 @@ export function App(): ReactElement {
           <div className="column">
             <UploadPanel onFiles={handleFiles} progress={progress} />
             <DocumentList items={items} />
-            <DocumentsTable documents={table.documents} onOpenDocument={setViewerId} />
+            <DocumentsTable
+              documents={table.documents}
+              onOpenDocument={setViewerId}
+              onDeleteSelected={handleDeleteSelected}
+            />
           </div>
           <div className="column">
             <AskPanel canAsk={canAsk} onOpenDocument={setViewerId} />

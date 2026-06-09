@@ -76,3 +76,35 @@ it('exports the shown documents to CSV', async () => {
 
   clickSpy.mockRestore()
 })
+
+it('disables "Delete selected" until rows are selected', () => {
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} onDeleteSelected={() => {}} />)
+  expect(screen.getByRole('button', { name: /delete selected \(0\)/i })).toBeDisabled()
+})
+
+it('select-all then delete calls onDeleteSelected with every id (after confirm)', async () => {
+  const onDeleteSelected = vi.fn()
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} onDeleteSelected={onDeleteSelected} />)
+
+  await userEvent.click(screen.getByRole('checkbox', { name: /select all documents/i }))
+  await userEvent.click(screen.getByRole('button', { name: /delete selected \(2\)/i }))
+
+  expect(confirmSpy).toHaveBeenCalledOnce()
+  expect(onDeleteSelected).toHaveBeenCalledTimes(1)
+  expect(onDeleteSelected.mock.calls[0][0]).toEqual(['d1', 'd2'])
+  confirmSpy.mockRestore()
+})
+
+it('does not delete when the confirm is cancelled', async () => {
+  const onDeleteSelected = vi.fn()
+  const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false)
+  render(<DocumentsTable documents={docs} onOpenDocument={() => {}} onDeleteSelected={onDeleteSelected} />)
+
+  await userEvent.click(screen.getByRole('checkbox', { name: /select lease-a\.pdf/i }))
+  await userEvent.click(screen.getByRole('button', { name: /delete selected \(1\)/i }))
+
+  expect(confirmSpy).toHaveBeenCalledOnce()
+  expect(onDeleteSelected).not.toHaveBeenCalled()
+  confirmSpy.mockRestore()
+})

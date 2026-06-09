@@ -88,6 +88,19 @@ public static class DocumentsEndpoints
                 : Results.File(file.Content, file.ContentType);
         });
 
+        // Delete (spec 0008): remove the document's chunks AND its file + metadata. Idempotent — an unknown
+        // id is a no-op — so it always returns 204. Delete chunks first, then the document.
+        app.MapDelete("/documents/{id:guid}", async (
+            Guid id,
+            IVectorStore vectorStore,
+            IDocumentStore documentStore,
+            CancellationToken cancellationToken) =>
+        {
+            await vectorStore.DeleteByDocumentAsync(id, cancellationToken);
+            await documentStore.DeleteAsync(id, cancellationToken);
+            return Results.NoContent();
+        });
+
         return app;
     }
 

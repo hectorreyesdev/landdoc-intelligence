@@ -122,5 +122,12 @@ public sealed class AzureBlobDocumentStore : IDocumentStore
         }
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        // Delete both per-document blobs; DeleteIfExists makes it idempotent (unknown id → no-op).
+        await _container.GetBlobClient(id.ToString()).DeleteIfExistsAsync(cancellationToken: ct);
+        await _container.GetBlobClient(MetadataBlobName(id)).DeleteIfExistsAsync(cancellationToken: ct);
+    }
+
     private static string MetadataBlobName(Guid id) => $"{id}.json";
 }

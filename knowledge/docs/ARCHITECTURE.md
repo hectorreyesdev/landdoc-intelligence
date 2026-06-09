@@ -50,13 +50,15 @@ flowchart TD
 - **Adapters** — `AzureOpenAIChatClient` (live slice chat, OpenAI Chat Completions — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md), `Azure.AI.OpenAI`) / `AnthropicChatClient` (config-swap fallback, official Anthropic .NET SDK) ·
   `AzureOpenAIEmbeddingClient` (live slice — `text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)) / `LocalEmbeddingClient` (offline/test — deterministic hashing).
 - **Vector store** — behind a narrow async `IVectorStore` seam (`AddAsync` chunks at ingest;
-  `TopKAsync(queryVector, k)` at ask), config-selected via `VectorStore:Provider`. Live default is
+  `TopKAsync(queryVector, k)` at ask; `DeleteByDocumentAsync(documentId)` on delete — spec 0008),
+  config-selected via `VectorStore:Provider`. Live default is
   **Azure AI Search Free tier** (`AzureAiSearchVectorStore`, `landdoc-chunks` index, 256-d HNSW +
   cosine) — persistence at $0; `InMemoryVectorStore` (cosine over `float[]`) is the offline/test
   provider. See [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md) (realizes
   [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
 - **Document store** — a *separate* port `IDocumentStore` (`SaveAsync` / `ListAsync` / `GetAsync` /
-  `GetFileAsync`) for original files + document metadata, config-selected via `DocumentStore:Provider`.
+  `GetFileAsync` / `DeleteAsync` — spec 0008) for original files + document metadata, config-selected via
+  `DocumentStore:Provider`.
   Live default is **Azure Blob Storage** (`AzureBlobDocumentStore`, container `documents`, two blobs per
   doc: bytes + metadata JSON; managed-identity-preferred auth); `InMemoryDocumentStore` is the offline/test
   provider. Object storage, not a similarity index — kept distinct from the vector store so PDF bytes never

@@ -45,6 +45,15 @@ public sealed class InMemoryVectorStore : IVectorStore
         return Task.FromResult(result);
     }
 
+    public Task DeleteByDocumentAsync(Guid documentId, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            _chunks.RemoveAll(chunk => chunk.DocumentId == documentId);
+        }
+        return Task.CompletedTask;
+    }
+
     private static double CosineSimilarity(float[] a, float[] b)
     {
         if (a.Length != b.Length)

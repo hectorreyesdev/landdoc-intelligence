@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { ask, documentFileUrl, getDocument, listDocuments, uploadDocument } from './client'
+import { ask, deleteDocument, documentFileUrl, getDocument, listDocuments, uploadDocument } from './client'
 import type { AskResponse, DocumentResponse, DocumentSummary } from './types'
 
 interface FakeOpts {
@@ -186,6 +186,32 @@ describe('getDocument', () => {
       expect(result.error.kind).toBe('server')
       expect(result.error.status).toBe(404)
     }
+  })
+})
+
+describe('deleteDocument', () => {
+  it('returns ok on 204 with a DELETE to the relative path', async () => {
+    const fetchMock = stubFetch(204, null)
+
+    const result = await deleteDocument('doc-1')
+
+    expect(result).toEqual({ ok: true, value: undefined })
+    const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit]
+    expect(url).toBe('/documents/doc-1')
+    expect(init.method).toBe('DELETE')
+  })
+
+  it('maps a non-OK status → server', async () => {
+    stubFetch(500, { detail: 'boom' })
+    const result = await deleteDocument('doc-1')
+    expect(result.ok).toBe(false)
+    if (!result.ok) expect(result.error.kind).toBe('server')
+  })
+
+  it('maps a thrown fetch → network error', async () => {
+    stubFetch(0, null, { reject: true })
+    const result = await deleteDocument('doc-1')
+    expect(result).toEqual({ ok: false, error: { kind: 'network', status: null, detail: null } })
   })
 })
 

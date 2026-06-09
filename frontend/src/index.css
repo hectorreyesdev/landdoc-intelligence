@@ -812,3 +812,35 @@ button:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* ── Documents table delete / selection (spec 0008) ───────────────────────── */
+.doc-select-col {
+  width: 1.5rem;
+  text-align: center;
+}
+
+.doc-row--selected {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.doc-delete-button {
+  background: none;
+  border: 1px solid var(--error);
+  color: var(--error);
+  border-radius: 8px;
+  padding: 0.35rem 0.7rem;
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.doc-delete-button:hover:not(:disabled) {
+  background: var(--error);
+  color: var(--accent-fg);
+}
+
+.doc-delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

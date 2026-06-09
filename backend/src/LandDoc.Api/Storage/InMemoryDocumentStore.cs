@@ -55,4 +55,13 @@ public sealed class InMemoryDocumentStore : IDocumentStore
             return Task.FromResult(file);
         }
     }
+
+    public Task DeleteAsync(Guid id, CancellationToken ct = default)
+    {
+        lock (_gate)
+        {
+            _documents.Remove(id);
+        }
+        return Task.CompletedTask;
+    }
 }

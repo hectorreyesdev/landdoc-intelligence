@@ -137,6 +137,21 @@ export async function getDocument(id: string): Promise<ApiResult<DocumentSummary
   return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
 }
 
+/** Delete a document — its file + metadata and all its chunks (spec 0008). Idempotent; 204 on success. */
+export async function deleteDocument(id: string): Promise<ApiResult<void>> {
+  let response: Response
+  try {
+    response = await fetch(`/documents/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  } catch {
+    return { ok: false, error: NETWORK_ERROR }
+  }
+
+  if (response.ok) {
+    return { ok: true, value: undefined }
+  }
+  return { ok: false, error: errorForStatus(response.status, await readProblemDetail(response)) }
+}
+
 /**
  * Same-origin URL for a document's original file (spec 0006). Returned as a string so callers embed it
  * directly in an `<iframe>`/`<object>` — the bytes never pass through fetch/ApiResult, which keeps the

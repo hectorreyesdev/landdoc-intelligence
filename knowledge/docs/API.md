@@ -1,8 +1,9 @@
 # API
 
-> **Built.** `POST /documents` (spec 0001 — ingest write path), `POST /ask` (spec 0002 — read path), and
-> the document read-back surface `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file`
-> (spec 0006) are all implemented. The shapes below are the accepted-spec contracts.
+> **Built.** `POST /documents` (spec 0001 — ingest write path), `POST /ask` (spec 0002 — read path), the
+> document read-back surface `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec 0006),
+> and `DELETE /documents/{id}` (spec 0008) are all implemented. The shapes below are the accepted-spec
+> contracts.
 
 Base path: none — endpoints are served at the root (`/documents`, `/ask`), matching specs 0001/0002.
 The SPA reaches them **same-origin** via relative paths (dev: Vite dev-proxy; prod: one container serving
@@ -57,6 +58,11 @@ Fetch one document's metadata + extracted fields.
 Fetch a document's **original uploaded file** (ADR-0018), served **inline** with its stored `Content-Type`
 so the SPA embeds it in an `<iframe>`.
 - Response `200`: the raw file bytes (`application/pdf`, `text/plain`, or `text/markdown`) · `404` if unknown.
+
+### `DELETE /documents/{id}`  ·  spec [0008](specs/0008-delete-documents-multi-select.md)
+Remove a document completely — its file + metadata (document store) **and** all of its chunks (vector store).
+- Response **`204 No Content`**. **Idempotent**: deleting an unknown id is a no-op (still `204`).
+- The UI deletes multiple selected documents by calling this once per id.
 
 ### `POST /ask`  ·  spec [0002](specs/0002-rag-qa-with-citations.md)
 Ask a question, grounded in chunks retrieved across **all** ingested documents (global corpus query —

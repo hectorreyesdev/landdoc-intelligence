@@ -88,6 +88,28 @@ public sealed class DocumentStoreTests
     }
 
     [Fact]
+    public async Task Delete_removesMetadataAndFile_andOmitsFromList()
+    {
+        var store = new InMemoryDocumentStore();
+        var id = Guid.NewGuid();
+        await store.SaveAsync(Meta(id, "lease.pdf", "application/pdf", 2), [1, 2]);
+
+        await store.DeleteAsync(id);
+
+        Assert.Null(await store.GetAsync(id));
+        Assert.Null(await store.GetFileAsync(id));
+        Assert.Empty(await store.ListAsync());
+    }
+
+    [Fact]
+    public async Task Delete_unknownId_isNoOp()
+    {
+        var store = new InMemoryDocumentStore();
+        await store.DeleteAsync(Guid.NewGuid()); // must not throw
+        Assert.Empty(await store.ListAsync());
+    }
+
+    [Fact]
     public async Task Save_sameId_overwrites()
     {
         var store = new InMemoryDocumentStore();

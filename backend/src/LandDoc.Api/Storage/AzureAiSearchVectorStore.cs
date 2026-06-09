@@ -98,6 +98,23 @@ public sealed class AzureAiSearchVectorStore : IVectorStore
             .ToList();
     }
 
+    public async Task DeleteByDocumentAsync(Guid documentId, CancellationToken ct = default)
+    {
+        // Azure AI Search deletes by index key (chunk id), so first find the chunk ids for this document
+        // (documentId is filterable), then issue a delete batch. Slice scale: one Size-bounded query.
+        var options = new AzureSearchOptions { Filter = $"documentId eq '{documentId}'", Size = 1000 };
+        options.Select.Add("id");
+
+        var response = await _searchClient.SearchAsync<SearchDocument>(searchText: "*", options, ct);
+        var keys = response.Value.GetResults().Select(r => (string)r.Document["id"]).ToList();
+        if (keys.Count == 0)
+        {
+            return;
+        }
+
+        await _searchClient.IndexDocumentsAsync(IndexDocumentsBatch.Delete("id", keys), cancellationToken: ct);
+    }
+
     private static void EnsureIndex(Uri endpoint, AzureKeyCredential credential, string indexName, int dimension)
     {
         var indexClient = new SearchIndexClient(endpoint, credential);
