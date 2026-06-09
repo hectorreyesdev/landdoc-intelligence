@@ -1,0 +1,138 @@
+{
+  "generatedAt": "2026-06-09T11:55:56.893681Z",
+  "judgeModel": "claude-sonnet-4-6",
+  "caseCount": 18,
+  "means": {
+    "recallAtK": 1.0,
+    "groundedness": 5.0,
+    "equivalence": 4.78
+  },
+  "cases": [
+    {
+      "id": "absent-permian-master-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
+    {
+      "id": "absent-weld-co-operator",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": true
+    },
+    {
+      "id": "eddy-bonus",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-lessee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "eddy-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "henderson-acres-multi",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "henderson-legal-multi",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "mckenzie-lessee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "mckenzie-operator-multi",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "mckenzie-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "mckenzie-tract-multi",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "midland-legal",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "midland-lessee",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "midland-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "reeves-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 4,
+      "abstained": false
+    },
+    {
+      "id": "reeves-term",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "whitaker-original-multi",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    },
+    {
+      "id": "whitaker-royalty",
+      "recallAtK": 1,
+      "groundedness": 5,
+      "equivalence": 5,
+      "abstained": false
+    }
+  ]
+}

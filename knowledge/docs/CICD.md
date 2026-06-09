@@ -28,8 +28,8 @@ the subscription or RG).
 ### Reference values
 
 ```bash
-SUBSCRIPTION="c3ef00c0-da7f-4e63-86ac-fee62aee44ce"
-TENANT="722f552d-3ff8-4c48-a139-44857d2a2363"
+SUBSCRIPTION="<SUBSCRIPTION_ID>"
+TENANT="<TENANT_ID>"
 RG="rg-landdoc-deomo"
 APP="landdoc"
 ACR="ca6a00db456cacr"

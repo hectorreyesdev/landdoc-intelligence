@@ -21,6 +21,7 @@ import {
   summarize,
 } from './metrics'
 import { ExpirationsWidget } from './ExpirationsWidget'
+import { EvalQualityCard } from './EvalQualityCard'
 import { CountyMap } from './CountyMap'
 
 interface DashboardProps {
@@ -44,8 +45,21 @@ function formatHour(hour: string): string {
 const TOOLTIP_CONTENT_STYLE = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }
 const TOOLTIP_LABEL_STYLE = { color: 'var(--heading)' }
 
-/** The read-only analytics view (spec 0007), aggregated entirely from the GET /documents data. */
+/**
+ * The read-only analytics view (spec 0007). The answer-quality eval scorecard (spec 0011) renders first
+ * and is independent of the document list; the corpus analytics below aggregate from the GET /documents data.
+ */
 export function Dashboard({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
+  return (
+    <div className="dashboard">
+      <EvalQualityCard />
+      <DashboardCorpus documents={documents} status={status} onOpenDocument={onOpenDocument} />
+    </div>
+  )
+}
+
+/** Corpus analytics aggregated entirely from the GET /documents data (spec 0007). */
+function DashboardCorpus({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
   if (status === 'loading') {
     return <p className="hint">Loading dashboard…</p>
   }
@@ -71,7 +85,7 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
   const review = needsReviewDocuments(documents)
 
   return (
-    <div className="dashboard">
+    <>
       <section className="kpi-row" aria-label="Corpus overview">
         <KpiTile label="Documents" value={summary.totalDocuments} />
         <KpiTile label="Chunks" value={summary.totalChunks} />
@@ -140,7 +154,7 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
           )}
         </section>
       </div>
-    </div>
+    </>
   )
 }
 

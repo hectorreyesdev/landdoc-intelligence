@@ -28,7 +28,7 @@
 |---|---|---|---|---|
 | **Foundry / AI Services** | Azure AI Services (multi-service) | `landdoc-rag-resource` | `https://landdoc-rag-resource.services.ai.azure.com` ‹confirm AOAI form — see §4› | Consumption |
 | **Document Intelligence** | Azure AI Document Intelligence (ex–Form Recognizer) | `di-landdoc-hr01` | `https://di-landdoc-hr01.cognitiveservices.azure.com/` ‹confirm› | Consumption — **provisioned, not wired** (PdfPig path; OCR out of scope) |
-| **Azure AI Search** | Cognitive Search (vector store, ADR-0017) | ‹confirm name› | `https://‹confirm›.search.windows.net` | **Free** tier (**eastus** — Free capacity was out in eastus2); index `landdoc-chunks`; **key auth (no MI)** |
+| **Azure AI Search** | Cognitive Search (vector store, ADR-0017) | `srch-landdoc-hr01` | `https://srch-landdoc-hr01.search.windows.net` | **Free** tier (**eastus** — Free capacity was out in eastus2); index `landdoc-chunks`; **key auth (no MI)** |
 | **Blob Storage** | Storage account | `stlanddochr01` | `https://stlanddochr01.blob.core.windows.net` | **LRS** (caught the GRS default) |
 | ↳ container | Blob container | `documents` | — | — |
 | **Key Vault** | Key Vault (RBAC) | `kv-landdoc-hr01` | `https://kv-landdoc-hr01.vault.azure.net` | RBAC auth; self = *Key Vault Secrets Officer* |
@@ -99,7 +99,7 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    resource `landdoc-rag-resource` to back `GET /usage`; managed-identity auth (**no new secret**);
    `UsageSource:Provider` switch (`azuremonitor` live default in `appsettings.json` / `inmemory` offline-test).
    See the operator guide [USAGE-DASHBOARD.md](USAGE-DASHBOARD.md). Wired on **2026-06-09**:
-   - **Role grant done:** the Container App's MI (`landdoc`, principal `77ebbf97-2387-4a50-a96b-4aadd7c101c9`)
+   - **Role grant done:** the Container App's MI (`landdoc`, principal `<MI_PRINCIPAL_ID>`)
      holds **Monitoring Reader** on `landdoc-rag-resource` (`AIServices` — hosts the chat + embedding
      deployments; read-only, least privilege) — procedure in [DEPLOYMENT.md §1g](DEPLOYMENT.md).
    - **Config set (non-secret, NOT a Key Vault entry):** `Monitor__ResourceId` env var on the Container App =
@@ -125,7 +125,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | App (SPA + API, one container) | Azure **Container App** | `landdoc` (env `cae-landdoc`, eastus2) | **deployed** — https://landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io/ |
 | Image registry | Azure Container Registry (Basic) | `ca6a00db456cacr` | deployed |
 | Secrets | Key Vault via app's system-assigned MI (`Key Vault Secrets User`) | `kv-landdoc-hr01` | deployed |
-| Vector store (chunks) | Azure AI Search **Free tier** (index `landdoc-chunks`, **key auth**) | ‹confirm Search service name› (**eastus**) | wired (ADR-0017) |
+| Vector store (chunks) | Azure AI Search **Free tier** (index `landdoc-chunks`, **key auth**) | `srch-landdoc-hr01` (**eastus**) | wired (ADR-0017) |
 | Document store (files + metadata) | Azure Blob via app's MI (`Storage Blob Data Contributor`), container `documents` | `stlanddochr01` | wired (spec 0006 / ADR-0018) |
 | LLM usage metrics | Azure Monitor platform metrics via app's MI (`Monitoring Reader`) | `landdoc-rag-resource` | wired 2026-06-09 (spec 0009 / ADR-0020) — endpoint ships with the feature |
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
@@ -142,7 +142,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 - **Teardown after the interview (mandatory):**
   ```bash
   az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
-  az ad app delete --id bfce2d5a-ca40-4c2f-8a9b-1308927b2951 # the CI/CD Entra app — lives in Entra, not the RG
+  az ad app delete --id <CI_APP_ID> # the CI/CD Entra app — lives in Entra, not the RG
   ```
   (Custom-domain CNAME at Namecheap is harmless to leave or remove.) For **targeted** teardown that keeps the
   Key Vault + AI resource, see [DEPLOYMENT.md §4](DEPLOYMENT.md).
@@ -153,7 +153,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 - [x] **Deployment names** for chat + embeddings — `gpt-5.4-mini` / `text-embedding-3-small` (in `appsettings.json`) (§3).
 - [x] **Secret/config key names** — fixed by the code: `Search:Endpoint` / `Search:ApiKey` (KV `Search--*` or env `Search__*`), confirmed live (§5).
 - [x] API host's **managed identity** granted *Key Vault Secrets User* on the vault — deployed (§7).
-- [ ] Record the **Azure AI Search service name + endpoint VALUE** (§2/§7) — the key *names* are known from code; the endpoint value is runtime config, not in the repo.
+- [x] Record the **Azure AI Search service name + endpoint VALUE** (§2/§7) — `srch-landdoc-hr01` / `https://srch-landdoc-hr01.search.windows.net` (confirmed live 2026-06-09 via the eval run).
 - [x] API host's **managed identity** granted *Storage Blob Data Contributor* on `stlanddochr01` (§6.4),
   and the blob endpoint supplied via the `Blob--ServiceUri` Key Vault secret (§5) — `DocumentStore:Provider`
   is the committed `appsettings.json` default (`azureblob`), so no env var is needed. (Local dev:

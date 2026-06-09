@@ -5,4 +5,12 @@
   <Folder Name="/tests/">
     <Project Path="tests/LandDoc.Tests/LandDoc.Tests.csproj" />
   </Folder>
+  <!--
+    Pure eval core (spec 0012). In the solution so the green suite builds + unit-tests its
+    deterministic bits (recall@k, dataset loader). The eval RUNNER (eval/LandDoc.Evals) is
+    deliberately NOT here: it needs real cloud keys and must never run in the offline `dotnet test`.
+  -->
+  <Folder Name="/eval/">
+    <Project Path="eval/LandDoc.Evals.Core/LandDoc.Evals.Core.csproj" />
+  </Folder>
 </Solution>

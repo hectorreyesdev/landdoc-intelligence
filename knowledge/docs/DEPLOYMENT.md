@@ -12,7 +12,7 @@ automated deploys on PR merge see [CICD.md](CICD.md). Design rationale: [ADR-001
 
 | Thing | Value |
 |---|---|
-| Subscription | `c3ef00c0-da7f-4e63-86ac-fee62aee44ce` |
+| Subscription | `<SUBSCRIPTION_ID>` |
 | Resource group | `rg-landdoc-deomo` (region `eastus2`) |
 | Container App | `landdoc` |
 | Container Apps env | `cae-landdoc` |
@@ -24,7 +24,7 @@ automated deploys on PR merge see [CICD.md](CICD.md). Design rationale: [ADR-001
 Convenience variables used below:
 
 ```bash
-SUBSCRIPTION="c3ef00c0-da7f-4e63-86ac-fee62aee44ce"
+SUBSCRIPTION="<SUBSCRIPTION_ID>"
 RG="rg-landdoc-deomo"
 LOCATION="eastus2"
 APP="landdoc"

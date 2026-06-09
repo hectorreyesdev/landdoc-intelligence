@@ -44,7 +44,7 @@ Applied to the live environment (subscription `c3ef00c0-…`, RG `rg-landdoc-deo
 [DEPLOYMENT.md §1g](DEPLOYMENT.md); inventory/state: [AZURE-CONFIG.md §6.5/§9](AZURE-CONFIG.md).
 
 1. **Role grant (read-only, least privilege):** the Container App `landdoc`'s system-assigned managed
-   identity (principal `77ebbf97-2387-4a50-a96b-4aadd7c101c9`) was granted **`Monitoring Reader`** on the
+   identity (principal `<MI_PRINCIPAL_ID>`) was granted **`Monitoring Reader`** on the
    Foundry resource **`landdoc-rag-resource`** (kind `AIServices` — it hosts the `gpt-5.4-mini` chat and
    `text-embedding-3-small` deployments, so it's the resource that emits the token/request/latency metrics).
 2. **App config:** `Monitor__ResourceId` was set on the Container App to that resource's id
@@ -74,7 +74,7 @@ assignment on its scope. **Cost:** $0 (RBAC + an env var).
   ```bash
   cd backend
   az login
-  Monitor__ResourceId="/subscriptions/c3ef00c0-da7f-4e63-86ac-fee62aee44ce/resourceGroups/rg-landdoc-deomo/providers/Microsoft.CognitiveServices/accounts/landdoc-rag-resource" \
+  Monitor__ResourceId="/subscriptions/<SUBSCRIPTION_ID>/resourceGroups/rg-landdoc-deomo/providers/Microsoft.CognitiveServices/accounts/landdoc-rag-resource" \
     dotnet run --project src/LandDoc.Api
   # (UsageSource:Provider already defaults to azuremonitor)
   ```

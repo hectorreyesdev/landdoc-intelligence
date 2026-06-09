@@ -1,0 +1,66 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Answer-quality eval RUNNER (spec 0012, ADR-0021). xUnit project that drives the REAL pipeline
+    end-to-end over the production stack and scores answers (recall@k / grounding / correctness).
+
+    ⚠️ DELIBERATELY NOT in backend/LandDoc.slnx and NOT in ci.yml's `dotnet test LandDoc.slnx`.
+    It pulls in the Microsoft.Extensions.AI.Evaluation packages + needs real Azure/Anthropic keys,
+    so it must never run in the offline green gate. Run it explicitly:
+    `dotnet test backend/eval/LandDoc.Evals` with secrets set. The deterministic bits it builds on
+    (recall@k math, dataset loader) live in LandDoc.Evals.Core and ARE unit-tested in the green suite.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Eval framework (latest stable / GA on nuget.org) — see ADR-0021. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation" Version="10.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Quality" Version="10.6.0" />
+    <PackageReference Include="Microsoft.Extensions.AI.Evaluation.Reporting" Version="10.6.0" />
+    <!-- Judge model (Claude Sonnet 4.6) via the Anthropic SDK's MEAI adapter (AsIChatClient). -->
+    <PackageReference Include="Anthropic" Version="12.27.0" />
+    <!-- WebApplicationFactory<Program> host + xUnit runner — versions matched to tests/LandDoc.Tests. -->
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.8" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LandDoc.Evals.Core\LandDoc.Evals.Core.csproj" />
+    <ProjectReference Include="..\..\src\LandDoc.Api\LandDoc.Api.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <!-- Eval config + dataset copied next to the test assembly (read via AppContext.BaseDirectory). -->
+  <ItemGroup>
+    <Content Include="appsettings.eval.json" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Dataset\questions.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Curated corpus: copy the eval subset of samples/leases/*.pdf into <output>/samples/ at build.
+       File names must match Corpus[] in EvalPipelineFixture and expectedSources in questions.json. -->
+  <ItemGroup>
+    <Content Include="..\..\..\samples\leases\01-ogl-midland-tx.pdf" Link="samples\01-ogl-midland-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\02-ogl-reeves-tx.pdf" Link="samples\02-ogl-reeves-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\03-ogl-lea-nm.pdf" Link="samples\03-ogl-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\04-ogl-eddy-nm.pdf" Link="samples\04-ogl-eddy-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\05-ogl-mckenzie-nd.pdf" Link="samples\05-ogl-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\22-title-opinion-loving-tx.pdf" Link="samples\22-title-opinion-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\27-affidavit-heirship-loving-tx.pdf" Link="samples\27-affidavit-heirship-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\28-probate-order-loving-tx.pdf" Link="samples\28-probate-order-loving-tx.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\30-joa-mckenzie-nd.pdf" Link="samples\30-joa-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\35-ratification-lea-nm.pdf" Link="samples\35-ratification-lea-nm.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="..\..\..\samples\leases\36-afe-mckenzie-nd.pdf" Link="samples\36-afe-mckenzie-nd.pdf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

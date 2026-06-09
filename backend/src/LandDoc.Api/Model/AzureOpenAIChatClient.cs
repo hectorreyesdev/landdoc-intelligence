@@ -17,10 +17,11 @@ namespace LandDoc.Api.Model;
 public sealed class AzureOpenAIChatClient : IChatClient
 {
     private const string SystemPrompt =
-        "Answer using only the supplied passages. " +
-        "If the answer is not present in the passages, respond exactly: " +
-        "\"The answer is not found in the document(s).\" " +
-        "Do not fabricate or infer information beyond what the passages state.";
+        "Answer the question using only the supplied passages. " +
+        "Provide the answer whenever the passages contain it — you may quote or combine information stated " +
+        "across different passages, but do not add facts the passages do not contain. " +
+        "Only if the passages genuinely do not contain the answer, respond exactly: " +
+        "\"The answer is not found in the document(s).\"";
 
     private const string ExtractionSystemPrompt =
         "Extract the key terms of this land/title document. " +
