@@ -70,6 +70,14 @@ flowchart TD
   provider. Object storage, not a similarity index — kept distinct from the vector store so PDF bytes never
   enter the search index. Backs `GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file` (spec
   0006). See [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md).
+- **Usage source** *(planned — spec 0009)* — a config-selected port `IUsageSource` (`UsageSource:Provider`)
+  feeding the LLM usage/cost dashboard. Live default **`AzureMonitorUsageSource`** reads **Azure Monitor
+  platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query`) for the Foundry resource via managed
+  identity (Monitoring Reader) — tokens / requests / latency split by `ModelDeploymentName`, with cost
+  **computed** from a configured price table; `InMemoryUsageSource` is the offline/test provider. Read-only,
+  $0, no new secret. Platform metrics can split by *deployment* but not by *our* feature (`/ask` vs.
+  extraction vs. embedding) — per-feature attribution is a future App Insights OTel upgrade behind the same
+  port. See [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md).
 
 ## Layering — ports & adapters around model access
 - Modules depend on the **port interfaces**, never on a concrete provider.
@@ -91,7 +99,11 @@ flowchart TD
 - **Conventions** — C#: nullable enabled · async/await throughout · constructor DI · file-scoped
   namespaces · `record` DTOs. TypeScript: `strict` · function components · one typed API client.
   Full list in [`CLAUDE.md`](../../CLAUDE.md); this slice has no separate PATTERNS doc.
-- **Logging / observability** — minimal for the slice; the observability stack is out of scope.
+- **Logging / observability** — app logging is minimal for the slice, and the **infra** observability
+  stack (Log Analytics ingestion, App Insights traces, alerting) stays out of scope. The one in-scope
+  exception is the **in-app LLM usage/cost dashboard**, which reads **free, read-only Azure Monitor
+  platform metrics** through the `IUsageSource` port — a product surface, not an infra stack — see
+  [ADR-0020](decisions/0020-llm-usage-cost-observability-azure-monitor-metrics.md).
 
 ## Key boundaries
 - SPA ↔ API: HTTP/JSON only (typed API client on the frontend), **single-origin** — the typed client

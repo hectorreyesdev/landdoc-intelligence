@@ -94,6 +94,14 @@ Wire behind the **existing ports**; keep local + Anthropic-direct as the **fallb
    source-file viewer. **Role grant done:** the Container App's MI (`landdoc`) holds *Storage Blob Data
    Contributor* on `stlanddochr01` (the passwordless `ServiceUri` path); endpoint supplied via the
    `Blob--ServiceUri` Key Vault secret (§5).
+5. **Planned (spec 0009 / ADR-0020).** **`AzureMonitorUsageSource : IUsageSource`** — reads **Azure Monitor
+   platform metrics** (`MetricsQueryClient`, `Azure.Monitor.Query`) for the Foundry resource
+   `landdoc-rag-resource` to feed the LLM usage/cost dashboard; managed-identity auth (no new secret);
+   `UsageSource:Provider` switch (`azuremonitor` live / `inmemory` offline). **Role grant required (not yet
+   done):** grant the Container App's MI (`landdoc`) **Monitoring Reader** on `landdoc-rag-resource`
+   (read-only, least privilege). The Foundry resource id and the per-1K price table are **non-secret**
+   config (no Key Vault entry). Cost is computed (tokens × price table), an estimate — Azure Cost
+   Management is the future billing-grade cross-check.
 
 **Priority:** chat + `/ask` FIRST (greens the floor on Azure-GPT) → embeddings → Doc Intelligence → Blob.
 Record `AzureOpenAIChatClient` in **ADR-0012** (supersedes ADR-0007's Foundry-primary framing for the slice).
@@ -142,3 +150,6 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
   and the blob endpoint supplied via the `Blob--ServiceUri` Key Vault secret (§5) — `DocumentStore:Provider`
   is the committed `appsettings.json` default (`azureblob`), so no env var is needed. (Local dev:
   `DocumentStore__Provider=inmemory`, or Azurite via `Blob__ConnectionString`.)
+- [ ] API host's **managed identity** (`landdoc`) granted *Monitoring Reader* on the Foundry resource
+  `landdoc-rag-resource` (§6.5) — required before `UsageSource:Provider=azuremonitor` can read LLM usage
+  metrics (spec 0009 / ADR-0020). No new secret. (Local dev / CI: `UsageSource__Provider=inmemory`.)
