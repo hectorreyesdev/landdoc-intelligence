@@ -20,6 +20,7 @@ import {
   summarize,
 } from './metrics'
 import { ExpirationsWidget } from './ExpirationsWidget'
+import { EvalQualityCard } from './EvalQualityCard'
 
 interface DashboardProps {
   documents: readonly DocumentSummary[]
@@ -31,8 +32,21 @@ function formatIngest(date: Date | null): string {
   return date === null ? '—' : date.toLocaleString()
 }
 
-/** The read-only analytics view (spec 0007), aggregated entirely from the GET /documents data. */
+/**
+ * The read-only analytics view (spec 0007). The answer-quality eval scorecard (spec 0011) renders first
+ * and is independent of the document list; the corpus analytics below aggregate from the GET /documents data.
+ */
 export function Dashboard({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
+  return (
+    <div className="dashboard">
+      <EvalQualityCard />
+      <DashboardCorpus documents={documents} status={status} onOpenDocument={onOpenDocument} />
+    </div>
+  )
+}
+
+/** Corpus analytics aggregated entirely from the GET /documents data (spec 0007). */
+function DashboardCorpus({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
   if (status === 'loading') {
     return <p className="hint">Loading dashboard…</p>
   }
@@ -57,7 +71,7 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
   const review = needsReviewDocuments(documents)
 
   return (
-    <div className="dashboard">
+    <>
       <section className="kpi-row" aria-label="Corpus overview">
         <KpiTile label="Documents" value={summary.totalDocuments} />
         <KpiTile label="Chunks" value={summary.totalChunks} />
@@ -117,7 +131,7 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
           )}
         </section>
       </div>
-    </div>
+    </>
   )
 }
 

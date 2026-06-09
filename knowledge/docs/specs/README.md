@@ -14,3 +14,4 @@ must be designed before code (per the `CLAUDE.md` guardrail).
 - [0008 — Delete documents (multi-select)](0008-delete-documents-multi-select.md) — **Accepted**
 - [0009 — RAG Answer-Quality Eval Harness](0009-rag-answer-quality-eval-harness.md) — **Accepted**
 - [0010 — RAG answer-quality tuning (retrieval depth + abstain prompt)](0010-rag-answer-quality-tuning.md) — **Accepted**
+- [0011 — Eval answer-quality scorecard on the Dashboard](0011-eval-scorecard-in-dashboard.md) — **Accepted**

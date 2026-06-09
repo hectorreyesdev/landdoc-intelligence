@@ -73,7 +73,21 @@ public sealed class RagAnswerEvalScenarios : IClassFixture<EvalPipelineFixture>
         await using var scenarioRun = await _fixture.Reporting.CreateScenarioRunAsync(evalCase.Id);
         var result = await scenarioRun.EvaluateAsync(messages, modelResponse, contexts);
 
-        // 4) Gating: report-only by default; opt-in per-metric floors.
+        // 4) Record this case's scores for the SPA snapshot (spec 0011 — eval-summary.json).
+        double? Metric(string name) =>
+            result.Metrics.TryGetValue(name, out var m) && m is NumericMetric nm && nm.Value is double v
+                ? Math.Round(v, 2)
+                : null;
+        var abstained = answer.Answer.Contains(
+            "The answer is not found in the document(s)", StringComparison.OrdinalIgnoreCase);
+        _fixture.Record(new EvalCaseSummary(
+            evalCase.Id,
+            Metric(RecallAtKEvaluator.MetricName),
+            Metric("Groundedness"),
+            Metric("Equivalence"),
+            abstained));
+
+        // 5) Gating: report-only by default; opt-in per-metric floors.
         var thresholdsEnabled = _fixture.Configuration.GetValue("Eval:Thresholds:Enabled", false);
         if (!thresholdsEnabled)
         {

@@ -151,6 +151,18 @@ dotnet tool install --global Microsoft.Extensions.AI.Evaluation.Console   # once
 aieval report --path backend/eval/LandDoc.Evals/bin/Debug/net10.0/eval-results --output eval-report.html
 ```
 
+### Dashboard scorecard (spec 0011) + refreshing the snapshot
+Every run also emits a compact **`eval-summary.json`** (metric means + per-case rows + run date) to the
+result-store root. The SPA's Dashboard renders a committed copy of that file as the **"Answer quality (eval)"**
+card — a build-time import (no fetch, so the single-fetch invariant holds), so it's a **dated snapshot**, not
+live. To refresh what the page shows after a run:
+
+```bash
+cp backend/eval/LandDoc.Evals/bin/Debug/net10.0/eval-results/eval-summary.json \
+   frontend/src/ui/dashboard/eval-summary.json
+# commit the updated snapshot, then redeploy (the card's "as of <date>" makes staleness obvious)
+```
+
 ## 6. Troubleshooting
 
 | Symptom | Cause | Fix |

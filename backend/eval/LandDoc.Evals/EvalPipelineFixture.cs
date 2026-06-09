@@ -1,5 +1,7 @@
+using System.Collections.Concurrent;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using Azure;
 using Azure.Search.Documents.Indexes;
 using LandDoc.Api.Ingestion;
@@ -52,8 +54,17 @@ public sealed class EvalPipelineFixture : IAsyncLifetime
         "36-afe-mckenzie-nd.pdf",
     ];
 
+    private static readonly JsonSerializerOptions SummaryJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+        WriteIndented = true,
+    };
+
     private readonly EvalWebApplicationFactory _factory;
     private readonly List<Guid> _ingestedDocumentIds = [];
+    private readonly ConcurrentBag<EvalCaseSummary> _caseResults = [];
+    private string _storageRoot = "";
+    private string _judgeModel = SonnetJudge.DefaultModel;
 
     public EvalPipelineFixture()
     {
@@ -61,6 +72,9 @@ public sealed class EvalPipelineFixture : IAsyncLifetime
         EvalIndexName = $"landdoc-eval-{Guid.NewGuid():N}";
         _factory = new EvalWebApplicationFactory(EvalIndexName);
     }
+
+    /// <summary>Scenarios record each case's scores here; the fixture writes the snapshot on dispose.</summary>
+    public void Record(EvalCaseSummary result) => _caseResults.Add(result);
 
     /// <summary>The per-run isolated Azure AI Search index name.</summary>
     public string EvalIndexName { get; }
@@ -81,11 +95,12 @@ public sealed class EvalPipelineFixture : IAsyncLifetime
 
         // Judge (Sonnet 4.6) + the disk result store the `aieval` HTML report reads from.
         var chatConfiguration = SonnetJudge.CreateChatConfiguration(Configuration);
-        var storageRoot = Path.Combine(AppContext.BaseDirectory, "eval-results");
-        Directory.CreateDirectory(storageRoot);
+        _judgeModel = Configuration["Eval:JudgeModel"] is { Length: > 0 } configured ? configured : SonnetJudge.DefaultModel;
+        _storageRoot = Path.Combine(AppContext.BaseDirectory, "eval-results");
+        Directory.CreateDirectory(_storageRoot);
 
         Reporting = DiskBasedReportingConfiguration.Create(
-            storageRoot,
+            _storageRoot,
             [new RecallAtKEvaluator(), new GroundednessEvaluator(), new EquivalenceEvaluator()],
             chatConfiguration);
 
@@ -145,8 +160,49 @@ public sealed class EvalPipelineFixture : IAsyncLifetime
                 "A leaked, uniquely-named landdoc-eval-* index is harmless.");
         }
 
+        WriteSummary();
+
         Client.Dispose();
         await _factory.DisposeAsync();
+    }
+
+    /// <summary>
+    /// Writes the SPA-friendly <c>eval-summary.json</c> (spec 0011) to the result-store root from the
+    /// scores the scenarios recorded. Promote this file into the frontend + commit it to refresh the
+    /// Dashboard scorecard. Best-effort — a write failure must not fail the run.
+    /// </summary>
+    private void WriteSummary()
+    {
+        if (_caseResults.IsEmpty)
+        {
+            return;
+        }
+
+        try
+        {
+            var cases = _caseResults.OrderBy(c => c.Id, StringComparer.Ordinal).ToList();
+
+            double? Mean(Func<EvalCaseSummary, double?> select)
+            {
+                var values = cases.Select(select).Where(v => v.HasValue).Select(v => v!.Value).ToList();
+                return values.Count == 0 ? null : Math.Round(values.Average(), 2);
+            }
+
+            var summary = new EvalSummary(
+                DateTimeOffset.UtcNow.ToString("o"),
+                _judgeModel,
+                cases.Count,
+                new EvalMeans(Mean(c => c.RecallAtK), Mean(c => c.Groundedness), Mean(c => c.Equivalence)),
+                cases);
+
+            File.WriteAllText(
+                Path.Combine(_storageRoot, "eval-summary.json"),
+                JsonSerializer.Serialize(summary, SummaryJsonOptions));
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"[eval-summary] WARN: failed to write eval-summary.json: {ex.Message}");
+        }
     }
 }
 
