@@ -203,6 +203,29 @@ every type (then deleted it). Verified from the package XML docs + a green `dotn
   holds the metrics; the `aieval` report tool renders the HTML.
 - **Result store:** `DiskBasedResultStore` / `IEvaluationResultStore` (used internally by the disk-based config).
 
+## First live run — 2026-06-09 (via Key Vault `kv-landdoc-hr01`)
+Ran end-to-end against the real prod stack: `KeyVault__Uri=https://kv-landdoc-hr01.vault.azure.net/
+dotnet test backend/eval/LandDoc.Evals` (after `az login`). Two access bits the local user needed beyond
+subscription Owner: **Key Vault Secrets User** (read secrets) and **Storage Blob Data Contributor** on
+`stlanddochr01` (the Blob store uses `Blob:ServiceUri` → `DefaultAzureCredential`, i.e. Entra, not a key).
+
+- **⚠️ Judge gotcha (FIXED):** the MEAI quality evaluators set **both** `Temperature` and `TopP`, and the
+  Claude models reject a request with both (`temperature and top_p cannot both be specified`). Symptom:
+  Groundedness + Equivalence come back as `$type: none` with an `AnthropicBadRequestException` diagnostic
+  while recall@k (no model) still scores — and the run still "passes" report-only. Fix: a
+  `SingleSamplingParameterChatClient : DelegatingChatClient` in `Judge/SonnetJudge.cs` that clears `TopP`
+  when both are set (keeps the low `Temperature`). After the fix: 0 judge errors.
+- **Baseline scores (18 cases, report-only):** recall@k mean **0.96** (two multi-doc cases at 0.67 = 2/3
+  sources cited); groundedness mean **4.67/5**; correctness (equivalence) mean **3.94/5**. Both absent
+  cases correctly abstained (correctness 5/5 — no-hallucination path works).
+- **Real signal surfaced:** the live pipeline **abstained on answerable single-doc lookups** —
+  `mckenzie-royalty`, `reeves-royalty`, `reeves-term` returned "not found" though the doc was ingested and
+  cited (recall=1). That's a genuine retrieval/answer-quality miss for the product backlog, not a harness bug.
+- **Teardown verified clean:** no leftover `landdoc-eval-*` Search index; no eval blobs left in the
+  `documents` container (per-id `DELETE /documents/{id}` + index delete both ran).
+- **Runtime/cost:** ~2m38s with the judge active (36 Sonnet calls); ~24s when the judge was erroring.
+
 ## Open question for the next session
-- (none blocking) — pick the curated ~15–20 dataset cases and wire the fixture/scenarios per the
-  confirmed API above. Live run still gated on Azure/Anthropic keys; `eval.yml` CI remains HELD.
+- (none blocking) — harness is built, live-verified, and self-cleaning. Next: triage the abstain-on-answerable
+  misses above (a product/RAG issue), and decide thresholds before turning on `Eval:Thresholds:Enabled`.
+  `eval.yml` CI remains HELD.
