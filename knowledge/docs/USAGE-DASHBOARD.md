@@ -14,8 +14,12 @@ aggregates → a pure **`UsageCostCalculator`** adds estimated cost from a price
 
 - **Live source** (`AzureMonitorUsageSource`) reads **Azure Monitor platform metrics** for the Foundry
   resource via `Azure.Monitor.Query` + **managed identity** (`DefaultAzureCredential`) — `ProcessedPromptTokens`,
-  `GeneratedTokens`, `AzureOpenAIRequests` (split by `StatusCode`), `AzureOpenAITimeToResponse`, split by
+  `GeneratedTokens`, `AzureOpenAIRequests` (split by `StatusCode`), and `Latency`, split by
   `ModelDeploymentName`. Read-only, free, no persistence (it reads live each call; no stored history).
+  > **Resource-kind note:** this is an **AIServices** (Foundry) account, so latency is the `Latency` metric
+  > (the classic `AzureOpenAITimeToResponse` named in spec 0009 / ADR-0020 doesn't exist on it), and Azure
+  > returns split-dimension keys **lower-cased** (`modeldeploymentname` / `statuscode`) — the adapter matches
+  > them **case-insensitively** (`MetricMetadata.TryGetDimension`). Verified live 2026-06-09.
 - **Offline source** (`InMemoryUsageSource`) returns canned aggregates — no Azure, no creds.
 - **Cost is computed, not measured**: tokens × a configured per-1K price table. It's an **estimate**, not
   the Azure invoice. A deployment with no configured price contributes $0.
@@ -82,9 +86,10 @@ Frontend-only work needs nothing special: `UsageView` calls the typed client, an
 - **Zeros are normal.** Metrics only populate from *actual* model calls; an idle window shows zeros (200, not
   an error), and there's ~1–3 min ingestion lag before recent calls appear.
 - **Cost uses example rates** until you set real `Pricing:` values — it's labeled an estimate in the UI.
-- **The live adapter is unverified end-to-end** (CI pins `inmemory`). If a metric/dimension name doesn't
-  match what the resource emits, that series shows 0 rather than erroring — worth eyeballing the first live
-  load and correcting a name if needed.
+- **Live path verified 2026-06-09** against `landdoc-rag-resource` — real tokens, per-deployment split,
+  request buckets, and latency all populate. CI still pins `inmemory`, so the live metric/dimension names
+  aren't exercised by tests; if Azure changes a metric name or another resource kind emits different names,
+  that series would read 0 rather than erroring (the names are documented above).
 
 ## Future upgrades (behind the same `IUsageSource` port — ADR-0020)
 - **Application Insights OpenTelemetry GenAI traces** → per-app-feature attribution (`/ask` vs. extraction vs.

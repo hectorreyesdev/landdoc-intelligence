@@ -20,7 +20,8 @@ public sealed class AzureMonitorUsageSource : IUsageSource
     private const string PromptTokensMetric = "ProcessedPromptTokens";
     private const string GeneratedTokensMetric = "GeneratedTokens";
     private const string RequestsMetric = "AzureOpenAIRequests";
-    private const string LatencyMetric = "AzureOpenAITimeToResponse";
+    // AIServices (Foundry) resources expose "Latency" (ms), not the classic "AzureOpenAITimeToResponse".
+    private const string LatencyMetric = "Latency";
     private const string DeploymentDimension = "ModelDeploymentName";
     private const string StatusCodeDimension = "StatusCode";
 
@@ -97,7 +98,7 @@ public sealed class AzureMonitorUsageSource : IUsageSource
             var bucket = metric.Name == GeneratedTokensMetric ? completion : prompt;
             foreach (var series in metric.TimeSeries)
             {
-                if (!series.Metadata.TryGetValue(DeploymentDimension, out var deployment))
+                if (!MetricMetadata.TryGetDimension(series.Metadata, DeploymentDimension, out var deployment))
                 {
                     continue;
                 }
@@ -130,7 +131,7 @@ public sealed class AzureMonitorUsageSource : IUsageSource
                 var count = (long)series.Values.Sum(v => v.Total ?? 0d);
                 total += count;
 
-                if (!series.Metadata.TryGetValue(StatusCodeDimension, out var statusCode) ||
+                if (!MetricMetadata.TryGetDimension(series.Metadata, StatusCodeDimension, out var statusCode) ||
                     !int.TryParse(statusCode, out var status))
                 {
                     continue;
