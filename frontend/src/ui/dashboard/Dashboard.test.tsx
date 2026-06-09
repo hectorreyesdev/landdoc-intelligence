@@ -4,14 +4,24 @@ import userEvent from '@testing-library/user-event'
 import { Dashboard } from './Dashboard'
 import type { DocumentSummary } from '../../api/types'
 
-// Recharts renders nothing meaningful under jsdom; stub every export to a passthrough so the test focuses
-// on the KPI tiles, lists, and widgets (chart correctness is covered by the pure metrics tests). No JSX in
-// the (hoisted) factory — use createElement and import React inside it to avoid the hoisting TDZ error.
+// Recharts renders nothing meaningful under jsdom; stub the components Dashboard uses to passthroughs so
+// the test focuses on the KPI tiles, lists, and widgets (chart correctness is covered by the pure metrics
+// tests). Return an explicit object — NOT a Proxy: a Proxy answers every key (incl. `then`), which makes
+// the async factory's result look like a thenable and hangs the run forever. No JSX in the hoisted factory.
 vi.mock('recharts', async () => {
   const { createElement } = await import('react')
-  const Stub = ({ children }: { children?: unknown }) =>
-    createElement('div', null, children as never)
-  return new Proxy({}, { get: () => Stub })
+  const Stub = ({ children }: { children?: unknown }) => createElement('div', null, children as never)
+  return {
+    ResponsiveContainer: Stub,
+    BarChart: Stub,
+    Bar: Stub,
+    AreaChart: Stub,
+    Area: Stub,
+    CartesianGrid: Stub,
+    Tooltip: Stub,
+    XAxis: Stub,
+    YAxis: Stub,
+  }
 })
 
 function doc(id: string, fileName: string, fields: ReadonlyArray<readonly [string, string]>): DocumentSummary {
