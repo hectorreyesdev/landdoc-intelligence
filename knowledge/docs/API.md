@@ -55,8 +55,10 @@ Fetch one document's metadata + extracted fields.
 - Response `200`: a single document-metadata object (same shape as a `GET /documents` element) · `404` if unknown.
 
 ### `GET /documents/{id}/file`  ·  spec [0006](specs/0006-document-read-back-list-view-original-file.md)
-Fetch a document's **original uploaded file** (ADR-0018), served **inline** with its stored `Content-Type`
-so the SPA embeds it in an `<iframe>`.
+Fetch a document's **original uploaded file** (ADR-0018), served **inline** with its stored `Content-Type`.
+The SPA consumes this two ways (spec 0006 amendment): **markdown** is fetched **as text and rendered
+formatted** (react-markdown), while **PDF/plain-text** embed the bytes in an `<iframe>`. The endpoint itself
+is unchanged — always raw bytes with the stored content type.
 - Response `200`: the raw file bytes (`application/pdf`, `text/plain`, or `text/markdown`) · `404` if unknown.
 
 ### `DELETE /documents/{id}`  ·  spec [0008](specs/0008-delete-documents-multi-select.md)

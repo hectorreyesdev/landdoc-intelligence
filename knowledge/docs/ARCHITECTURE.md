@@ -39,7 +39,8 @@ flowchart TD
   toggle**, one typed API client as the only `fetch`. *Workspace:* a multi-file **drag-and-drop** upload
   control (ingest-on-select, no submit button; PDF/text/Markdown), the session **document-tile grid**, a
   question box + **answer-with-citations** (each citation links to its source document), and a
-  **source-file viewer** (a modal showing the extracted fields **beside** the original PDF/text).
+  **source-file viewer** (a modal showing the extracted fields **beside** the original file — **markdown
+  is rendered formatted**, PDF/plain-text embed inline).
   *Documents:* the full-width **persisted documents table** (search · CSV export · multi-select
   **delete** · row "View"; fields shown as a count, full set in the viewer). *Dashboard:* KPI tiles,
   documents-by-location and ingest-over-time charts (Recharts), a needs-review list, and a
