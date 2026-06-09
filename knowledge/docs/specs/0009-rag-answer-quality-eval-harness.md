@@ -38,8 +38,9 @@ live Azure AI Search index.
   are recorded in an ADR (see Links) — the spec depends on that decision.
 - **Metrics → evaluators:**
   - **recall@k** — a **custom deterministic `IEvaluator`** (`RecallAtKEvaluator`): for each case, did
-    the expected source document(s) appear in the `/ask` response's `Citations` (matched by
-    `DocumentId`)? No model call; fully reproducible. Unit-tested in the green suite.
+    the expected source document(s) appear in the `/ask` response's `Citations` (matched by the
+    citation's `Source` file name — `Citation.Source`, added by spec 0006)? No model call; fully
+    reproducible. Unit-tested in the green suite.
   - **grounding/faithfulness** — `GroundednessEvaluator`, with `GroundingContext` = the concatenated
     `Citation.Text` of the answer's citations (i.e. only what the model was actually shown).
   - **correctness** — `EquivalenceEvaluator`, comparing the answer to the golden reference answer
@@ -99,7 +100,7 @@ live Azure AI Search index.
   Search).
 - **Metric correctness (representative cases):**
   - *recall@k, multi-doc:* a Henderson-estate question (spanning `22/27/28`) yields citations whose
-    `DocumentId`s include the expected source docs → recall@k scores as expected; a question whose
+    `Source` file names include the expected source docs → recall@k scores as expected; a question whose
     answer is in one specific doc retrieves that doc.
   - *grounding:* `GroundednessEvaluator` scores a well-grounded answer high and a deliberately
     unsupported claim low, using only the cited passages as `GroundingContext`.

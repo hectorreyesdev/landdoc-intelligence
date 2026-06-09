@@ -63,7 +63,8 @@ Files to create:
   ProjectReferences: `../LandDoc.Evals.Core/...` and `../../src/LandDoc.Api/LandDoc.Api.csproj`.
   ⚠️ Do NOT add this project to `LandDoc.slnx`.
 - `RecallAtKEvaluator.cs` — implements `Microsoft.Extensions.AI.Evaluation.IEvaluator`; wraps
-  `RecallScoring.RecallAtK` over expected vs cited document ids. Returns a `NumericMetric`.
+  `RecallScoring.RecallAtK` over the expected source **file names** vs the answer's `Citation.Source`
+  values (case-insensitive). Returns a `NumericMetric`.
 - `SonnetJudgeChatClient` / `JudgeChatConfiguration.cs` — build a MEAI `IChatClient` for Sonnet 4.6.
   ⚠️ The `Anthropic` SDK (v12.27.0, namespace `Anthropic` + `Anthropic.Models.Messages`,
   `AnthropicClient.Messages.Create(MessageCreateParams, ct)`) shows **no obvious `.AsChatClient()`**.
@@ -75,14 +76,14 @@ Files to create:
 - `EvalPipelineFixture.cs` — `IAsyncLifetime` xUnit fixture. Boots `WebApplicationFactory<Program>`
   configured for the full prod stack + a unique `landdoc-eval-{Guid}` index (model on
   `tests/LandDoc.Tests/LandDocApiFactory.cs`, but WITHOUT the fakes — set config via env/inmemory
-  overrides removed). Ingests the curated corpus once via `POST /documents`, capturing the
-  **`IngestDocumentResponse.Id` (Guid) ↔ file name** map. Exposes that map + an `HttpClient`. On
+  overrides removed). Ingests the curated corpus once via `POST /documents`. Exposes an `HttpClient`.
+  (No documentId↔fileName map needed — recall@k reads `Citation.Source` directly; see gotchas.) On
   dispose, **delete the eval index** (`Azure.Search.Documents.Indexes.SearchIndexClient.DeleteIndexAsync`),
   best-effort with a logged warning.
 - `RagAnswerEvalScenarios.cs` — the eval cases. For each `EvalCase`: `POST /ask`, read
   `AskResponse(Answer, Citations[])`. Build a `ReportingConfiguration` with the 3 evaluators + a disk
-  result store; run a `ScenarioRun` per case; record metrics. Resolve `ExpectedSources` (file names) →
-  doc ids via the fixture map for recall@k. Threshold assertions only when `Eval:Thresholds:Enabled`.
+  result store; run a `ScenarioRun` per case; record metrics. Match `ExpectedSources` (file names)
+  against each `Citation.Source` for recall@k. Threshold assertions only when `Eval:Thresholds:Enabled`.
 - `Dataset/questions.json` — the cases (see Dataset below). Add the curated `samples/leases/*.pdf` as
   `Content` `CopyToOutputDirectory` OR reference them by path from the repo `samples/` dir at runtime.
 - `appsettings.eval.json` — provider selection + eval index name; **no secrets**.
@@ -92,11 +93,11 @@ Files to create:
   document that the live run is gated on keys.
 
 ## ⚠️ Key code facts / gotchas (verified against the code)
-- **`Citation` has NO source file name** — only `(Guid ChunkId, Guid DocumentId, double Score, string Text)`
-  (`backend/src/LandDoc.Api/Qa/Citation.cs`). So recall@k cannot map a citation to a sample filename
-  directly. **Solution:** capture `documentId ↔ fileName` from each `POST /documents` response
-  (`IngestDocumentResponse.Id`) during ingest; expected sources in the dataset are **file names**,
-  resolved to doc ids via that map at scoring time.
+- **`Citation` carries the source file name** — `(Guid ChunkId, Guid DocumentId, double Score, string Text, string Source)`
+  (`backend/src/LandDoc.Api/Qa/Citation.cs`; `Source` is the file name — ADR-0014 follow-on / spec 0006).
+  So recall@k matches the dataset's expected **file names** directly against each `Citation.Source`
+  (case-insensitive) — **no `documentId ↔ fileName` map is needed**. (The earlier ingest-time
+  map workaround — from when `Citation` had no `Source` — is obsolete; main has since added the field.)
 - **Pipeline entry points:** ingest = `POST /documents` (multipart, field `file`); ask = `POST /ask`
   `{ "question": "..." }`. `AskResponse` = `{ answer, citations[] }`. See `Qa/AskEndpoints.cs`,
   `Ingestion/DocumentsEndpoints.cs`.
