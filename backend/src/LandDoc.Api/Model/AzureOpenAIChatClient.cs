@@ -25,6 +25,8 @@ public sealed class AzureOpenAIChatClient : IChatClient
     private const string ExtractionSystemPrompt =
         "Extract the key terms of this land/title document. " +
         "First identify the document type. " +
+        "Capture the effective date and, if explicitly stated, the lease/term expiration (end) date — " +
+        "do not compute the expiration from the primary term. " +
         "Return ONLY information explicitly present; do NOT infer or fabricate; omit/null anything absent. " +
         "Label each party with its role as the document uses it " +
         "(e.g. Lessor/Lessee, Grantor/Grantee, Operator, Assignor/Assignee, Affiant, Heirs).";
@@ -34,12 +36,14 @@ public sealed class AzureOpenAIChatClient : IChatClient
     private const string ExtractionSystemPromptFallback =
         "Extract the key terms of this land/title document. " +
         "First identify the document type. " +
+        "Capture the effective date and, if explicitly stated, the lease/term expiration (end) date — " +
+        "do not compute the expiration from the primary term. " +
         "Return ONLY information explicitly present; do NOT infer or fabricate; omit/null anything absent. " +
         "Label each party with its role as the document uses it " +
         "(e.g. Lessor/Lessee, Grantor/Grantee, Operator, Assignor/Assignee, Affiant, Heirs).\n\n" +
         "Return a JSON object with exactly these keys: " +
         "documentType (string), parties (array of {role, name} objects), " +
-        "effectiveDate, legalDescription, county, state, acres, royalty, bonus, primaryTerm " +
+        "effectiveDate, expirationDate, legalDescription, county, state, acres, royalty, bonus, primaryTerm " +
         "(each a string or null), " +
         "otherNotableTerms (array of {name, value} objects).";
 
@@ -48,7 +52,7 @@ public sealed class AzureOpenAIChatClient : IChatClient
     private static readonly BinaryData ExtractionSchema = BinaryData.FromString("""
         {
           "type": "object",
-          "required": ["documentType","parties","effectiveDate","legalDescription","county","state","acres","royalty","bonus","primaryTerm","otherNotableTerms"],
+          "required": ["documentType","parties","effectiveDate","expirationDate","legalDescription","county","state","acres","royalty","bonus","primaryTerm","otherNotableTerms"],
           "additionalProperties": false,
           "properties": {
             "documentType": { "type": "string" },
@@ -65,6 +69,7 @@ public sealed class AzureOpenAIChatClient : IChatClient
               }
             },
             "effectiveDate":    { "anyOf": [{"type": "string"}, {"type": "null"}] },
+            "expirationDate":   { "anyOf": [{"type": "string"}, {"type": "null"}], "description": "The lease/term expiration or end date, ONLY if explicitly stated. Do not compute it from the primary term." },
             "legalDescription": { "anyOf": [{"type": "string"}, {"type": "null"}] },
             "county":           { "anyOf": [{"type": "string"}, {"type": "null"}] },
             "state":            { "anyOf": [{"type": "string"}, {"type": "null"}] },
@@ -198,6 +203,7 @@ public sealed class AzureOpenAIChatClient : IChatClient
 
         // 3. Universal core scalars
         AppendScalar(fields, root, "effectiveDate",    "EffectiveDate");
+        AppendScalar(fields, root, "expirationDate",   "ExpirationDate");
         AppendScalar(fields, root, "legalDescription", "LegalDescription");
         AppendScalar(fields, root, "county",           "County");
         AppendScalar(fields, root, "state",            "State");

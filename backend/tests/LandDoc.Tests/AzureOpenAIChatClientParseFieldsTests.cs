@@ -19,6 +19,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
             {"role": "Lessee", "name": "Llano Estacado Operating, LLC"}
           ],
           "effectiveDate": "January 15, 2025",
+          "expirationDate": "January 15, 2030",
           "legalDescription": "Section 14, Block 2, T-1-N, Midland County, Texas",
           "county": "Midland",
           "state": "Texas",
@@ -38,6 +39,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
             {"role": "Grantee", "name": "Chisholm Trail Royalties, LLC"}
           ],
           "effectiveDate": "March 10, 2025",
+          "expirationDate": null,
           "legalDescription": "SW/4 of Section 22, Township 8 North, Range 6 West",
           "county": "Stephens",
           "state": "Oklahoma",
@@ -56,6 +58,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
             {"role": "Operator", "name": "Bakken Ridge Energy, Inc."}
           ],
           "effectiveDate": null,
+          "expirationDate": null,
           "legalDescription": null,
           "county": "McKenzie",
           "state": "North Dakota",
@@ -80,6 +83,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
         Assert.Contains(fields, f => f is { Name: "Lessor", Value: "Margaret A. Caldwell" });
         Assert.Contains(fields, f => f is { Name: "Lessee", Value: "Llano Estacado Operating, LLC" });
         Assert.Contains(fields, f => f is { Name: "EffectiveDate", Value: "January 15, 2025" });
+        Assert.Contains(fields, f => f is { Name: "ExpirationDate", Value: "January 15, 2030" });
         Assert.Contains(fields, f => f is { Name: "County", Value: "Midland" });
         Assert.Contains(fields, f => f is { Name: "State", Value: "Texas" });
         Assert.Contains(fields, f => f is { Name: "Acres", Value: "160" });
@@ -120,6 +124,7 @@ public sealed class AzureOpenAIChatClientParseFieldsTests
 
         // Null scalars must be omitted
         Assert.DoesNotContain(fields, f => f.Name == "EffectiveDate");
+        Assert.DoesNotContain(fields, f => f.Name == "ExpirationDate");
         Assert.DoesNotContain(fields, f => f.Name == "LegalDescription");
         Assert.DoesNotContain(fields, f => f.Name == "Acres");
         Assert.DoesNotContain(fields, f => f.Name == "Royalty");
