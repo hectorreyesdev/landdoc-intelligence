@@ -21,6 +21,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\LandDoc.Api\LandDoc.Api.csproj" />
+    <!-- Pure eval core (spec 0006): the green suite unit-tests recall@k + the dataset loader.
+         No eval-framework / cloud dependency comes in through this reference. -->
+    <ProjectReference Include="..\..\eval\LandDoc.Evals.Core\LandDoc.Evals.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

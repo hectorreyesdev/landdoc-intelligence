@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Pure, dependency-free core for the answer-quality eval harness (spec 0006, ADR-0018).
+    Holds the dataset model/loader and the deterministic recall@k scoring so the GREEN SUITE
+    (LandDoc.Tests) can unit-test them WITHOUT taking a dependency on Microsoft.Extensions.AI.Evaluation
+    or any cloud key. The eval runner (LandDoc.Evals) builds the LLM-judge evaluators on top of this.
+  -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+</Project>

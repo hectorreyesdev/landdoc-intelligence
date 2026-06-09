@@ -583,6 +583,9 @@
           "Microsoft.AspNetCore.OpenApi": "[10.0.8, )",
           "PdfPig": "[0.1.14, )"
         }
+      },
+      "landdoc.evals.core": {
+        "type": "Project"
       }
     }
   }
