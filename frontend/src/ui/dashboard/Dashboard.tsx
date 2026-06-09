@@ -39,6 +39,11 @@ function formatHour(hour: string): string {
   return match === null ? hour : `${match[1]} ${match[2]}`
 }
 
+// Recharts renders the tooltip as a floating div with default light styling (white background, light label),
+// which is unreadable in dark mode. Pin it to the theme tokens so it adapts to both themes.
+const TOOLTIP_CONTENT_STYLE = { background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 8 }
+const TOOLTIP_LABEL_STYLE = { color: 'var(--heading)' }
+
 /** The read-only analytics view (spec 0007), aggregated entirely from the GET /documents data. */
 export function Dashboard({ documents, status, onOpenDocument }: DashboardProps): ReactElement {
   if (status === 'loading') {
@@ -85,7 +90,7 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="label" />
                 <YAxis allowDecimals={false} />
-                <Tooltip />
+                <Tooltip contentStyle={TOOLTIP_CONTENT_STYLE} labelStyle={TOOLTIP_LABEL_STYLE} />
                 <Bar dataKey="count" fill="var(--accent)" />
               </BarChart>
             </ResponsiveContainer>
@@ -100,7 +105,11 @@ export function Dashboard({ documents, status, onOpenDocument }: DashboardProps)
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="hour" tickFormatter={(value) => formatHour(String(value))} minTickGap={24} />
                 <YAxis allowDecimals={false} />
-                <Tooltip labelFormatter={(label) => formatHour(String(label))} />
+                <Tooltip
+                  labelFormatter={(label) => formatHour(String(label))}
+                  contentStyle={TOOLTIP_CONTENT_STYLE}
+                  labelStyle={TOOLTIP_LABEL_STYLE}
+                />
                 <Area dataKey="count" stroke="var(--accent)" fill="var(--accent-2)" />
               </AreaChart>
             </ResponsiveContainer>
