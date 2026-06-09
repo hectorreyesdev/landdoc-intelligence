@@ -19,9 +19,12 @@ The ubiquitous language for LandDoc Intelligence — domain terms and project/ar
   top-k / cited answer).
 - **Chunk** — a contiguous slice of document text that gets embedded and retrieved.
 - **Embedding** — a `float[]` vector representation of a chunk or query.
-- **Vector store** — collection of chunks+vectors; in-memory cosine for the slice, Azure AI Search in prod; see [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md).
+- **Vector store** — collection of chunks+vectors; Azure AI Search Free tier is the live store, in-memory cosine the offline/test provider; see [ADR-0017](decisions/0017-azure-ai-search-free-tier-live-vector-store.md) (realizes [ADR-0005](decisions/0005-in-memory-vector-store-slice-azure-ai-search-production.md)).
+- **Document store** — persists each document's original file + metadata + extracted fields, separate from the chunk index; Azure Blob Storage live, in-memory offline/test (`IDocumentStore`); see [ADR-0018](decisions/0018-persisted-document-store-azure-blob-for-original-files-and-metadata.md).
 - **Cosine similarity** — the metric used to rank chunks against a query vector.
-- **Citation** — a pointer from an answer/field back to the source chunk that supports it.
+- **Citation** — a pointer from an answer/field back to the source chunk that supports it; carries the source document's file name so the UI can link to it.
+- **Dashboard** — the read-only analytics view over the ingested corpus (KPI tiles, documents-by-location and ingest-over-time charts, a needs-review list, and lease expirations), aggregated client-side from `GET /documents`; see [spec 0007](specs/0007-insights-dashboard-and-document-search-export.md).
+- **Lease expiration** — a document's term/expiration (end) date; surfaced (when extracted) in the dashboard's expirations widget, bucketed by how soon it's due.
 - **`IChatClient` / `IEmbeddingClient`** — the two model-access ports.
 - **Adapter / Port** — hexagonal terms: port = interface, adapter = provider implementation.
 - **Foundry** — Microsoft Foundry / Azure AI Services, the Azure model gateway. Hosts the live Azure OpenAI GPT chat deployment and the live embedding model (`text-embedding-3-small`, see [ADR-0013](decisions/0013-azure-openai-text-embedding-3-small-live-slice-embedding-adapter.md)); the Foundry-serves-Claude chat primary was retired (needs Enterprise/MCA-E) — see [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md).

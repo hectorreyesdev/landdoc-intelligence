@@ -23,6 +23,11 @@ and an agentic process that's part of the deliverable.
   an empty store).
 - **Read back** (`GET /documents`, `GET /documents/{id}`, `GET /documents/{id}/file`) — list documents with
   their fields, and open the original file inline in the viewer.
+- **Explore** (Dashboard tab) — KPI tiles, documents-by-location and ingest-over-time charts, a
+  needs-review list, and lease expirations — all aggregated client-side from `GET /documents`; the
+  documents table also adds search + CSV export.
+- **Delete** (`DELETE /documents/{id}`) — multi-select removal of documents from both stores (chunks +
+  file/metadata); idempotent.
 
 ## Ports & adapters — provider choice is config, not code
 Every external dependency sits behind an interface with a **live** adapter (production default) and an
