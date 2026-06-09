@@ -114,3 +114,16 @@ docs have an expiration field, 18/18 have EffectiveDate + PrimaryTerm — so the
 - No backend/contract change; still aggregated from `GET /documents`. The earlier spec note about a backend
   follow-up to emit an `ExpirationDate` is **superseded** for leases — the meaningful date is derived, not a
   field the document contains.
+
+## Amendment — 2026-06-09 (lease widget = full-width, 4 views; map dots clickable; eval in its own tab)
+- **`LeaseTermWidget`** (replaces `ExpirationsWidget`) is **full-width** and offers four switchable views via
+  an in-widget segmented control: **Table** (detail), **Timeline** (Gantt — each lease a bar from effective
+  date → term-end with a "today" line, colored by bucket), **Runway** (each lease a dot on a time axis at its
+  term-end), and **Heatmap** (year × quarter expiry density). Charts use Recharts (Gantt = horizontal stacked
+  bar with a transparent offset; Runway = scatter); the Heatmap is a plain CSS grid. No new deps. Chart
+  internals aren't asserted under jsdom; the Table + Heatmap + switcher are.
+- **County map dots are clickable** — `documentsByStateCounty` now carries each county's `documentIds`, and
+  clicking a bubble opens that county's first document (`CountyMap` takes `onOpenDocument`).
+- **Dashboard layout:** corpus analytics lead; the full-width lease widget sits below the chart/map row and
+  **Needs review** is last. The **answer-quality eval scorecard moved out of the Dashboard into its own
+  top-level "Eval" tab** (it reflects model quality, not the user's corpus).

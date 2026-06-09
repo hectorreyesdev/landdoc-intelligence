@@ -75,12 +75,3 @@ it('shows loading and empty states', () => {
   rerender(<Dashboard documents={[]} status="ready" onOpenDocument={() => {}} />)
   expect(screen.getByText(/no documents yet/i)).toBeInTheDocument()
 })
-
-it('always shows the eval scorecard, independent of the document list', () => {
-  // Empty + loading corpus states must not hide the eval card (it reflects model quality, not user docs).
-  const { rerender } = render(<Dashboard documents={[]} status="loading" onOpenDocument={() => {}} />)
-  expect(screen.getByRole('heading', { name: /answer quality \(eval\)/i })).toBeInTheDocument()
-
-  rerender(<Dashboard documents={[]} status="ready" onOpenDocument={() => {}} />)
-  expect(screen.getByRole('heading', { name: /answer quality \(eval\)/i })).toBeInTheDocument()
-})

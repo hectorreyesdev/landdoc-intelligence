@@ -22,11 +22,11 @@ vi.mock('./geo', () => ({
 }))
 
 it('shows a loading state before the atlas resolves', () => {
-  render(<CountyMap locations={[]} />)
+  render(<CountyMap locations={[]} onOpenDocument={() => {}} />)
   expect(screen.getByText(/loading map/i)).toBeInTheDocument()
 })
 
 it('shows an honest empty state when no county/state fields resolve', async () => {
-  render(<CountyMap locations={[]} />)
+  render(<CountyMap locations={[]} onOpenDocument={() => {}} />)
   await waitFor(() => expect(screen.getByText(/no mappable locations yet/i)).toBeInTheDocument())
 })
