@@ -26,10 +26,12 @@ every session (see **Project docs** below).
   live / in-memory cosine offline — ADR-0017) and **`IDocumentStore`** for the original file + metadata
   (Azure Blob Storage live / in-memory offline — ADR-0018). Swap via `VectorStore:Provider` /
   `DocumentStore:Provider`, never a code change.
-- **Frontend** — React + TypeScript SPA with two tabs: **Workspace** (drag-drop upload →
-  extracted-fields → a persisted documents table with search / CSV export / multi-select delete ·
-  question box → answer-with-citations · a source-file viewer) and **Dashboard** (KPI tiles, charts,
-  needs-review, and lease expirations, aggregated from `GET /documents`).
+- **Frontend** — React + TypeScript SPA with three tabs: **Workspace** (drag-drop upload →
+  extracted-field tiles · question box → answer-with-citations · a source-file viewer), **Documents**
+  (the full-width persisted documents table — search / CSV export / multi-select delete / row "View";
+  fields shown as a count), and **Dashboard** (KPI tiles, charts, needs-review, and lease expirations,
+  aggregated from `GET /documents`). The source-file viewer is a modal showing the extracted fields
+  **beside** the original file.
 - **RAG pipeline** — ingest PDF/text/Markdown → extract structured fields → chunk → embed
   (`IEmbeddingClient`) → store chunks (`IVectorStore`) + persist the original file/metadata
   (`IDocumentStore`) → on ask, retrieve top-k by cosine → answer **with citations**. Stores are

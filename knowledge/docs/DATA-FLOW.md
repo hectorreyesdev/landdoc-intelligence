@@ -26,13 +26,15 @@ sequenceDiagram
     E-->>API: Vectors
     API->>V: Store chunks + vectors
     API->>D: Save original file + metadata (IDocumentStore — required)
+    note over API,V: save fails → delete the just-written chunks (compensating rollback), then 500
     API-->>SPA: documentId + fields + chunkCount
     SPA-->>A: Show extracted fields
 ```
 
 **State change:** ingest is the only write on the ask path's data — chunks + vectors are added to the
 vector store, the original file + metadata + fields are persisted to the document store (spec 0006 /
-ADR-0018; required — a save failure fails ingest), and the document's extracted fields are produced.
+ADR-0018; required — if the save fails, the just-written chunks are rolled back via a compensating
+delete so no orphans remain, then ingest returns 500), and the document's extracted fields are produced.
 The viewer reads back via `GET /documents/{id}` + `GET /documents/{id}/file`.
 
 ## Ask — question with citations
