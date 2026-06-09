@@ -85,6 +85,8 @@ public sealed class RagAnswerEvalScenarios : IClassFixture<EvalPipelineFixture>
             evalCase.Question,
             evalCase.ExpectedAnswer,
             evalCase.ExpectedSources,
+            evalCase.Category,
+            evalCase.Instrument,
             Metric(RecallAtKEvaluator.MetricName),
             Metric("Groundedness"),
             Metric("Equivalence"),

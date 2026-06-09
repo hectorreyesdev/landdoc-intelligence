@@ -1069,6 +1069,38 @@ button:disabled {
   font-variant-numeric: tabular-nums;
 }
 
+.eval-instrument {
+  margin-left: 0.4rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+/* Category section headers within the score table. */
+.eval-group-header th {
+  position: sticky;
+  top: 1.95rem; /* sits just below the sticky column header row */
+  text-align: left;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.eval-group-count {
+  margin-left: 0.45rem;
+  padding: 0.02rem 0.4rem;
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 600;
+}
+
 .eval-detail-row td {
   text-align: left;
   white-space: normal;
