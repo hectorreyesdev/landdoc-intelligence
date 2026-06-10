@@ -16,3 +16,4 @@ must be designed before code (per the `CLAUDE.md` guardrail).
 - [0010 — RAG answer-quality tuning (retrieval depth + abstain prompt)](0010-rag-answer-quality-tuning.md) — **Accepted**
 - [0011 — Eval answer-quality scorecard on the Dashboard](0011-eval-scorecard-in-dashboard.md) — **Accepted**
 - [0012 — RAG Answer-Quality Eval Harness](0012-rag-answer-quality-eval-harness.md) — **Accepted**
+- [0013 — Single-user auth: Easy Auth gate + app-level allowlist](0013-single-user-auth-easy-auth-gate-app-allowlist.md) — **Accepted**
