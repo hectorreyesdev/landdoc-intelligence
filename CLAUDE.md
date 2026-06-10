@@ -43,10 +43,12 @@ every session (see **Project docs** below).
   config-selected: Azure AI Search + Azure Blob live; in-memory offline/test.
 
 ### Models & cost
-Default chat model `claude-opus-4-8` (adaptive thinking). Sonnet 4.6 or Haiku 4.5 are selectable
-per call-type for cost — e.g. the extraction step. Lean on **prompt caching** for the repeated
-document context. All model IDs live in config, never hardcoded. Token usage + **estimated** cost are
-surfaced in-app via the **Ops / Usage** dashboard, read from free Azure Monitor platform metrics (ADR-0020).
+Live default chat model `gpt-5.4-mini` (Azure OpenAI, ADR-0012); `claude-opus-4-8` via
+`AnthropicChatClient` is the config-swap fallback (`ModelClient:ChatProvider=anthropic`). On the
+Anthropic path, Sonnet 4.6 or Haiku 4.5 are selectable per call-type for cost — e.g. the extraction
+step — and lean on **prompt caching** for the repeated document context. All model IDs live in
+config, never hardcoded. Token usage + **estimated** cost are surfaced in-app via the **Ops / Usage**
+dashboard, read from free Azure Monitor platform metrics (ADR-0020).
 
 ### Out of scope — "production hardening", do NOT build
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search beyond the Free-tier
