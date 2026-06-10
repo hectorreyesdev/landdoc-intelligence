@@ -142,6 +142,12 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
   is **scale-to-zero** (`min-replicas 0`), so idle cost ≈ ACR Basic alone (~$5/mo) at the price of a
   few-second cold start after idle. Pin back always-on:
   `az containerapp update -n landdoc -g rg-landdoc-deomo --min-replicas 1` (~$10–13/mo more).
+- **Backlog — drop ACR for ghcr.io (idle → ~$0):** the registry (`ca6a00db456cacr`, Basic ~$5/mo flat)
+  holds only the `landdoc` repo and is now the entire idle cost. Since the GitHub repo is public,
+  images could ship to **GitHub Container Registry** (free for public images) instead: swap the
+  registry login + image ref in `.github/workflows/deploy.yml`, point the Container App at
+  `ghcr.io/hectorreyesdev/landdoc`, then delete the ACR. Needs a small spec when picked up
+  (CI/CD seam — see [CICD.md](CICD.md)). Decided 2026-06-10, deliberately deferred.
 - **Teardown after the interview (mandatory):**
   ```bash
   az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
