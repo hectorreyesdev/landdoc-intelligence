@@ -14,7 +14,8 @@ means manually reading dozens of pages, and any answer must be traceable back to
 ## Non-goals
 "Production hardening" — explicitly out of scope (see `CLAUDE.md` → Out of scope):
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search **beyond the Free-tier
-vector store** (the Free tier is now the live store — ADR-0017) · auth/RBAC · the **infra** observability
+vector store** (the Free tier is now the live store — ADR-0017) · RBAC / multi-user auth (single-user
+owner auth is **in** — [ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)) · the **infra** observability
 stack (Log Analytics ingestion · App Insights traces · alerting) — but the **in-app LLM usage dashboard**
 reading free, read-only Azure Monitor platform metrics **is in scope** (ADR-0020). Also out:
 multi-tenant/multi-user concerns and high-accuracy OCR of scanned/handwritten documents.
@@ -45,7 +46,8 @@ token usage + estimated cost from **Azure Monitor platform metrics** behind a th
 Search live / in-memory offline) · cited Q&A · a persisted document library (table · search · CSV · delete
 · source-file viewer) · an LLM usage/cost **Ops dashboard** (Azure Monitor metrics — ADR-0020) · React UI
 across Workspace / Documents / Dashboard / Ops · Usage tabs.
-**Out:** everything under Non-goals · auth.
+**Out:** everything under Non-goals (single-user owner auth moved **in** —
+[ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)).
 
 ## Success metrics
 - End-to-end demo: upload → fields shown → question → cited answer, with no manual steps.

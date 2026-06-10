@@ -111,6 +111,11 @@ flowchart TD
 ## Cross-cutting concerns
 - **Configuration** — provider selection + model IDs live in config; never hardcode model IDs.
 - **Secrets** — dev: `dotnet user-secrets` / env vars; prod: Azure Key Vault. Never committed.
+- **AuthN/AuthZ** — single-user: Container Apps built-in auth (Easy Auth, Microsoft Entra ID) gates
+  the public URL to the owner's identity, plus an app-level allowlist check on the injected principal
+  header — config-selected like the other seams (`Auth:Mode` = `easyauth` live / `none` offline
+  default) — see [ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md).
+  RBAC / multi-user stays out of scope.
 - **Errors** — validate and throw early; the chat provider is config-selected (Azure OpenAI GPT live,
   Anthropic-direct as the config-swap fallback — [ADR-0012](decisions/0012-azure-openai-gpt-live-chat-adapter-per-provider-config.md));
   an availability auto-failover wrapper remains deferred. Field extraction at ingest is **best-effort** —

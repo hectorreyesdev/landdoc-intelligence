@@ -53,7 +53,8 @@ dashboard, read from free Azure Monitor platform metrics (ADR-0020).
 ### Out of scope — "production hardening", do NOT build
 VNet/Private Link · Azure AI Document Intelligence OCR tuning · Azure AI Search beyond the Free-tier
 vector store (semantic ranker / reranking, Basic+ scale — ADR-0017 brought the Free tier in as the
-live store) · auth/RBAC · the **infra** observability stack — Log Analytics ingestion, Application
+live store) · RBAC / multi-user auth (**single-user** owner auth — the Easy Auth gate + app-level
+allowlist — is **in** scope, ADR-0022) · the **infra** observability stack — Log Analytics ingestion, Application
 Insights traces, alerting (the **in-app** LLM usage dashboard reading free, read-only Azure Monitor
 platform metrics is **in** scope — ADR-0020; it's a product surface, not an infra stack). If a task
 seems to need an out-of-scope item, stub it and note why in `knowledge/lessons.md`.

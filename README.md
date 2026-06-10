@@ -9,8 +9,9 @@ and every citation links back to the document it came from.
 It is **deployed** — a single container on Azure Container Apps, secrets pulled from Key Vault via managed
 identity, CI/CD on merge to `main` (see [DEPLOYMENT.md](knowledge/docs/DEPLOYMENT.md) +
 [ADR-0016](knowledge/docs/decisions/0016-single-container-azure-container-apps-keyvault-secrets.md)). It is
-**not** production-*hardened* — auth/RBAC, observability, VNet/Private Link and the like are deliberately
-out of scope (see [CLAUDE.md](CLAUDE.md)).
+**not** production-*hardened* — RBAC, observability, VNet/Private Link and the like are deliberately
+out of scope (see [CLAUDE.md](CLAUDE.md)); access is gated to the owner's Microsoft account
+([ADR-0022](knowledge/docs/decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)).
 
 Senior-level judgment made visible: deliberate scope (build vs. stub), a spec- and ADR-first workflow,
 and an agentic process that's part of the deliverable.
