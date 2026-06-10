@@ -1,4 +1,5 @@
 using Azure.Identity;
+using LandDoc.Api.Auth;
 using LandDoc.Api.Extraction;
 using LandDoc.Api.Ingestion;
 using LandDoc.Api.Model;
@@ -35,6 +36,7 @@ builder.Services.Configure<AnthropicOptions>(builder.Configuration.GetSection("A
 builder.Services.Configure<SearchOptions>(builder.Configuration.GetSection("Search"));
 builder.Services.Configure<BlobOptions>(builder.Configuration.GetSection("Blob"));
 builder.Services.Configure<MonitorOptions>(builder.Configuration.GetSection("Monitor"));
+builder.Services.Configure<AuthOptions>(builder.Configuration.GetSection("Auth"));
 
 // Vector store — config-selected adapter (VectorStore:Provider). Live default: azuresearch (ADR-0017);
 // inmemory is the offline/test provider (pinned by TestModuleInitializer). Singleton so ingest (write)
@@ -114,6 +116,22 @@ var app = builder.Build();
 
 // Unhandled exceptions surface as ProblemDetails.
 app.UseExceptionHandler();
+
+// Single-user gate (spec 0013, ADR-0022): app-level allowlist behind the Easy Auth platform gate,
+// config-selected like the provider seams. Mode=none (default) keeps local/offline/tests open;
+// easyauth with an empty allowlist is a lockout misconfiguration — fail at startup, not per-request.
+// Registered before the static-file middleware so the SPA shell is gated, not just the API routes.
+var authOptions = app.Services.GetRequiredService<IOptions<AuthOptions>>().Value;
+var authMode = authOptions.Mode.ToLowerInvariant();
+if (authMode is not (AuthOptions.ModeNone or AuthOptions.ModeEasyAuth))
+{
+    throw new InvalidOperationException($"Unknown Auth:Mode '{authOptions.Mode}'.");
+}
+if (authMode == AuthOptions.ModeEasyAuth && authOptions.AllowedPrincipalIds.Count == 0)
+{
+    throw new InvalidOperationException("Auth:Mode is 'easyauth' but Auth:AllowedPrincipalIds is empty.");
+}
+app.UseMiddleware<EasyAuthAllowlistMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {
