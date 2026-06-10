@@ -30,6 +30,11 @@ every session (see **Project docs** below).
   LLM token/cost/latency metrics for the dashboard (Azure Monitor platform metrics live / in-memory
   offline — ADR-0020). Swap via `UsageSource:Provider`; cost is **computed** from a non-secret price
   table by a pure calculator outside the adapter.
+- **Auth** — single-user gate (ADR-0022): Azure Container Apps **built-in auth (Easy Auth, Entra ID)**
+  at the platform edge, plus an app-level allowlist middleware checking the injected
+  `X-MS-CLIENT-PRINCIPAL-ID` header. Config-selected like the ports, never a code change:
+  `Auth:Mode` = `easyauth` (live) / `none` (default — local dev, offline, tests). Allowlist in
+  `Auth:AllowedPrincipalIds` (object IDs, non-secret). RBAC / multi-user stays out of scope.
 - **Frontend** — React + TypeScript SPA with four tabs: **Workspace** (drag-drop upload →
   extracted-field tiles · question box → answer-with-citations · a source-file viewer), **Documents**
   (the full-width persisted documents table — search / CSV export / multi-select delete / row "View";

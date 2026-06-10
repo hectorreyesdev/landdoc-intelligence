@@ -3,6 +3,41 @@
 Two critical flows: **ingest** (upload → extracted fields, the only state mutation) and **ask**
 (question → cited answer, read-only over the store).
 
+## Auth gate — in front of every live flow
+
+Live, every request below first passes the single-user gate (spec
+[0013](specs/0013-single-user-auth-easy-auth-gate-app-allowlist.md) /
+[ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)): the
+Container Apps **Easy Auth** sidecar authenticates against Microsoft Entra ID, then the app's
+allowlist middleware checks the injected principal. The four flows below are the **post-gate** view;
+locally/offline (`Auth:Mode=none`, the default) the gate is absent and requests hit the API directly.
+
+```mermaid
+sequenceDiagram
+    actor U as Caller (browser or API client)
+    participant EA as Easy Auth sidecar (ACA)
+    participant MS as Microsoft Entra ID
+    participant MW as Allowlist middleware (Auth:Mode=easyauth)
+    participant API as Web API / SPA
+
+    U->>EA: Any request
+    alt no session — browser (Accept: text/html)
+        EA-->>U: 302 → Microsoft sign-in
+        U->>MS: Sign in (owner account)
+        MS-->>EA: Authenticated (platform allowlist: owner object ID only)
+    else no session — API-shaped client (curl/fetch)
+        EA-->>U: 401 (no redirect)
+    end
+    EA->>MW: Forward + inject X-MS-CLIENT-PRINCIPAL-ID
+    alt header missing
+        MW-->>U: 401
+    else principal not in Auth:AllowedPrincipalIds
+        MW-->>U: 403
+    else allowlisted (the owner)
+        MW->>API: Pass through — flows below proceed
+    end
+```
+
 ## Ingest — upload a document
 
 ```mermaid
