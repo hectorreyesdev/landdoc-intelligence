@@ -9,7 +9,7 @@ operator's guide. For first-time provisioning and the full CLI walkthrough see
 ## The live environment
 | Thing | Value |
 |---|---|
-| Public URL | <https://landdoc.hectorreyes.dev/> (also the ACA FQDN `landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io`) |
+| Public URL | <https://landdoc.hectorreyes.dev/> (also the ACA FQDN `landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io`) — **sign-in required** (owner only, spec 0013 / [ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)) |
 | Subscription | `<SUBSCRIPTION_ID>` |
 | Resource group | `rg-landdoc-deomo` (`eastus2`) |
 | Container App | `landdoc` (env `cae-landdoc`) |
@@ -76,9 +76,14 @@ curl -s -o /dev/null -w "GET /documents -> %{http_code} %{content_type}\n" "http
 curl -s -o /dev/null -w "POST /ask      -> %{http_code}\n" -X POST "https://$FQDN/ask" \
   -H "Content-Type: application/json" -d '{"question":"ping"}'
 ```
-Healthy: `GET /` → `200 text/html`; `GET /documents` → `200 application/json`; `POST /ask` → `409` (empty)
-or `200`. A `500` on `/ask` ⇒ Key Vault identity/role not wired; a `500` on `/documents` ⇒ blob identity/role
-not wired (see [DEPLOYMENT.md § 1c–1e](DEPLOYMENT.md)).
+Healthy **since auth went live (spec 0013 / ADR-0022): all three anonymous curls → `401`** — that *is*
+the pass result (the gate works); browser requests redirect (`302`) to Microsoft sign-in. For the
+functional smoke, sign in as the owner in a browser and run upload → ask → cited answer. Pre-auth
+expectations, for reference behind a signed-in session: `GET /` → `200 text/html`; `GET /documents` →
+`200 application/json`; `POST /ask` → `409` (empty) or `200`. A `500` on `/ask` ⇒ Key Vault
+identity/role not wired; a `500` on `/documents` ⇒ blob identity/role not wired
+(see [DEPLOYMENT.md § 1c–1e](DEPLOYMENT.md)). An unexpected `200` on an anonymous curl ⇒ auth has been
+disabled — re-apply [DEPLOYMENT.md § 4](DEPLOYMENT.md).
 
 ## Day-2 operations
 
@@ -120,9 +125,18 @@ az containerapp revision restart -n "$APP" -g "$RG" --revision "$(az containerap
 ```
 (Secret names use `--` for `:`, e.g. `AzureOpenAI--ApiKey`, `Search--ApiKey`, `Blob--ServiceUri`.)
 
+**Rotate the Easy Auth client secret** (ADR-0022 — it **expires**; created 2026-06-10, 2-year validity,
+so due ~2028-06). This one lives as an **ACA secret**, not Key Vault:
+```bash
+SECRET=$(az ad app credential reset --id 8659ebef-c33b-4895-a228-dcb4838404c7 \
+  --display-name easyauth-aca --years 2 --query password -o tsv)
+az containerapp secret set -n "$APP" -g "$RG" --secrets "microsoft-provider-authentication-secret=$SECRET"
+az containerapp revision restart -n "$APP" -g "$RG" --revision "$(az containerapp revision list -n "$APP" -g "$RG" --query '[-1].name' -o tsv)"
+```
+
 ## Cost & teardown
 Idle cost ≈ a few USD/month (1 always-on replica + ACR Basic). Scale to zero (above) to trim without tearing
-down. To remove resources, follow [DEPLOYMENT.md § 4](DEPLOYMENT.md) — delete **only what this deployment
+down. To remove resources, follow [DEPLOYMENT.md § 5](DEPLOYMENT.md) — delete **only what this deployment
 created** (app, env, registry, Log Analytics + the app-identity role assignments). The Key Vault, Azure AI
 resource, Azure AI Search, and the `stlanddochr01` storage account also live in `rg-landdoc-deomo`, so **do
 not `az group delete` the whole RG** unless you intend to destroy those too.

@@ -33,6 +33,7 @@
 | ↳ container | Blob container | `documents` | — | — |
 | **Key Vault** | Key Vault (RBAC) | `kv-landdoc-hr01` | `https://kv-landdoc-hr01.vault.azure.net` | RBAC auth; self = *Key Vault Secrets Officer* |
 | **Budget** | Cost Management budget | `landdoc-budget` | — | **$25** @ 50 / 80 / 100 % alerts |
+| **Auth app registration** | Entra app registration (Easy Auth — ADR-0022) | `landdoc-easyauth` (client id `8659ebef-c33b-4895-a228-dcb4838404c7`) | — | single-tenant; ID tokens on; secret `easyauth-aca` (2y) stored as ACA secret `microsoft-provider-authentication-secret` |
 
 ## 3. Model deployments (on `landdoc-rag-resource`)
 
@@ -131,6 +132,7 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 | Observability | Log Analytics (Container Apps env) | `workspace-rglanddocdeomoWNBf` | deployed |
 | CI/CD | GitHub Actions → ACR build → ACA revision (OIDC, no stored secret) | `.github/workflows/deploy.yml` | armed (runs on merge to `main`) |
 | Custom domain | ACA **custom domain** binding + free managed cert | **`landdoc.hectorreyes.dev`** — cert `mc-cae-landdoc-landdoc-hectorre-8517` (Namecheap CNAME + `asuid` TXT) | **bound** (SniEnabled, auto-renew) — https://landdoc.hectorreyes.dev/ |
+| Single-user auth | ACA **built-in auth** (Easy Auth, Entra) + app allowlist middleware. Platform: redirect-to-login, `allowedPrincipals.identities=[96b6d850-0233-4865-a8aa-68249d3c675b]` (owner). App: env vars `Auth__Mode=easyauth`, `Auth__AllowedPrincipalIds__0=<owner oid>` | reg. `landdoc-easyauth` | **live** 2026-06-10 (spec 0013 / ADR-0022) — setup in [DEPLOYMENT.md §4](DEPLOYMENT.md) |
 | App Insights | — | ‹optional› | not built |
 
 ## 8. Cost guardrails & teardown
@@ -143,9 +145,10 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
   ```bash
   az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
   az ad app delete --id <CI_APP_ID> # the CI/CD Entra app — lives in Entra, not the RG
+  az ad app delete --id 8659ebef-c33b-4895-a228-dcb4838404c7 # the Easy Auth app registration (ADR-0022)
   ```
   (Custom-domain CNAME at Namecheap is harmless to leave or remove.) For **targeted** teardown that keeps the
-  Key Vault + AI resource, see [DEPLOYMENT.md §4](DEPLOYMENT.md).
+  Key Vault + AI resource, see [DEPLOYMENT.md §5](DEPLOYMENT.md).
 
 ## 9. Open confirmations before adapters go live
 

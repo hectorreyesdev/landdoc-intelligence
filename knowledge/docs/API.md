@@ -115,6 +115,11 @@ metrics each call (ADR-0020). Read-only; computes cost from a configured price t
 
 ## Error model
 Standard ASP.NET Core **`ProblemDetails`** (RFC 7807):
+- `401` / `403` — the single-user gate (spec [0013](specs/0013-single-user-auth-easy-auth-gate-app-allowlist.md) /
+  [ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)), applied to **every**
+  route (API + SPA shell) when `Auth:Mode=easyauth` (the live posture; `none` locally/offline): missing
+  `X-MS-CLIENT-PRINCIPAL-ID` → `401`, authenticated but not allowlisted → `403`. In a browser the platform
+  redirects (`302`) to Microsoft sign-in before these are ever seen.
 - `400` — validation (missing/empty file, unsupported file type, or a `.pdf` failing the `%PDF-` magic-byte check; blank question; an unrecognized `GET /usage` `range`).
 - `404` — unknown document id (`GET /documents/{id}`).
 - `409` — `POST /ask` against an empty store (nothing ingested to cite).

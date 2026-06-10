@@ -285,14 +285,67 @@ curl -s -o /dev/null -w "%{http_code} ssl=%{ssl_verify_result}\n" https://landdo
 
 ---
 
-## 4. Teardown
+## 4. Single-user authentication (Easy Auth — spec 0013 / ADR-0022)
+
+The live URL is gated to the owner's Microsoft account, two layers (see
+[ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md)): the
+platform gate (Container Apps built-in auth, Entra ID) and the app-level allowlist middleware
+(`Auth:Mode=easyauth`). All of this is **Azure state, not code** — re-apply it after a from-scratch
+re-provision. As built: app registration **`landdoc-easyauth`** (client id
+`8659ebef-c33b-4895-a228-dcb4838404c7`), owner object id `96b6d850-0233-4865-a8aa-68249d3c675b`.
+
+```bash
+# 4a. App registration — single-tenant, ID tokens on, Easy Auth callbacks for BOTH hosts
+APP_ID=$(az ad app create --display-name "landdoc-easyauth" --sign-in-audience AzureADMyOrg \
+  --web-redirect-uris \
+    "https://landdoc.hectorreyes.dev/.auth/login/aad/callback" \
+    "https://landdoc.wittyground-3c06fff6.eastus2.azurecontainerapps.io/.auth/login/aad/callback" \
+  --enable-id-token-issuance true --query appId -o tsv)
+
+# 4b. Client secret (expires — see RUNBOOK-PROD rotation note) → stored as an ACA secret, not Key
+#     Vault: it's consumed by the platform auth sidecar, not by app config (ADR-0022)
+SECRET=$(az ad app credential reset --id "$APP_ID" --display-name easyauth-aca --years 2 --query password -o tsv)
+az containerapp secret set -g rg-landdoc-deomo -n landdoc \
+  --secrets "microsoft-provider-authentication-secret=$SECRET"
+
+# 4c. Enable Easy Auth — Entra provider + redirect unauthenticated browsers to Microsoft sign-in
+TENANT=$(az account show --query tenantId -o tsv)
+az containerapp auth microsoft update -g rg-landdoc-deomo -n landdoc --client-id "$APP_ID" \
+  --client-secret-name microsoft-provider-authentication-secret \
+  --issuer "https://login.microsoftonline.com/$TENANT/v2.0" --yes
+az containerapp auth update -g rg-landdoc-deomo -n landdoc --enabled true \
+  --action RedirectToLoginPage --redirect-provider azureactivedirectory
+
+# 4d. Platform allowlist — restrict to the owner's object id. Not exposed by the CLI: GET the
+#     authConfig, merge validation.defaultAuthorizationPolicy.allowedPrincipals.identities,
+#     PUT it back (PATCH returns Method Not Allowed on authConfigs).
+OWNER_OID=$(az ad signed-in-user show --query id -o tsv)
+SUB=$(az account show --query id -o tsv)
+URI="https://management.azure.com/subscriptions/$SUB/resourceGroups/rg-landdoc-deomo/providers/Microsoft.App/containerApps/landdoc/authConfigs/current?api-version=2024-03-01"
+# merge step: take the GET body's `properties`, set identityProviders.azureActiveDirectory.validation
+#   .defaultAuthorizationPolicy.allowedPrincipals.identities = ["$OWNER_OID"], PUT {"properties": …}
+az rest --method get --uri "$URI"   # → merge → az rest --method put --uri "$URI" --body @merged.json
+
+# 4e. Activate the app-level check (defense in depth — rolls a revision)
+az containerapp update -g rg-landdoc-deomo -n landdoc \
+  --set-env-vars Auth__Mode=easyauth "Auth__AllowedPrincipalIds__0=$OWNER_OID"
+```
+
+**Verify:** anonymous `curl https://landdoc.hectorreyes.dev/documents` → **401** (no data); a browser
+hitting `/` → **302** to `login.microsoftonline.com`; the owner signs in and the app works end to end;
+any other signed-in account → **403**. Note: the §3c `curl …/ → 200` check predates auth — anonymous
+curl now returning 401 there is the expected result.
+
+---
+
+## 5. Teardown
 
 The Key Vault (`kv-landdoc-hr01`), the Azure AI resource (`landdoc-rag-resource…`), the Azure AI Search
 service, and the storage account (`stlanddochr01`, which holds the ingested documents) also live in
 `rg-landdoc-deomo`, so **do not delete the whole resource group** unless you intend to destroy those
 too. Delete only what this deployment created.
 
-### 4a. Remove just the app and its build/runtime infra
+### 5a. Remove just the app and its build/runtime infra
 
 ```bash
 az account set --subscription "$SUBSCRIPTION"
@@ -306,6 +359,7 @@ az role assignment delete --assignee "$PRINCIPAL_ID" --role "Key Vault Secrets U
 az role assignment delete --assignee "$PRINCIPAL_ID" --role "Storage Blob Data Contributor" --scope "$STORAGE_ID"
 az role assignment delete --assignee "$PRINCIPAL_ID" --role "Monitoring Reader" --scope "$FOUNDRY_ID"  # usage dashboard (§1g)
 
+az ad app delete --id 8659ebef-c33b-4895-a228-dcb4838404c7  # the Easy Auth app registration (§4)
 az containerapp delete  -n "$APP" -g "$RG" --yes        # the app (all revisions)
 az containerapp env delete -n "$ENV" -g "$RG" --yes     # the environment
 az acr delete -n ca6a00db456cacr -g "$RG" --yes         # the registry + images
@@ -317,7 +371,7 @@ az monitor log-analytics workspace delete \
 > when the app / env above are deleted — no separate step. The Namecheap `landdoc` CNAME + `asuid.landdoc`
 > TXT are harmless to leave, or delete them in Advanced DNS.
 
-### 4b. Nuke everything in the RG (⚠️ also deletes Key Vault + AI resource)
+### 5b. Nuke everything in the RG (⚠️ also deletes Key Vault + AI resource)
 
 Only if you really want the whole environment gone:
 

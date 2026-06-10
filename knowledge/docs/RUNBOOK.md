@@ -41,12 +41,20 @@ Settings (non-secret, in `appsettings.json`):
 - `Embedding:Dimension` — embedding vector length, shared by both adapters (Azure honors it via the `dimensions` parameter; default 256)
 - `Chunking:MaxChars` / `Chunking:Overlap` — chunk window + overlap (default 800 / 150)
 - `Retrieval:TopK` — top-k chunks for `/ask` (default 8)
+- `Auth:Mode` — `none` (default — local dev, offline, tests) | `easyauth` (live: every request must carry
+  an allowlisted Easy Auth principal; unknown mode or `easyauth` with an empty allowlist fails startup)
+- `Auth:AllowedPrincipalIds` — Entra object IDs admitted when `Mode=easyauth` (not secrets; live value is
+  the owner's object id, set as the `Auth__AllowedPrincipalIds__0` env var). See
+  [ADR-0022](decisions/0022-single-user-entra-auth-easy-auth-gate-app-level-allowlist.md) /
+  [spec 0013](specs/0013-single-user-auth-easy-auth-gate-app-allowlist.md)
 
 Secrets (never commit values):
 - Azure OpenAI: `AzureOpenAI:Endpoint` + `AzureOpenAI:ApiKey` (one resource serves both chat and embeddings)
 - Anthropic: `Anthropic:ApiKey` (fallback chat)
 - Azure AI Search: `Search:Endpoint` + `Search:ApiKey` (admin key; Free tier has no managed identity — ADR-0017)
 - Azure Blob: `Blob:ConnectionString` (only if not using the managed-identity `Blob:ServiceUri` path — ADR-0018)
+- Easy Auth client secret: lives as the **Container App secret** `microsoft-provider-authentication-secret`
+  (consumed by the platform auth sidecar, not app config — ADR-0022; expires, rotation in [RUNBOOK-PROD.md](RUNBOOK-PROD.md))
 
 ## Observability
 Console logging (streamed via `az containerapp logs show` in prod — see [RUNBOOK-PROD.md](RUNBOOK-PROD.md)),

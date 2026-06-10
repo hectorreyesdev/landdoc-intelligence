@@ -78,4 +78,6 @@ Live (manual, post-deploy):
   checks change behind sign-in; secret rotation note), DEPLOYMENT (Easy Auth + app registration
   steps), AZURE-CONFIG (new registration, env vars, ACA secret), API (error model: 401/403 layer),
   GLOSSARY (Easy Auth, principal/object ID).
-- Implementing PR: _placeholder_
+- Implementing PR: [#52](https://github.com/hectorreyesdev/landdoc-intelligence/pull/52) (app layer);
+  Azure-side config tracked in issue [#50](https://github.com/hectorreyesdev/landdoc-intelligence/issues/50),
+  docs in [#51](https://github.com/hectorreyesdev/landdoc-intelligence/issues/51)
