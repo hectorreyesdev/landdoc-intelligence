@@ -110,10 +110,11 @@ az containerapp revision list -n "$APP" -g "$RG" --query "[].{name:name,created:
 az containerapp revision activate -n "$APP" -g "$RG" --revision <good-revision-name>
 ```
 
-**Scale** — currently pinned at 1 always-on replica. To cut idle cost (~a few USD/mo), scale to zero
-(adds a cold start on the first request after idle):
+**Scale** — currently **scale-to-zero** (`min-replicas 0`, max 1, since 2026-06-10): no replica — and
+near-zero ACA cost — while idle, with a cold start of a few seconds on the first request after idle.
+Pin it back to always-on if cold starts annoy:
 ```bash
-az containerapp update -n "$APP" -g "$RG" --min-replicas 0       # or back to 1
+az containerapp update -n "$APP" -g "$RG" --min-replicas 1       # or back to 0
 ```
 
 **Change a non-secret setting** (no rebuild): `az containerapp update -n "$APP" -g "$RG" --set-env-vars KEY=VALUE`.
@@ -135,7 +136,8 @@ az containerapp revision restart -n "$APP" -g "$RG" --revision "$(az containerap
 ```
 
 ## Cost & teardown
-Idle cost ≈ a few USD/month (1 always-on replica + ACR Basic). Scale to zero (above) to trim without tearing
+Idle cost ≈ ~$5/month (ACR Basic; the app scales to zero — see **Scale** above). Pinning back to 1
+always-on replica adds ~$10–13/mo. Scale settings are why this stays cheap without tearing
 down. To remove resources, follow [DEPLOYMENT.md § 5](DEPLOYMENT.md) — delete **only what this deployment
 created** (app, env, registry, Log Analytics + the app-identity role assignments). The Key Vault, Azure AI
 resource, Azure AI Search, and the `stlanddochr01` storage account also live in `rg-landdoc-deomo`, so **do

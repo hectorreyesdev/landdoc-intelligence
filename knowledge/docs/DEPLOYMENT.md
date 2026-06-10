@@ -379,6 +379,6 @@ Only if you really want the whole environment gone:
 az group delete -n "$RG" --yes --no-wait
 ```
 
-> Cost note: with the app at 1 always-on replica plus ACR Basic, idle cost is ~a few USD/month. To cut
-> it without tearing down, scale to zero: `az containerapp update -n "$APP" -g "$RG" --min-replicas 0`
-> (adds a cold start on the first request after idle).
+> Cost note: the app runs **scale-to-zero** (`min-replicas 0`, since 2026-06-10), so idle cost ≈ ACR
+> Basic alone (~$5/mo), with a few-second cold start on the first request after idle. Pinning back to
+> 1 always-on replica (`--min-replicas 1`, as §1d originally set) adds ~$10–13/mo.

@@ -138,9 +138,10 @@ Operational steps live in [DEPLOYMENT.md](DEPLOYMENT.md) and [CICD.md](CICD.md).
 ## 8. Cost guardrails & teardown
 
 - Model/storage resources are **consumption / no idle cost** (Default settings not PTU · LRS not GRS). Budget
-  `landdoc-budget` $25 @ 50/80/100%. Phase D adds the Container App (always-on 1 replica) + ACR Basic ≈ a few
-  $/mo — still inside $25 for a few days. To cut ACA idle cost without tearing down, scale to zero:
-  `az containerapp update -n landdoc -g rg-landdoc-deomo --min-replicas 0` (adds a cold start after idle).
+  `landdoc-budget` $25 @ 50/80/100%. Phase D adds the Container App + ACR Basic; since 2026-06-10 the app
+  is **scale-to-zero** (`min-replicas 0`), so idle cost ≈ ACR Basic alone (~$5/mo) at the price of a
+  few-second cold start after idle. Pin back always-on:
+  `az containerapp update -n landdoc -g rg-landdoc-deomo --min-replicas 1` (~$10–13/mo more).
 - **Teardown after the interview (mandatory):**
   ```bash
   az group delete -n rg-landdoc-deomo --yes --no-wait        # drops every resource above (incl. Key Vault + AI)
